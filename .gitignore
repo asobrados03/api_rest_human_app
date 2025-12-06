@@ -1,0 +1,19 @@
+# Sensitive or high-churn files
+.idea/**/dataSources/
+
+# CMake
+cmake-build-*/
+
+# IntelliJ
+out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# SonarLint plugin
+.idea/sonarlint/
+
+
+# IntelliJ project files
+.idea
+
