@@ -74,14 +74,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// Rutas principales
 app.use('/api/mobile', prodReserveMobileRoutes);
 app.use('/api/mobile', serviceProductsMobileRoutes);
 app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
 app.use('/api/payments', paymentMobileRoutes);
-app.use('/api/profile_pic', express.static('/home/fran/human_backend/pictures/profile_pic'));
-app.use('/api/service_images', express.static('/home/fran/human_backend/pictures/service_images'));
-app.use('/api/product_images', express.static('/home/fran/human_backend/pictures/product_images'));
+app.use('/api/profile_pic', express.static(path.join(__dirname, 'pictures', 'profile_pic')));
+app.use('/api/service_images', express.static(path.join(__dirname, 'pictures', 'service_images')));
+app.use('/api/product_images', express.static(path.join(__dirname, 'pictures', 'product_images')));
 
 export default app;
