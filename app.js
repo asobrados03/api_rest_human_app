@@ -15,19 +15,17 @@ import path from 'path';
 const app = express();
 
 const dbConfig = {
-    host: 'localhost', // 127.0.0.1
+    host: 'localhost',
     port: 3306,
     user: 'root',
-    password: 'Selenium123',
-    database: 'DEV_humanperformcent_hp',
+    password: 'Selenium123!',
+    database: 'human_app',
     waitForConnections: true,
     connectionLimit: 20,
     queueLimit: 0,
-    connectTimeout: 20000,          // ↑ raise to 20s
-    acquireTimeout: 20000,
+    connectTimeout: 20000,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 10000,   // send TCP keep-alive every 10 s
-    charset: 'utf8mb4_general_ci',
+    charset: 'utf8mb4',
     timezone: 'Z',
     supportBigNumbers: true,
     bigNumberStrings: true
@@ -81,7 +79,6 @@ app.use('/api/mobile', prodReserveMobileRoutes);
 app.use('/api/mobile', serviceProductsMobileRoutes);
 app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
-app.use('/api/mobile', blogMobileRoutes);
 app.use('/api/payments', paymentMobileRoutes);
 app.use('/api/profile_pic', express.static('/home/fran/human_backend/pictures/profile_pic'));
 app.use('/api/service_images', express.static('/home/fran/human_backend/pictures/service_images'));
