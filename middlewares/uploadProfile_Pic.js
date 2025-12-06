@@ -1,0 +1,103 @@
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import fs from 'fs/promises';
+import sharp from 'sharp';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export const UPLOAD_PATH = path.resolve(__dirname, '../pictures/profile_pic')
+
+// Configuración del almacenamiento SIN renombrar el archivo
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, UPLOAD_PATH);
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname); // se mantiene el nombre original
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Solo se permiten imágenes JPG, JPEG o PNG'), false);
+    }
+};
+
+const upload = multer({
+    storage,
+    fileFilter,
+    limits: {fileSize: 10 * 1024 * 1024} // 10MB máximo permitido
+});
+
+// Middleware adicional para comprimir si supera 1MB
+export default upload;
+export const compressImageIfNeeded = async (req, res, next) => {
+    console.log("🧩 Entrando al middleware de compresión");
+    console.log("📂 Ruta de subida:", UPLOAD_PATH);
+    if (!req.file) {
+        console.log("❌ No se recibió ningún archivo en req.file");
+        return next();
+    }
+
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const filePath = path.resolve(UPLOAD_PATH, req.file.filename);
+
+    try {
+        const originalStats = await fs.stat(filePath);
+        const originalSizeMB = (originalStats.size / (1024 * 1024)).toFixed(2);
+
+        console.log(`📸 Imagen recibida: ${req.file.originalname}`);
+        console.log(`📦 Tamaño original: ${originalStats.size} bytes (${originalSizeMB} MB)`);
+
+        if (originalStats.size <= 1024 * 1024) {
+            console.log('🟢 No se necesita compresión (tamaño ≤ 1MB)');
+            return next();
+        }
+
+        let buffer;
+
+        if (ext === '.png') {
+            buffer = await sharp(filePath)
+                .png({ compressionLevel: 9 })
+                .toBuffer();
+        } else if (ext === '.jpg' || ext === '.jpeg') {
+            const image = sharp(filePath);
+            // Opcional: reducir resolución si la imagen es muy grande
+            const metadata = await image.metadata();
+            if (metadata.width > 1920) {
+                image.resize({ width: 1920 }); // redimensiona a máximo 1920px ancho
+            }
+
+            buffer = await image
+                .jpeg({
+                    quality: 70,
+                    mozjpeg: true, // compresión más eficiente
+                })
+                .toBuffer();
+
+        }
+
+        if (buffer) {
+            await fs.writeFile(filePath, buffer);
+            const compressedStats = await fs.stat(filePath);
+            const compressedSizeMB = (compressedStats.size / (1024 * 1024)).toFixed(2);
+
+            console.log(`✅ Imagen comprimida exitosamente`);
+            console.log(`🔻 Tamaño después: ${compressedStats.size} bytes (${compressedSizeMB} MB)`);
+        }
+
+        next();
+
+    } catch (err) {
+        console.error('❌ Error al comprimir imagen:', err);
+        return res.status(500).json({ error: 'Error al comprimir imagen' });
+    }
+};
