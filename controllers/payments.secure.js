@@ -1,9 +1,5 @@
-// payments.secure.js (nuevo archivo seguro con cifrado y firma para Addon)
-
 import crypto from 'crypto';
-import { Buffer } from 'buffer';
-import { ADDON_ID, ADDON_SECRET } from '../config.js';
-import fetch from 'node-fetch/src/index.js';
+import {ADDON_ID, ADDON_SECRET} from '../config.js';
 
 const TOKENIZE_URL = 'https://remote.sandbox.addonpayments.com/remote/tokenize';
 
@@ -79,6 +75,5 @@ export async function getTokenizedPaymentUrl({
     throw new Error(`Tokenize request failed: ${response.status}`);
     }
 
-    const redirectUrl = await response.text();
-    return redirectUrl;
+    return await response.text();
 }
