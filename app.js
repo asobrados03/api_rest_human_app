@@ -1,6 +1,11 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
 import dotenv from "dotenv";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -79,8 +84,14 @@ app.use('/api/mobile', serviceProductsMobileRoutes);
 app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
 app.use('/api/payments', paymentMobileRoutes);
-app.use('/api/profile_pic', express.static(path.join(__dirname, 'pictures', 'profile_pic')));
-app.use('/api/service_images', express.static(path.join(__dirname, 'pictures', 'service_images')));
-app.use('/api/product_images', express.static(path.join(__dirname, 'pictures', 'product_images')));
+
+app.use('/api/profile_pic', express.static(join(__dirname, 'pictures', 'profile_pic')));
+app.use('/api/service_images', express.static(join(__dirname, 'pictures', 'service_images')));
+app.use('/api/product_images', express.static(join(__dirname, 'pictures', 'product_images')));
+
+// Opcional: manejar rutas no encontradas
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Ruta no encontrada' });
+});
 
 export default app;
