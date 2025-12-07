@@ -89,9 +89,11 @@ app.use('/api/profile_pic', express.static(join(__dirname, 'pictures', 'profile_
 app.use('/api/service_images', express.static(join(__dirname, 'pictures', 'service_images')));
 app.use('/api/product_images', express.static(join(__dirname, 'pictures', 'product_images')));
 
-// Opcional: manejar rutas no encontradas
-app.use('*', (req, res) => {
-    res.status(404).json({ error: 'Ruta no encontrada' });
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Ruta no encontrada',
+        path: req.originalUrl
+    });
 });
 
 export default app;
