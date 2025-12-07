@@ -22,7 +22,7 @@ const app = express();
 const dbConfig = {
     host: 'localhost',
     port: 3306,
-    user: 'root',
+    user: 'api_user',
     password: 'Selenium123!',
     database: 'human_app',
     waitForConnections: true,
