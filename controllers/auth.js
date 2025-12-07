@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken'
 import crypto from 'node:crypto'
 import { sendResetEmail } from '../services/mailerService.js'
 import { logActivity } from "../utils/logger.js"
-import { dir } from 'node:console'
 
 export async function registerUser(req, res) {
     const {
@@ -15,12 +14,9 @@ export async function registerUser(req, res) {
         password,
         sexo,
         fecha_nacimiento: fechaNacimientoRaw,
-        codigoPostal,
-        direccionPostal,
-        dni,
-        tutor_nombre,
-        tutor_apellidos,
-        tutor_dni
+        codigo_postal: codigoPostal,
+        direccion_postal: direccionPostal,
+        dni
     } = req.body || {}
 
     const profilePicFilename = req.file ? req.file.filename : null
@@ -89,20 +85,6 @@ export async function registerUser(req, res) {
         )
 
         const userId = resultUser.insertId
-
-        // 🔹 Si es menor de edad, insertar también tutor
-        if (edad < 18) {
-            if (!tutor_nombre || !tutor_apellidos || !tutor_dni) {
-                await connection.rollback()
-                return res.status(400).json({ error: 'Faltan datos del tutor para usuario menor de edad' })
-            }
-
-            await connection.execute(
-                `INSERT INTO tutor (DNI, Nombre, Apellidos, tutorando_id)
-                VALUES (?, ?, ?, ?)`,
-                [tutor_dni.trim(), tutor_nombre.trim(), tutor_apellidos.trim(), userId]
-            )
-        }
 
         await connection.commit()
 
