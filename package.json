@@ -1,9 +1,11 @@
 {
-  "name": "api-rest-human-app",
-  "version": "0.0.0",
-  "private": true,
+  "name": "api_rest_human_app",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
   "dependencies": {
     "bcrypt": "6.0.0",
