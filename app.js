@@ -16,15 +16,22 @@ import authMobileRoutes from './routes/auth.js';
 import userMobileRoutes from './routes/user.js';
 
 import path from 'path';
+import fs from 'fs';
 
 const app = express();
+
+const serverCa = [fs.readFileSync("./DigiCertGlobalRootG2.crt.pem", "utf8")];
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    ssl: {
+        rejectUnauthorized: true,
+        ca: serverCa
+    }
 });
 
 pool.on('connection', (conn) => {
