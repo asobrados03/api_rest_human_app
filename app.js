@@ -19,24 +19,13 @@ import path from 'path';
 
 const app = express();
 
-const dbConfig = {
-    host: 'localhost',
-    port: 3306,
-    user: 'api_user',
-    password: 'Selenium123!',
-    database: 'human_app',
-    waitForConnections: true,
-    connectionLimit: 20,
-    queueLimit: 0,
-    connectTimeout: 20000,
-    enableKeepAlive: true,
-    charset: 'utf8mb4',
-    timezone: 'Z',
-    supportBigNumbers: true,
-    bigNumberStrings: true
-};
-
-const pool = mysql.createPool(dbConfig)
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+});
 
 pool.on('connection', (conn) => {
     conn.on('error', err => {
