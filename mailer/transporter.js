@@ -10,7 +10,7 @@ export const transporter = nodemailer.createTransport({
 })
 
 // Verificar la configuración al inicializar
-transporter.verify(function(error, success) {
+transporter.verify(function(error) {
     if (error) {
         console.log('Error en configuración de email:', error);
     } else {

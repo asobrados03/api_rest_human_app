@@ -1,11 +1,6 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
 import dotenv from "dotenv";
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -20,18 +15,12 @@ import fs from 'fs';
 
 const app = express();
 
-const serverCa = [fs.readFileSync("./DigiCertGlobalRootG2.crt.pem", "utf8")];
-
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: {
-        rejectUnauthorized: true,
-        ca: serverCa
-    }
+    database: process.env.DB_NAME
 });
 
 pool.on('connection', (conn) => {
@@ -81,9 +70,12 @@ app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
 app.use('/api/payments', paymentMobileRoutes);
 
-app.use('/api/profile_pic', express.static(join(__dirname, 'pictures', 'profile_pic')));
-app.use('/api/service_images', express.static(join(__dirname, 'pictures', 'service_images')));
-app.use('/api/product_images', express.static(join(__dirname, 'pictures', 'product_images')));
+const PICTURES_PATH = path.join(process.cwd(), 'pictures');
+
+app.use('/api/profile_pic', express.static(path.join(PICTURES_PATH, 'profile_pic')));
+app.use('/api/service_images', express.static(path.join(PICTURES_PATH, 'service_images')));
+app.use('/api/product_images', express.static(path.join(PICTURES_PATH, 'product_images')));
+
 
 app.use((req, res) => {
     res.status(404).json({

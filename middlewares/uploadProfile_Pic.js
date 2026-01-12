@@ -101,3 +101,17 @@ export const compressImageIfNeeded = async (req, res, next) => {
         return res.status(500).json({ error: 'Error al comprimir imagen' });
     }
 };
+
+export function handleProfilePicUpload(req, res, next) {
+    upload.single("profile_pic")(req, res, (err) => {
+        if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+            return res
+                .status(413)
+                .json({ error: "El archivo es demasiado grande. Máximo 10 MB." });
+        } else if (err) {
+            console.error("❌ Error al subir imagen:", err);
+            return res.status(400).json({ error: "Error al subir la imagen" });
+        }
+        next();
+    });
+}

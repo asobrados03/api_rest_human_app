@@ -319,7 +319,6 @@ export async function updateUser(req, res) {
     }
 }
 
-
 export async function deleteUser(req, res) {
   const emailToken = req.user_payload.email;
   const { email: rawEmail, password: rawPassword } = req.body || {};
@@ -1144,8 +1143,6 @@ export async function uploadCustomerDocument(req, res) {
         if (connection) connection.release();
     }
 }
-
-
 
 export async function deleteUserDocument(req, res) {
   const userId = req.user_payload.id;

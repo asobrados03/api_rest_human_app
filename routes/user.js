@@ -5,12 +5,10 @@ import { getUser, updateUser, deleteUser, getCoaches, assignPreferredCoach, getP
     deleteUserDocument, getUserDocuments, getEwalletBalance, getEwalletTransactions, checkSavedPaymentMethod,
     removeCouponToUser, getUserSubscriptions, uploadCustomerDocument, searchUsers, getSubscriptionsHistory,
     getUserTourFlag, setUserTourFlag } from '../controllers/user.js'
-import upload, { compressImageIfNeeded } from "../middlewares/uploadProfile_Pic.js"
-import multer from 'multer'
+import {compressImageIfNeeded, handleProfilePicUpload} from "../middlewares/uploadProfile_Pic.js"
 import uploadMobileDocument from '../middlewares/uploadDocument.js'
 import path from 'path'
 import fs from 'fs'
-
 
 const router = Router()
 
@@ -18,20 +16,6 @@ router.use((req, res, next) => {
     req.db = req.app.get('db')
     next()
 })
-
-function handleProfilePicUpload(req, res, next) {
-    upload.single("profile_pic")(req, res, (err) => {
-        if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
-            return res
-                .status(413)
-                .json({ error: "El archivo es demasiado grande. Máximo 10 MB." });
-        } else if (err) {
-            console.error("❌ Error al subir imagen:", err);
-            return res.status(400).json({ error: "Error al subir la imagen" });
-        }
-        next();
-    });
-}
 
 router.get('/user', verifyToken, getUser);
 router.put('/user', verifyToken, handleProfilePicUpload, compressImageIfNeeded, updateUser)
