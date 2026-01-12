@@ -1,0 +1,300 @@
+2026-01-12 17:46:54: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:46:54:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:46:54:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:46:54:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:46:54:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:46:54:   errno: -2,
+2026-01-12 17:46:54:   code: 'ENOENT',
+2026-01-12 17:46:54:   syscall: 'open',
+2026-01-12 17:46:54:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:46:54: }
+2026-01-12 17:48:58: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:48:58:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:48:58:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:48:58:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:48:58:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:48:58:   errno: -2,
+2026-01-12 17:48:58:   code: 'ENOENT',
+2026-01-12 17:48:58:   syscall: 'open',
+2026-01-12 17:48:58:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:48:58: }
+2026-01-12 17:51:01: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:51:01:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:51:01:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:51:01:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:51:01:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:51:01:   errno: -2,
+2026-01-12 17:51:01:   code: 'ENOENT',
+2026-01-12 17:51:01:   syscall: 'open',
+2026-01-12 17:51:01:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:51:01: }
+2026-01-12 17:53:04: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:53:04:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:53:04:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:53:04:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:53:04:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:53:04:   errno: -2,
+2026-01-12 17:53:04:   code: 'ENOENT',
+2026-01-12 17:53:04:   syscall: 'open',
+2026-01-12 17:53:04:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:53:04: }
+2026-01-12 17:55:07: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:55:07:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:55:07:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:55:07:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:55:07:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:55:07:   errno: -2,
+2026-01-12 17:55:07:   code: 'ENOENT',
+2026-01-12 17:55:07:   syscall: 'open',
+2026-01-12 17:55:07:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:55:07: }
+2026-01-12 17:57:10: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:57:10:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:57:10:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:57:10:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:57:10:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:57:10:   errno: -2,
+2026-01-12 17:57:10:   code: 'ENOENT',
+2026-01-12 17:57:10:   syscall: 'open',
+2026-01-12 17:57:10:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:57:10: }
+2026-01-12 17:59:14: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:59:14:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 17:59:14:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 17:59:14:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 17:59:14:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 17:59:14:   errno: -2,
+2026-01-12 17:59:14:   code: 'ENOENT',
+2026-01-12 17:59:14:   syscall: 'open',
+2026-01-12 17:59:14:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 17:59:14: }
+2026-01-12 18:01:17: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:01:17:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:01:17:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:01:17:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:01:17:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:01:17:   errno: -2,
+2026-01-12 18:01:17:   code: 'ENOENT',
+2026-01-12 18:01:17:   syscall: 'open',
+2026-01-12 18:01:17:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:01:17: }
+2026-01-12 18:03:20: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:03:20:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:03:20:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:03:20:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:03:20:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:03:20:   errno: -2,
+2026-01-12 18:03:20:   code: 'ENOENT',
+2026-01-12 18:03:20:   syscall: 'open',
+2026-01-12 18:03:20:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:03:20: }
+2026-01-12 18:05:23: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:05:23:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:05:23:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:05:23:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:05:23:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:05:23:   errno: -2,
+2026-01-12 18:05:23:   code: 'ENOENT',
+2026-01-12 18:05:23:   syscall: 'open',
+2026-01-12 18:05:23:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:05:23: }
+2026-01-12 18:07:26: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:07:26:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:07:26:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:07:26:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:07:26:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:07:26:   errno: -2,
+2026-01-12 18:07:26:   code: 'ENOENT',
+2026-01-12 18:07:26:   syscall: 'open',
+2026-01-12 18:07:26:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:07:26: }
+2026-01-12 18:09:30: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:09:30:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:09:30:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:09:30:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:09:30:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:09:30:   errno: -2,
+2026-01-12 18:09:30:   code: 'ENOENT',
+2026-01-12 18:09:30:   syscall: 'open',
+2026-01-12 18:09:30:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:09:30: }
+2026-01-12 18:11:33: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:11:33:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:11:33:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:11:33:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:11:33:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:11:33:   errno: -2,
+2026-01-12 18:11:33:   code: 'ENOENT',
+2026-01-12 18:11:33:   syscall: 'open',
+2026-01-12 18:11:33:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:11:33: }
+2026-01-12 18:13:36: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:13:36:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:13:36:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:13:36:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:13:36:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:13:36:   errno: -2,
+2026-01-12 18:13:36:   code: 'ENOENT',
+2026-01-12 18:13:36:   syscall: 'open',
+2026-01-12 18:13:36:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:13:36: }
+2026-01-12 18:15:39: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:15:39:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:15:39:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:15:39:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:15:39:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:15:39:   errno: -2,
+2026-01-12 18:15:39:   code: 'ENOENT',
+2026-01-12 18:15:39:   syscall: 'open',
+2026-01-12 18:15:39:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:15:39: }
+2026-01-12 18:17:42: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:17:42:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:17:42:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:17:42:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:17:42:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:17:42:   errno: -2,
+2026-01-12 18:17:42:   code: 'ENOENT',
+2026-01-12 18:17:42:   syscall: 'open',
+2026-01-12 18:17:42:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:17:42: }
+2026-01-12 18:19:45: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:19:45:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:19:45:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:19:45:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:19:45:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:19:45:   errno: -2,
+2026-01-12 18:19:45:   code: 'ENOENT',
+2026-01-12 18:19:45:   syscall: 'open',
+2026-01-12 18:19:45:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:19:45: }
+2026-01-12 18:21:49: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:21:49:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:21:49:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:21:49:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:21:49:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:21:49:   errno: -2,
+2026-01-12 18:21:49:   code: 'ENOENT',
+2026-01-12 18:21:49:   syscall: 'open',
+2026-01-12 18:21:49:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:21:49: }
+2026-01-12 18:23:52: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:23:52:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:23:52:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:23:52:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:23:52:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:23:52:   errno: -2,
+2026-01-12 18:23:52:   code: 'ENOENT',
+2026-01-12 18:23:52:   syscall: 'open',
+2026-01-12 18:23:52:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:23:52: }
+2026-01-12 18:25:55: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:25:55:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:25:55:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:25:55:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:25:55:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:25:55:   errno: -2,
+2026-01-12 18:25:55:   code: 'ENOENT',
+2026-01-12 18:25:55:   syscall: 'open',
+2026-01-12 18:25:55:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:25:55: }
+2026-01-12 18:27:58: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:27:58:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:27:58:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:27:58:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:27:58:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:27:58:   errno: -2,
+2026-01-12 18:27:58:   code: 'ENOENT',
+2026-01-12 18:27:58:   syscall: 'open',
+2026-01-12 18:27:58:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:27:58: }
+2026-01-12 18:30:02: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:30:02:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:30:02:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:30:02:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:30:02:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:30:02:   errno: -2,
+2026-01-12 18:30:02:   code: 'ENOENT',
+2026-01-12 18:30:02:   syscall: 'open',
+2026-01-12 18:30:02:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:30:02: }
+2026-01-12 18:32:05: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:32:05:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:32:05:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:32:05:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:32:05:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:32:05:   errno: -2,
+2026-01-12 18:32:05:   code: 'ENOENT',
+2026-01-12 18:32:05:   syscall: 'open',
+2026-01-12 18:32:05:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:32:05: }
+2026-01-12 18:34:08: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:34:08:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:34:08:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:34:08:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:34:08:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:34:08:   errno: -2,
+2026-01-12 18:34:08:   code: 'ENOENT',
+2026-01-12 18:34:08:   syscall: 'open',
+2026-01-12 18:34:08:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:34:08: }
+2026-01-12 18:36:11: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:36:11:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:36:11:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:36:11:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:36:11:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:36:11:   errno: -2,
+2026-01-12 18:36:11:   code: 'ENOENT',
+2026-01-12 18:36:11:   syscall: 'open',
+2026-01-12 18:36:11:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:36:11: }
+2026-01-12 18:38:14: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:38:14:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:38:14:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:38:14:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:38:14:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:38:14:   errno: -2,
+2026-01-12 18:38:14:   code: 'ENOENT',
+2026-01-12 18:38:14:   syscall: 'open',
+2026-01-12 18:38:14:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:38:14: }
+2026-01-12 18:40:18: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:40:18:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:40:18:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:40:18:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:40:18:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:40:18:   errno: -2,
+2026-01-12 18:40:18:   code: 'ENOENT',
+2026-01-12 18:40:18:   syscall: 'open',
+2026-01-12 18:40:18:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:40:18: }
+2026-01-12 18:42:21: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:42:21:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:42:21:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:42:21:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:42:21:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:42:21:   errno: -2,
+2026-01-12 18:42:21:   code: 'ENOENT',
+2026-01-12 18:42:21:   syscall: 'open',
+2026-01-12 18:42:21:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:42:21: }
+2026-01-12 18:44:24: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:44:24:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:44:24:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:44:24:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:44:24:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:44:24:   errno: -2,
+2026-01-12 18:44:24:   code: 'ENOENT',
+2026-01-12 18:44:24:   syscall: 'open',
+2026-01-12 18:44:24:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:44:24: }
+2026-01-12 18:46:27: Error: ENOENT: no such file or directory, open './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:46:27:     at Object.readFileSync (node:fs:449:20)
+2026-01-12 18:46:27:     at file:///opt/human-app/app/app.js:23:22
+2026-01-12 18:46:27:     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-01-12 18:46:27:     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2026-01-12 18:46:27:   errno: -2,
+2026-01-12 18:46:27:   code: 'ENOENT',
+2026-01-12 18:46:27:   syscall: 'open',
+2026-01-12 18:46:27:   path: './DigiCertGlobalRootG2.crt.pem'
+2026-01-12 18:46:27: }
