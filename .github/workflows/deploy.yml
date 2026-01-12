@@ -1,0 +1,25 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/human-app/app
+            git pull origin main
+            npm ci --omit=dev
+            pm2 reload ecosystem.config.js
+            pm2 save
+            echo "✅ Deploy completado exitosamente"
