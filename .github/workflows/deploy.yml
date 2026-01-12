@@ -36,7 +36,7 @@ jobs:
             npm ci --omit=dev
 
             # Recargar PM2
-            pm2 reload ecosystem.config.js
+            pm2 reload ecosystem.config.cjs
             pm2 save
 
             echo "✅ Deploy completado exitosamente"
