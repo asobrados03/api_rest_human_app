@@ -6,7 +6,10 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-export const UPLOAD_DOC_PATH = path.resolve(__dirname, '..', 'uploads', 'users', 'documents')
+// En el archivo de upload de documentos
+export const UPLOAD_DOC_PATH = process.env.NODE_ENV === 'production'
+    ? '/var/uploads/human-app/document'
+    : path.resolve(__dirname, '../pictures/document');
 
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {

@@ -8,7 +8,12 @@ import sharp from 'sharp';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const UPLOAD_PATH = path.resolve(__dirname, '../pictures/profile_pic')
+// Usar directorio persistente en producción, local en desarrollo
+export const UPLOAD_PATH = process.env.NODE_ENV === 'production'
+    ? '/var/uploads/human-app/profile_pic'
+    : path.resolve(__dirname, '../pictures/profile_pic');
+
+console.log('📁 UPLOAD_PATH configurado:', UPLOAD_PATH);
 
 // Configuración del almacenamiento SIN renombrar el archivo
 const storage = multer.diskStorage({
@@ -46,7 +51,6 @@ export const compressImageIfNeeded = async (req, res, next) => {
         return next();
     }
 
-
     const ext = path.extname(req.file.originalname).toLowerCase();
     const filePath = path.resolve(UPLOAD_PATH, req.file.filename);
 
@@ -82,7 +86,6 @@ export const compressImageIfNeeded = async (req, res, next) => {
                     mozjpeg: true, // compresión más eficiente
                 })
                 .toBuffer();
-
         }
 
         if (buffer) {
