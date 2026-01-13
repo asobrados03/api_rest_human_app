@@ -34,19 +34,15 @@ pool.on('error', err => {
 
 app.set('db', pool);
 
-// Ruta base de prueba
 app.get('/api/ping', (req, res) => {
     res.json({ message: '¡ping, funcionó!' });
 });
 
-// Ruta rápida de health chec
 app.get('/api/health', async (req, res) => {
     try {
-        // Ping ligero a MySQL para asegurar que respondes
         const conn = await req.app.get('db').getConnection();
-        await conn.ping(); // operación rápida, no consulta
+        await conn.ping();
         conn.release();
-
         res.status(200).json({ ok: true });
     } catch (err) {
         console.error('❌ Error en /api/health:', err.message);
@@ -54,15 +50,41 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-app.get('/api/document/:filename', (req, res) => {
-    const DOCUMENTS_DIR = path.join(process.cwd(), 'pictures', 'document');
-    const filePath = path.join(DOCUMENTS_DIR, req.params.filename);
-    res.download(filePath); // <-- Esto envía Content-Disposition: attachment
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Directorios híbridos: estáticos en repo, uploads fuera
+const STATIC_PICTURES_PATH = path.join(process.cwd(), 'pictures');
+const UPLOAD_PATH = process.env.NODE_ENV === 'production'
+    ? '/var/uploads/human-app'
+    : path.join(process.cwd(), 'pictures');
+
+// Crear directorios de upload si no existen
+const ensureUploadDirs = () => {
+    const dirs = [
+        path.join(UPLOAD_PATH, 'profile_pic'),
+        path.join(UPLOAD_PATH, 'document')
+    ];
+
+    dirs.forEach(dir => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    });
+};
+
+ensureUploadDirs();
+
+app.get('/api/document/:filename', (req, res) => {
+    const DOCUMENTS_DIR = path.join(UPLOAD_PATH, 'document');
+    const filePath = path.join(DOCUMENTS_DIR, req.params.filename);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Document not found' });
+    }
+
+    res.download(filePath);
+});
 
 app.use('/api/mobile', prodReserveMobileRoutes);
 app.use('/api/mobile', serviceProductsMobileRoutes);
@@ -70,12 +92,12 @@ app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
 app.use('/api/payments', paymentMobileRoutes);
 
-const PICTURES_PATH = path.join(process.cwd(), 'pictures');
+// Imágenes de usuario (persistentes, fuera del repo)
+app.use('/api/profile_pic', express.static(path.join(UPLOAD_PATH, 'profile_pic')));
 
-app.use('/api/profile_pic', express.static(path.join(PICTURES_PATH, 'profile_pic')));
-app.use('/api/service_images', express.static(path.join(PICTURES_PATH, 'service_images')));
-app.use('/api/product_images', express.static(path.join(PICTURES_PATH, 'product_images')));
-
+// Imágenes estáticas del proyecto (en el repo)
+app.use('/api/service_images', express.static(path.join(STATIC_PICTURES_PATH, 'service_images')));
+app.use('/api/product_images', express.static(path.join(STATIC_PICTURES_PATH, 'product_images')));
 
 app.use((req, res) => {
     res.status(404).json({
