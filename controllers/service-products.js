@@ -10,10 +10,10 @@ export async function getAllServices(req, res) {
   try {
     connection = await req.db.getConnection();
     const [services] = await connection.query(`
-      SELECT primary_service_id AS id,
+      SELECT service_id AS id,
              name,
              image
-      FROM primary_service
+      FROM services
       WHERE deleted_at IS NULL
     `);
     res.json(services);
