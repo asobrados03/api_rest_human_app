@@ -25,9 +25,9 @@ export async function getAllServices(req, res) {
 }
 
 export async function getServiceProducts(req, res) {
-  const { primary_service_id } = req.query;
+  const { primary_service_id } = req.query; // Android envía este ID
   if (isNaN(primary_service_id)) {
-    return res.status(400).json({ error: 'Parámetro primary_service_id inválido o ausente' });
+    return res.status(400).json({ error: 'Parámetro ID inválido' });
   }
 
   let connection;
@@ -41,18 +41,17 @@ export async function getServiceProducts(req, res) {
         p.sell_price AS price,
         p.product_image AS image,
         p.type_of_product,
-        p.centro,
         ps.session
       FROM products p
              JOIN product_services ps ON p.product_id = ps.product_id
-      WHERE ps.primary_service_id = ? AND p.deleted_at IS NULL
+      WHERE ps.service_id = ? AND p.deleted_at IS NULL
       GROUP BY p.product_id
-    `, [primary_service_id]);
+    `, [primary_service_id]); // Aquí usamos service_id en el WHERE
 
     res.json(products);
   } catch (err) {
     console.error('[ERROR] GET /service-products →', err);
-    res.status(500).json({ error: 'Error al obtener productos del servicio', details: err.message });
+    res.status(500).json({ error: 'Error al obtener productos', details: err.message });
   } finally {
     if (connection) connection.release();
   }
