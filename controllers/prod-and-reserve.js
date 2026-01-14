@@ -1388,9 +1388,3 @@ export async function getBookingQuestionnaireStatus(req, res) {
     return res.status(500).json({ error: 'Error al consultar cuestionario', details: err.message })
   }
 }
-
-
-
-
-
-
