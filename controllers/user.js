@@ -395,26 +395,15 @@ export async function deleteUser(req, res) {
 }
 
 export async function getCoaches(req, res) {
-    // Lista de nombres a excluir
-    const excludedNames = ['COMODIN', 'ALTER G', 'Servicio de presoterapia']
-
-    // Generamos placeholders para la query parametrizada
-    const placeholders = excludedNames.map(_ => '?').join(',')
-
     const sql = `
         SELECT u.user_id       AS id,
-               u.profile_pic   AS profile_photo,
                u.user_name     AS name,
-               s.name  AS service,
-               se.centro AS centro
+               u.profile_pic   AS profile_photo,
+               se.service_name AS service
         FROM users u
-        JOIN services se ON u.service_id = se.service_id
-        JOIN service_primary sp ON se.service_id = sp.service_id
-        JOIN primary_service s ON sp.primary_service_id = s.primary_service_id
+        LEFT JOIN services se ON u.service_id = se.service_id
         WHERE u.type = 'coach'
           AND u.deleted_at IS NULL
-          -- Excluimos los nombres no-persona
-          AND UPPER(u.user_name) NOT IN (${placeholders})
         ORDER BY u.created_at DESC`
 
     let connection
@@ -423,8 +412,7 @@ export async function getCoaches(req, res) {
         connection = await req.db.getConnection()
         await connection.beginTransaction()
 
-        // Pasamos el array de excludedNames como parámetros
-        const [rows] = await connection.query(sql, excludedNames)
+        const [rows] = await connection.query(sql)
 
         await connection.commit()
 
