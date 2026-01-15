@@ -440,13 +440,13 @@ export async function assignPreferredCoach(req, res) {
         connection = await req.db.getConnection()
         await connection.beginTransaction()
 
-        // 1) Buscar el primary_service_id a partir de service_name
-        console.log("Buscando primary_service_id para:", service_name)
+        // 1) Buscar el service_id a partir de service_name
+        console.log("Buscando service_id para:", service_name)
 
         const [services] = await connection.query(
-            `SELECT primary_service_id
-             FROM primary_service
-             WHERE name = ?
+            `SELECT service_id
+             FROM services
+             WHERE service_name = ?
                AND deleted_at IS NULL
                  LIMIT 1`,
             [service_name]
@@ -459,22 +459,22 @@ export async function assignPreferredCoach(req, res) {
             })
         }
 
-        const service_id = services[0].primary_service_id
+        const service_id = services[0].service_id
 
         // 2) Verificar si ya hay un entrenador favorito para este cliente
         const [existing] = await connection.query(
             `SELECT preferred_coach_id
-            FROM preferred_coach
-            WHERE customer_id = ? AND service_id = ?`,
+             FROM preferred_coach
+             WHERE customer_id = ? AND service_id = ?`,
             [customer_id, service_id]
-        );
+        )
 
         if (existing.length > 0) {
             // 3a) UPDATE
             await connection.query(
                 `UPDATE preferred_coach
-                    SET coach_id = ?,
-                        updated_at = CURRENT_TIMESTAMP()
+                 SET coach_id = ?,
+                     updated_at = CURRENT_TIMESTAMP()
                  WHERE preferred_coach_id = ?`,
                 [coach_id, existing[0].preferred_coach_id]
             )
@@ -510,7 +510,7 @@ export async function assignPreferredCoach(req, res) {
                 await logActivity(req, {
                     subject: `El usuario con id ${customer_id} marcó como favorito al profesional con id ${coach_id}`,
                     userId: req.user_payload.id || 0
-                });
+                })
             } catch (logErr) {
                 console.error("⚠️ Logging error (assignPreferredCoach):", logErr)
             }
