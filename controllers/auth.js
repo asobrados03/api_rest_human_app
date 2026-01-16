@@ -16,7 +16,8 @@ export async function registerUser(req, res) {
         fecha_nacimiento: fechaNacimientoRaw,
         codigo_postal: codigoPostal,
         direccion_postal: direccionPostal,
-        dni
+        dni,
+        device_type: deviceType
     } = req.body || {}
 
     const profilePicFilename = req.file ? req.file.filename : null
@@ -71,17 +72,17 @@ export async function registerUser(req, res) {
 
         // Hashear contraseña e insertar usuario
         const hashedPassword = await bcrypt.hash(password, 10)
-        const sexo1 = sexo ? sexo.trim() : null;
-        const direccionPostal1 = direccionPostal ? direccionPostal.trim() : null;
-        const dni1 = dni ? dni.trim() : null;
+        const sexoLimpio = sexo ? sexo.trim() : null;
+        const direccionPostalLimpia = direccionPostal ? direccionPostal.trim() : null;
+        const dniLimpio = dni ? dni.trim() : null;
 
         const nombreCompleto = `${nombre.trim()} ${apellidos.trim()}`
         const [resultUser] = await connection.execute(
             `INSERT INTO users
             (user_name, email, password, phone, sex, date_of_birth, postal_code, dni, address, profile_pic, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-            [nombreCompleto, email, hashedPassword, telefono.trim(), sexo1,
-                fechaSql, codigoPostal.trim(), dni1, direccionPostal1, profilePicFilename]
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [nombreCompleto, email, hashedPassword, telefono.trim(), sexoLimpio,
+                fechaSql, codigoPostal.trim(), dniLimpio, direccionPostalLimpia, profilePicFilename, deviceType]
         )
 
         const userId = resultUser.insertId
