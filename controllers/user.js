@@ -1024,7 +1024,7 @@ export async function uploadUserDocument(req, res) {
         await connection.beginTransaction();
 
         await connection.execute(`
-            INSERT INTO dropbox (customer_id, document_original_name, document, created_at)
+            INSERT INTO user_documents (user_id, original_name, file_path, created_at)
             VALUES (?, ?, ?, NOW())
         `, [userId, req.file.originalname, filename]);
 
