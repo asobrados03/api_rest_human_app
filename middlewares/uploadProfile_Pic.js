@@ -1,17 +1,11 @@
 import multer from 'multer';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Usar directorio persistente en producción, local en desarrollo
 export const UPLOAD_PATH = process.env.NODE_ENV === 'production'
     ? '/var/uploads/human-app/profile_pic'
-    : path.resolve(__dirname, '../pictures/profile_pic');
+    : path.join(process.cwd(), 'pictures', 'profile_pic');
 
 console.log('📁 UPLOAD_PATH configurado:', UPLOAD_PATH);
 
