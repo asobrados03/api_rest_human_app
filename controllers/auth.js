@@ -79,7 +79,7 @@ export async function registerUser(req, res) {
         const nombreCompleto = `${nombre.trim()} ${apellidos.trim()}`
         const [resultUser] = await connection.execute(
             `INSERT INTO users
-            (user_name, email, password, phone, sex, date_of_birth, postal_code, dni, address, profile_pic, created_at)
+            (user_name, email, password, phone, sex, date_of_birth, postal_code, dni, address, profile_pic, device_type, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
             [nombreCompleto, email, hashedPassword, telefono.trim(), sexoLimpio,
                 fechaSql, codigoPostal.trim(), dniLimpio, direccionPostalLimpia, profilePicFilename, deviceType]
