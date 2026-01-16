@@ -722,108 +722,106 @@ export async function deleteProfilePic(req, res) {
 }
 
 export async function getUserStats(req, res) {
-  const userId = req.query.user_id;
-  if (!userId) return res.status(400).json({ error: 'Falta user_id' });
+    const userId = req.query.user_id;
+    if (!userId) return res.status(400).json({ error: 'Falta user_id' });
 
-  // Ventana del mes pasado
-  const monthWindow = `
+    // Ventana del mes pasado
+    const monthWindow = `
     b.start_date BETWEEN
       DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
       AND LAST_DAY(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
   `;
 
-  const sqlCountLastMonthByService = `
-    SELECT b.service_id,
-           s.name AS service_name,
-           COUNT(*) AS total
-    FROM bookings b
-    JOIN primary_service s ON s.primary_service_id = b.service_id
-    WHERE b.customer_id = ?
-      AND ${monthWindow}
-      AND b.deleted_at IS NULL
-      AND b.status = 'active'
-    GROUP BY b.service_id, s.name
-  `;
-
-  const sqlTopCoachByService = `
-    SELECT x.service_id,
-           x.service_name,
-           x.coach_name,
-           x.cnt
-    FROM (
-      SELECT b.service_id,
-             s.name AS service_name,
-             u.user_name AS coach_name,
-             COUNT(*) AS cnt,
-             ROW_NUMBER() OVER (PARTITION BY b.service_id ORDER BY COUNT(*) DESC) AS rn
-      FROM bookings b
-      JOIN users u           ON u.user_id = b.coach_id
-      JOIN primary_service s ON s.primary_service_id = b.service_id
-      WHERE b.customer_id = ?
-        AND u.deleted_at IS NULL
-      GROUP BY b.service_id, s.name, u.user_name
-    ) x
-    WHERE x.rn = 1
-  `;
-
-  const sqlPendingByService = `
-    SELECT 
-        b.service_id,
-        s.name AS service_name,
-        COUNT(*) AS total
+    const sqlCountLastMonthByService = `
+        SELECT b.service_id,
+               s.service_name AS service_name,
+               COUNT(*) AS total
         FROM bookings b
-        JOIN primary_service s 
-        ON s.primary_service_id = b.service_id
-        WHERE 
-            b.customer_id = ?
-        AND DATE(b.start_date) >= CURDATE()
-        AND b.deleted_at IS NULL
-        AND b.status <> 'canceled'
-    GROUP BY b.service_id, s.name
-  `;
+                 JOIN services s ON s.service_id = b.service_id
+        WHERE b.customer_id = ?
+          AND ${monthWindow}
+          AND b.deleted_at IS NULL
+          AND b.status = 'active'
+        GROUP BY b.service_id, s.service_name
+    `;
 
-  let connection;
-  try {
-    connection = await req.db.getConnection();
+    const sqlTopCoachByService = `
+        SELECT x.service_id,
+               x.service_name,
+               x.coach_name,
+               x.cnt
+        FROM (
+                 SELECT b.service_id,
+                        s.service_name AS service_name,
+                        u.user_name AS coach_name,
+                        COUNT(*) AS cnt,
+                        ROW_NUMBER() OVER (PARTITION BY b.service_id ORDER BY COUNT(*) DESC) AS rn
+                 FROM bookings b
+                          JOIN users u ON u.user_id = b.coach_id
+                          JOIN services s ON s.service_id = b.service_id
+                 WHERE b.customer_id = ?
+                   AND u.deleted_at IS NULL
+                 GROUP BY b.service_id, s.service_name, u.user_name
+             ) x
+        WHERE x.rn = 1
+    `;
 
-    const [rowsLastMonth] = await connection.query(sqlCountLastMonthByService, [userId]);
-    const [rowsTopCoach]  = await connection.query(sqlTopCoachByService, [userId]);
-    const [rowsPending]   = await connection.query(sqlPendingByService, [userId]);
+    const sqlPendingByService = `
+        SELECT
+            b.service_id,
+            s.service_name AS service_name,
+            COUNT(*) AS total
+        FROM bookings b
+                 JOIN services s ON s.service_id = b.service_id
+        WHERE b.customer_id = ?
+          AND DATE(b.start_date) >= CURDATE()
+          AND b.deleted_at IS NULL
+          AND b.status <> 'canceled'
+        GROUP BY b.service_id, s.service_name
+    `;
 
-    const byService = new Map();
-    const upsert = (sid, name) => {
-      if (!byService.has(sid)) {
-        byService.set(sid, {
-          service_id: sid,
-          service_name: name || '',
-          entrenamientosMesPasado: 0,
-          entrenadorMasUsado: null,
-          reservasPendientes: 0
-        });
-      }
-      return byService.get(sid);
-    };
+    let connection;
+    try {
+        connection = await req.db.getConnection();
 
-    for (const r of rowsLastMonth) {
-      const it = upsert(r.service_id, r.service_name);
-      it.entrenamientosMesPasado = r.total ?? 0;
+        const [rowsLastMonth] = await connection.query(sqlCountLastMonthByService, [userId]);
+        const [rowsTopCoach]  = await connection.query(sqlTopCoachByService, [userId]);
+        const [rowsPending]   = await connection.query(sqlPendingByService, [userId]);
+
+        const byService = new Map();
+        const upsert = (sid, name) => {
+            if (!byService.has(sid)) {
+                byService.set(sid, {
+                    service_id: sid,
+                    service_name: name || '',
+                    entrenamientosMesPasado: 0,
+                    entrenadorMasUsado: null,
+                    reservasPendientes: 0
+                });
+            }
+            return byService.get(sid);
+        };
+
+        for (const r of rowsLastMonth) {
+            const it = upsert(r.service_id, r.service_name);
+            it.entrenamientosMesPasado = r.total ?? 0;
+        }
+        for (const r of rowsTopCoach) {
+            const it = upsert(r.service_id, r.service_name);
+            it.entrenadorMasUsado = r.coach_name || null;
+        }
+        for (const r of rowsPending) {
+            const it = upsert(r.service_id, r.service_name);
+            it.reservasPendientes = r.total ?? 0;
+        }
+
+        res.status(200).json({ byService: Array.from(byService.values()) });
+    } catch (err) {
+        console.error('Error en getUserStats →', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
     }
-    for (const r of rowsTopCoach) {
-      const it = upsert(r.service_id, r.service_name);
-      it.entrenadorMasUsado = r.coach_name || null;
-    }
-    for (const r of rowsPending) {
-      const it = upsert(r.service_id, r.service_name);
-      it.reservasPendientes = r.total ?? 0;
-    }
-
-    res.status(200).json({ byService: Array.from(byService.values()) });
-  } catch (err) {
-    console.error('Error en getUserStats →', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    if (connection) connection.release();
-  }
 }
 
 // util CSV
