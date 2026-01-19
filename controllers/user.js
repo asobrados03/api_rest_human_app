@@ -2,7 +2,6 @@ import {logActivity} from "../utils/logger.js"
 import fs from 'fs'
 import path, { join } from 'path'
 import { promisify } from 'util'
-import bcrypt from 'bcrypt'
 import { UPLOAD_PATH } from "../middlewares/uploadProfile_Pic.js"
 
 const unlinkAsync = promisify(fs.unlink)
@@ -320,78 +319,76 @@ export async function updateUser(req, res) {
 }
 
 export async function deleteUser(req, res) {
-  const emailToken = req.user_payload.email;
-  const { email: rawEmail, password: rawPassword } = req.body || {};
+    const emailToken = req.user_payload.email;
 
-  if (!rawEmail || !rawPassword) {
-    return res.status(400).json({ error: "Se requieren email y contraseña" });
-  }
+    // 1️⃣ CHANGE: Read from query parameters (URL), not the body
+    // The client sends: DELETE /mobile/user?email=...
+    const { email: rawEmail } = req.query;
 
-  if (rawEmail !== emailToken) {
-    return res.status(401).json({ error: "No estás autorizado" });
-  }
-
-  let connection;
-  try {
-    connection = await req.db.getConnection();
-
-    const email = rawEmail.trim().toLowerCase();
-
-    // 1️⃣ Buscar usuario
-    const [rows] = await connection.execute(
-      "SELECT user_id, password FROM users WHERE email = ?",
-      [email]
-    );
-
-    if (!rows.length) {
-      return res.status(404).json({ error: `Usuario '${email}' no encontrado` });
+    // 2️⃣ CHANGE: Removed password check since client does not send it
+    if (!rawEmail) {
+        return res.status(400).json({ error: "Se requiere el email" });
     }
 
-    const user = rows[0];
-
-    // 2️⃣ Validar contraseña con bcrypt (igual que en loginUser)
-    const match = await bcrypt.compare(rawPassword, user.password);
-    if (!match) {
-      return res.status(401).json({ error: "Contraseña incorrecta" });
+    // Security Check: Ensure the requested email matches the token email
+    if (rawEmail !== emailToken) {
+        return res.status(401).json({ error: "No estás autorizado para eliminar este usuario" });
     }
 
-    await connection.beginTransaction();
-
-    // 3️⃣ Eliminar usuario
-    const [result] = await connection.execute(
-      "DELETE FROM users WHERE email = ?",
-      [email]
-    );
-
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res
-        .status(404)
-        .json({ error: `No se encontró ningún usuario con email '${email}'` });
-    }
-
-    // 4️⃣ Log de actividad
+    let connection;
     try {
-      await logActivity(req, {
-        subject: `El usuario con email ${email} fue eliminado`,
-        userId: user.user_id,
-      });
-    } catch (logErr) {
-      console.error("⚠️ Logging error (deleteUser):", logErr);
+        connection = await req.db.getConnection();
+        const email = rawEmail.trim().toLowerCase();
+
+        // 3️⃣ CHANGE: Check if user exists (Password verification removed)
+        const [rows] = await connection.execute(
+            "SELECT user_id FROM users WHERE email = ?",
+            [email]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ error: `Usuario '${email}' no encontrado` });
+        }
+
+        const user = rows[0];
+
+        await connection.beginTransaction();
+
+        // 4️⃣ Execute Delete
+        const [result] = await connection.execute(
+            "DELETE FROM users WHERE email = ?",
+            [email]
+        );
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return res
+                .status(404)
+                .json({ error: `No se encontró ningún usuario con email '${email}'` });
+        }
+
+        // 5️⃣ Log activity
+        try {
+            await logActivity(req, {
+                subject: `El usuario con email ${email} fue eliminado (via Mobile)`,
+                userId: user.user_id,
+            });
+        } catch (logErr) {
+            console.error("⚠️ Logging error (deleteUser):", logErr);
+        }
+
+        await connection.commit();
+
+        return res
+            .status(200)
+            .json({ message: `Usuario '${email}' eliminado correctamente` });
+    } catch (err) {
+        console.error(`Error al eliminar usuario ${rawEmail}:`, err);
+        if (connection) await connection.rollback();
+        return res.status(500).json({ error: "Error interno al eliminar el usuario" });
+    } finally {
+        if (connection) connection.release();
     }
-
-    await connection.commit();
-
-    return res
-      .status(200)
-      .json({ message: `Usuario '${email}' eliminado correctamente` });
-  } catch (err) {
-    console.error(`Error al eliminar usuario ${rawEmail}:`, err);
-    if (connection) await connection.rollback();
-    return res.status(500).json({ error: "Error interno al eliminar el usuario" });
-  } finally {
-    if (connection) connection.release();
-  }
 }
 
 export async function getCoaches(req, res) {

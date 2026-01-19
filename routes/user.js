@@ -19,7 +19,7 @@ router.use((req, res, next) => {
 
 router.get('/user', verifyToken, getUser);
 router.put('/user', verifyToken, handleProfilePicUpload, compressImageIfNeeded, updateUser)
-router.post('/user', verifyToken, deleteUser)
+router.delete('/user', verifyToken, deleteUser)
 router.get('/list_coaches', verifyToken, getCoaches)
 router.post('/user/preferred-coach', verifyToken, assignPreferredCoach)
 router.get('/user/preferred-coach', verifyToken, getPreferredCoach)
