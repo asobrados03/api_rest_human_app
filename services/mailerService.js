@@ -2,7 +2,7 @@ import { transporter } from '../mailer/transporter.js';
 
 export async function sendResetEmail(email, plainPassword) {
     const mailOptions = {
-        from: `"Soporte de Human Perform Center" <${process.env.MAIL_USERNAME}>`, // Corregido: usar backticks
+        from: `"Soporte de Human Perform Center" <${process.env.GMAIL_FROM}>`,
         to: email,
         subject: 'Restablecimiento de contraseña',
         text: `
