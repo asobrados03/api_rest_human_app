@@ -7,67 +7,51 @@ import { UPLOAD_PATH } from "../middlewares/uploadProfile_Pic.js"
 const unlinkAsync = promisify(fs.unlink)
 
 export async function getUser(req, res) {
-  const { user_id } = req.query;
-  if (!user_id) {
-    return res.status(400).json({ error: "Falta user_id" });
-  }
-
-  let connection;
-  try {
-    connection = await req.db.getConnection();
-
-    const [rows] = await connection.execute(
-      `SELECT 
-         u.user_id       AS id,
-         u.user_name     AS fullName,
-         u.email,
-         u.phone,
-         u.sex,
-         u.date_of_birth AS dateOfBirth,
-         u.postal_code   AS postcode,
-         u.address       AS postAddress,
-         u.dni,
-         u.profile_pic   AS profilePictureName,
-         u.type,
-         u.language,
-         u.customer_training_factor,
-         u.customer_company,
-         u.aprende_entrenar,
-         u.tour,
-         u.is_account_verified,
-         u.is_authorized,
-         u.is_cash_setup,
-         u.stripe_customer_id,
-         u.device_type,
-         u.device_token,
-         u.created_at,
-         u.updated_at
-       FROM users u
-       WHERE u.user_id = ? AND u.deleted_at IS NULL
-       LIMIT 1`,
-      [user_id]
-    );
-
-    if (!rows.length) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+    const { user_id } = req.query;
+    if (!user_id) {
+        return res.status(400).json({ error: "Falta user_id" });
     }
 
-    const user = rows[0];
+    let connection;
+    try {
+        connection = await req.db.getConnection();
 
-    // añadir URL completa a la foto de perfil si existe
-    if (user.profilePictureName) {
-      user.profilePictureUrl = `${process.env.API_BASE}/api/profile_pic/${user.profilePictureName}`;
+        const [rows] = await connection.execute(
+            `SELECT
+                 u.user_id       AS id,
+                 u.user_name     AS fullName,
+                 u.email,
+                 u.phone,
+                 u.sex,
+                 DATE_FORMAT(u.date_of_birth, '%d/%m/%Y') AS dateOfBirth, -- Formato dd/mm/yyyy
+                 u.postal_code   AS postcode,
+                 u.address       AS postAddress,
+                 u.dni,
+                 u.profile_pic   AS profilePictureName
+             FROM users u
+             WHERE u.user_id = ? AND u.deleted_at IS NULL
+                 LIMIT 1`,
+            [user_id]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        const user = rows[0];
+
+        user.profilePictureName = user.profilePictureName || null;
+        user.dni = user.dni || null;
+        user.postcode = user.postcode ? parseInt(user.postcode) : null;
+
+        return res.status(200).json(user);
+    } catch (err) {
+        console.error("❌ getUser error:", err);
+        return res.status(500).json({ error: "Error interno del servidor" });
+    } finally {
+        if (connection) connection.release();
     }
-
-    return res.status(200).json(user);
-  } catch (err) {
-    console.error("❌ getUser error:", err);
-    return res.status(500).json({ error: "Error interno del servidor" });
-  } finally {
-    if (connection) connection.release();
-  }
 }
-
 
 export async function getUserSubscriptions(req, res) {
   let connection;
