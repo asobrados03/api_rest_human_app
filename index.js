@@ -2,6 +2,11 @@ import 'dotenv/config';
 import app from './app.js';
 import { createServer } from 'http';
 
+console.log('--- Verificación de Entorno ---');
+console.log('CWD:', process.cwd());
+console.log('JWT Key existe:', !!process.env.SECRET_JWT_KEY);
+console.log('-------------------------------');
+
 const PORT = process.env.PORT || 8085;
 const HOST = '0.0.0.0';   // imprescindible en Azure/Caddy
 
