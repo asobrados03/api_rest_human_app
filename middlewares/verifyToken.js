@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken'
-import { SECRET_JWT_KEY } from '../config.js'
 
 export function verifyToken(req, res, next) {
     const authHeader = req.headers.authorization || ''
@@ -18,7 +17,7 @@ export function verifyToken(req, res, next) {
     }
 
     try {
-        req.user_payload = jwt.verify(token, SECRET_JWT_KEY)
+        req.user_payload = jwt.verify(token, process.env.SECRET_JWT_KEY)
         next()
     } catch (err) {
         console.error('🔒 verifyToken failed:', err.message)
