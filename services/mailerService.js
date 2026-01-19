@@ -1,4 +1,4 @@
-import { transporter } from '../mailer/transporter.js';
+import { gmailTransporter } from '../mailer/transporter.js';
 
 export async function sendResetEmail(email, plainPassword) {
     const mailOptions = {
@@ -20,11 +20,12 @@ Equipo de Human Perform App
     };
 
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email enviado exitosamente:', info.messageId);
+        // Esto ahora viaja por HTTPS (Puerto 443)
+        const info = await gmailTransporter.sendMail(mailOptions);
+        console.log('📧 Email enviado vía Gmail API (HTTPS) exitosamente:', info.data.id);
         return info;
     } catch (error) {
-        console.error('Error enviando email:', error);
+        console.error('❌ Error enviando email vía API:', error.message);
         throw error;
     }
 }
