@@ -1,10 +1,8 @@
 import https from 'https';
 import crypto from 'crypto';
 import { logActivity } from '../utils/logger.js';
-import { ADDON_ID, ADDON_SECRET } from '../config.js';
-import { getTokenizedPaymentUrl } from './payments.secure.js';
 
-const MERCHANT_ID = ADDON_ID;
+const MERCHANT_ID = process.env.ADDON_ID;
 const ACCOUNT = 'internet';
 const CURRENCY = 'EUR';
 const AUTO_SETTLE_FLAG = '1';
@@ -116,7 +114,7 @@ const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
   const amount = '1000'; // 10.00 €
   const currency = CURRENCY;
   const cardNumber = '4263970000005262'; // tarjeta de test Addon
-  const hash = generarSha1Hash(timestamp, MERCHANT_ID, orderId, amount, currency, cardNumber, ADDON_SECRET);
+  const hash = generarSha1Hash(timestamp, MERCHANT_ID, orderId, amount, currency, cardNumber, process.env.ADDON_SECRET);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <request timestamp="${timestamp}" type="auth">

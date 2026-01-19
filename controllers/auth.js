@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt'
-import { SECRET_JWT_KEY } from '../config.js'
 import jwt from 'jsonwebtoken'
 import crypto from 'node:crypto'
 import { sendResetEmail } from '../services/mailerService.js'
@@ -187,12 +186,12 @@ export async function loginUser(req, res) {
         // 🔑 Usa JWT_SECRET unificado
         const accessToken = jwt.sign(
             { id: user.user_id, email: user.email, role: user.type || 'coach', type: 'access' },
-            SECRET_JWT_KEY,
+            process.env.SECRET_JWT_KEY,
             { expiresIn: '15m' }
         )
         const refreshToken = jwt.sign(
             { id: user.user_id, email: user.email, role: user.type || 'coach', type: 'refresh' },
-            SECRET_JWT_KEY,
+            process.env.SECRET_JWT_KEY,
             { expiresIn: '7d' }
         )
 
@@ -232,7 +231,7 @@ export async function refreshTokenController(req, res) {
 
     let payload
     try {
-        payload = jwt.verify(oldRefresh, SECRET_JWT_KEY)
+        payload = jwt.verify(oldRefresh, process.env.SECRET_JWT_KEY)
     } catch {
         return res.status(401).json({ error: 'Refresh token inválido o expirado' })
     }
@@ -244,7 +243,7 @@ export async function refreshTokenController(req, res) {
     // 1. Generar siempre un nuevo access token
     const newAccess = jwt.sign(
         { id: payload.id, email: payload.email, type: 'access' },
-        SECRET_JWT_KEY,
+        process.env.SECRET_JWT_KEY,
         { expiresIn: '15m' }
     )
 
@@ -258,7 +257,7 @@ export async function refreshTokenController(req, res) {
         // ya expiró o está a punto de expirar en menos de 24 h → lo rotamos
         newRefresh = jwt.sign(
             { id: payload.id, email: payload.email, type: 'refresh' },
-            SECRET_JWT_KEY,
+            process.env.SECRET_JWT_KEY,
             { expiresIn: '7d' }
         )
     }

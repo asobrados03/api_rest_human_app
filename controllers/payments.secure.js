@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import {ADDON_ID, ADDON_SECRET} from '../config.js';
 
 const TOKENIZE_URL = 'https://remote.sandbox.addonpayments.com/remote/tokenize';
 
@@ -33,7 +32,7 @@ export async function getTokenizedPaymentUrl({
     customerId
 }) {
     const paramMap = {
-    merchantId: ADDON_ID,
+    merchantId: process.env.ADDON_ID,
     merchantTransactionId: orderId,
     amount: amount.toFixed(2),
     currency: 'EUR',
@@ -50,13 +49,13 @@ export async function getTokenizedPaymentUrl({
     const integrityCheck = generateIntegrityCheck(paramMap);
 
     const ivBytes = crypto.randomBytes(16);
-    const secretKeyBytes = crypto.createHash('sha256').update(ADDON_SECRET, 'utf8').digest();
+    const secretKeyBytes = crypto.createHash('sha256').update(process.env.ADDON_SECRET, 'utf8').digest();
 
     const encrypted = encryptParameters(paramMap, secretKeyBytes, ivBytes);
     const ivBase64 = ivBytes.toString('base64');
 
     const formData = new URLSearchParams();
-    formData.append('merchantId', ADDON_ID);
+    formData.append('merchantId', process.env.ADDON_ID);
     formData.append('encrypted', encrypted);
     formData.append('integrityCheck', integrityCheck);
 
