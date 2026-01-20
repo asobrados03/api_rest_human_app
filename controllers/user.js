@@ -156,42 +156,59 @@ export async function getSubscriptionsHistory(req, res) {
 }
 
 export async function updateUser(req, res) {
-    let connection
+    let connection;
     try {
-        // — 1) Parsear JSON de "user" —
-        const raw = req.body.user
+        const raw = req.body.user;
         if (!raw) {
-            return res.status(400).json({ error: "Se requiere el campo 'user' en el form-data" })
+            return res.status(400).json({ error: "Se requiere el campo 'user' en el form-data" });
         }
-        const data = JSON.parse(raw)
+        const data = JSON.parse(raw);
 
-        // — 2) Validar token y datos obligatorios —
-        const { id: userIdToken, email: emailToken } = req.user_payload
-        const userId = data.id
-        const email  = data.email
+        const { id: userIdToken, email: emailToken } = req.user_payload;
+        const userId = data.id;
+        const email = data.email;
         if (!userId) {
-            return res.status(400).json({ error: "Se requiere el campo 'id' del usuario" })
+            return res.status(400).json({ error: "Se requiere el campo 'id' del usuario" });
         }
         if (userId !== userIdToken || email !== emailToken) {
-            return res.status(401).json({ error: 'No estás autorizado' })
+            return res.status(401).json({ error: 'No estás autorizado' });
         }
-        if (data.sex === '' || data.sex === 'NULL') data.sex = null;
 
-        // — 3) Si hay fichero nuevo, vamos a necesitar el antiguo —
-        let oldImageName
+        // — Procesar dateOfBirth: asumir formato DD/MM/YYYY, convertir a YYYY-MM-DD o NULL —
+        if (data.hasOwnProperty('dateOfBirth')) {
+            let dateValue = data.dateOfBirth;
+            if (dateValue && dateValue.trim() !== '') {
+                const parts = dateValue.split('/');
+                if (parts.length !== 3) {
+                    return res.status(400).json({ error: 'Formato de fecha inválido: esperado DD/MM/YYYY' });
+                }
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2];
+                dateValue = `${year}-${month}-${day}`;
+                if (isNaN(Date.parse(dateValue))) {
+                    return res.status(400).json({ error: 'Fecha inválida' });
+                }
+            } else {
+                dateValue = null;
+            }
+            data.dateOfBirth = dateValue;
+        }
+
+        let oldImageName;
         if (req.file) {
-            connection = await req.db.getConnection()
+            connection = await req.db.getConnection();
             const [rows] = await connection.execute(
                 'SELECT profile_pic FROM users WHERE user_id = ?',
                 [userId]
-            )
+            );
             if (rows.length) {
-                oldImageName = rows[0].profile_pic
+                oldImageName = rows[0].profile_pic;
             }
         }
 
         if (req.file) {
-            data.profilePictureName = req.file.filename
+            data.profilePictureName = req.file.filename;
         }
 
         const allowedFields = {
@@ -204,74 +221,74 @@ export async function updateUser(req, res) {
             postAddress: 'address',
             dni: 'dni',
             profilePictureName: 'profile_pic'
-        }
+        };
 
-        const setClauses = []
-        const values = []
+        const setClauses = [];
+        const values = [];
 
         for (const [jsonKey, column] of Object.entries(allowedFields)) {
             if (data.hasOwnProperty(jsonKey)) {
-                let value = data[jsonKey]
+                let value = data[jsonKey];
 
-                // ✅ Permitir que el sexo sea NULL
-                if (value === 'NULL' || column === 'sex' && (value === '' || value === null)) {
-                    setClauses.push(`\`${column}\` = NULL`)
-                    continue
+                // ✅ Permitir que el sexo y fecha sean NULL
+                if ((column === 'sex' || column === 'date_of_birth') && (value === '' || value === null || value === 'NULL')) {
+                    setClauses.push(`\`${column}\` = NULL`);
+                    continue;
                 }
 
-                setClauses.push(`\`${column}\` = ?`)
-                values.push(value)
+                setClauses.push(`\`${column}\` = ?`);
+                values.push(value);
             }
         }
 
         if (!setClauses.length) {
-            connection?.release()
-            return res.status(400).json({ error: 'No se recibieron campos válidos para actualizar' })
+            connection?.release();
+            return res.status(400).json({ error: 'No se recibieron campos válidos para actualizar' });
         }
 
-        setClauses.push('`updated_at` = NOW()')
-        values.push(userId)
+        setClauses.push('`updated_at` = NOW()');
+        values.push(userId);
 
         const sqlUpdate = `
-          UPDATE users
-          SET ${setClauses.join(', ')}
-          WHERE user_id = ?`
+            UPDATE users
+            SET ${setClauses.join(', ')}
+            WHERE user_id = ?`;
 
         if (!connection) {
-            connection = await req.db.getConnection()
+            connection = await req.db.getConnection();
         }
 
-        await connection.beginTransaction()
-        await connection.execute(sqlUpdate, values)
+        await connection.beginTransaction();
+        await connection.execute(sqlUpdate, values);
 
         const [updatedRows] = await connection.execute(
             'SELECT * FROM users WHERE user_id = ?',
             [userId]
-        )
-        await connection.commit()
-        connection.release()
+        );
+        await connection.commit();
+        connection.release();
 
         if (!updatedRows.length) {
-            return res.status(404).json({ error: 'Usuario no encontrado después de la actualización' })
+            return res.status(404).json({ error: 'Usuario no encontrado después de la actualización' });
         }
 
-        const u = updatedRows[0]
+        const u = updatedRows[0];
 
         // — Borrar fichero antiguo (si se subió uno nuevo) —
         if (req.file && oldImageName) {
-            const oldPath = path.join(UPLOAD_PATH, oldImageName)
+            const oldPath = path.join(UPLOAD_PATH, oldImageName);
             await unlinkAsync(oldPath).catch(err =>
                 console.warn(`No se pudo eliminar imagen antigua ${oldImageName}:`, err)
-            )
+            );
         }
 
         try {
             await logActivity(req, {
                 subject: `El usuario ${email} (ID: ${userId}) actualizó su perfil`,
                 userId: userId
-            })
+            });
         } catch (logErr) {
-            console.error("⚠️ Logging error (updateUser):", logErr)
+            console.error("⚠️ Logging error (updateUser):", logErr);
         }
 
         return res.status(200).json({
@@ -279,7 +296,7 @@ export async function updateUser(req, res) {
             fullName: u.user_name || '',
             email: u.email || '',
             phone: u.phone || '',
-            sex: u.sex || null, // 👈 devuelve null si no hay valor
+            sex: u.sex || null,
             dateOfBirth: u.date_of_birth
                 ? u.date_of_birth.toISOString().split('T')[0]
                 : null,
@@ -289,16 +306,16 @@ export async function updateUser(req, res) {
             postAddress: u.address || '',
             dni: u.dni,
             profilePictureName: u.profile_pic || null
-        })
+        });
     } catch (err) {
-        console.error(`Error al actualizar usuario:`, err)
+        console.error(`Error al actualizar usuario:`, err);
         if (connection) {
-            await connection.rollback()
-            connection.release()
+            await connection.rollback();
+            connection.release();
         }
-        return res.status(500).json({ error: err.message })
+        return res.status(500).json({ error: err.message });
     } finally {
-        if (connection) connection.release()
+        if (connection) connection.release();
     }
 }
 
