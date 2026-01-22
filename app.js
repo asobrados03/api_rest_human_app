@@ -1,11 +1,11 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
 
-import prodReserveMobileRoutes from './routes/prod-and-reserve.js';
-import serviceProductsMobileRoutes from './routes/service-products.js';
-import paymentMobileRoutes from './routes/payments.js';
-import authMobileRoutes from './routes/auth.js';
-import userMobileRoutes from './routes/user.js';
+import prodReserveMobileRoutes from './routes/prod-and-reserve.routes.js';
+import serviceProductsMobileRoutes from './routes/service-products.routes.js';
+import paymentMobileRoutes from './routes/payments.routes.js';
+import authMobileRoutes from './routes/auth.routes.js';
+import userMobileRoutes from './routes/user.routes.js';
 
 import path from 'path';
 import fs from 'fs';

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { verifyToken } from '../middlewares/verifyToken.js'
 import {testMobileRoute, getAllServices, getServiceProducts, getUserProducts, assignProductToUser,
     unassignProductFromUser, getProductDetails, applyCoupon,
-    searchProducts} from '../controllers/service-products.js'
+    searchProducts} from '../services/service-products.js'
 
 const router = Router()
 

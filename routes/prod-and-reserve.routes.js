@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { verifyToken } from '../middlewares/verifyToken.js'
 import { testMobileRoute, getDailyAvailability, reserveSession, getUserProduct, getUserTrainingBookings,
-    getTimeslotId, getPreferredCoach, getUserServices, getUserBookings, cancelBooking, updateBooking, getUserWeeklyLimit, getHolidays, submitBookingQuestionnaire, getBookingQuestionnaireStatus, getTrainerReservationSlots, recoverSession } from '../controllers/prod-and-reserve.js'
+    getTimeslotId, getPreferredCoach, getUserServices, getUserBookings, cancelBooking, updateBooking, getUserWeeklyLimit, getHolidays, submitBookingQuestionnaire, getBookingQuestionnaireStatus, getTrainerReservationSlots, recoverSession } from '../services/prod-and-reserve.js'
 
 const router = Router()
 

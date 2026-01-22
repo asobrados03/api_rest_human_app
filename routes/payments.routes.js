@@ -1,8 +1,8 @@
 import { Router } from 'express';
 const router = Router();
 import { verifyToken } from '../middlewares/verifyToken.js';
-import {initiatePayment, confirmPayment, paymentResultRedirect} from '../controllers/payments.js';
-import {generateHppUrl, handleHppResponse, listPaymentMethods, processGooglePay} from "../controllers/hpp.js";
+import {initiatePayment, confirmPayment, paymentResultRedirect} from '../services/payments.js';
+import {generateHppUrl, handleHppResponse, listPaymentMethods, processGooglePay} from "../services/hpp.js";
 
 router.post('/initiate',verifyToken, initiatePayment);
 router.post('/status', verifyToken, confirmPayment); // statusURL (server-to-server)
