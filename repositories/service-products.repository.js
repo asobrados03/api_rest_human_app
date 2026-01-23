@@ -81,10 +81,12 @@ export const getLatestWalletBalance = async (connection, userId) => {
 };
 
 export const createWalletTransaction = async (connection, { userId, productId, amount, newBalance }) => {
+    const transactionCode = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
     await connection.execute(`
-    INSERT INTO e_wallet (user_id, product_id, amount, balance, transaction_type, created_at)
-    VALUES (?, ?, ?, ?, 'purchase', NOW())
-  `, [userId, productId, amount, newBalance]);
+        INSERT INTO e_wallet (e_wallet_tran_code, user_id, product_id, amount, balance, transaction_type, created_at)
+        VALUES (?, ?, ?, ?, ?, 'purchase', NOW())
+    `, [transactionCode, userId, productId, amount, newBalance]);
 };
 
 export const createActiveProduct = async (connection, data) => {
