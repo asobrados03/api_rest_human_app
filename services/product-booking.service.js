@@ -1,4 +1,4 @@
-import * as productReserveRepo from '../repositories/product-booking.repository.js'
+import * as productBookingRepo from '../repositories/product-booking.repository.js'
 import * as dateUtils from '../utils/date-handler.js';
 
 export async function getDailyAvailabilityService({ serviceId, date, db }) {
@@ -14,10 +14,10 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
             bookingRows,
             availabilityRows
         ] = await Promise.all([
-            productReserveRepo.fetchTimeslots(connection),
-            productReserveRepo.fetchCoaches(connection, serviceId, formattedDate),
-            productReserveRepo.fetchBookings(connection, serviceId, formattedDate),
-            productReserveRepo.fetchAvailability(connection, serviceId, formattedDate)
+            productBookingRepo.fetchTimeslots(connection),
+            productBookingRepo.fetchCoaches(connection, serviceId, formattedDate),
+            productBookingRepo.fetchBookings(connection, serviceId, formattedDate),
+            productBookingRepo.fetchAvailability(connection, serviceId, formattedDate)
         ])
 
         /* ---------- Coaches ---------- */
@@ -174,7 +174,7 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
 
     try {
         /* ---------- Validación duplicados ---------- */
-        const existing = await productReserveRepo.findExistingBooking(
+        const existing = await productBookingRepo.findExistingBooking(
             connection,
             customer_id,
             session_timeslot_id,
@@ -189,7 +189,7 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
         }
 
         /* ---------- Producto activo ---------- */
-        const productoActivo = await productReserveRepo.findActiveProduct(
+        const productoActivo = await productBookingRepo.findActiveProduct(
             connection,
             customer_id,
             product_id
@@ -209,7 +209,7 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
         } = productoActivo
 
         /* ---------- Insert booking ---------- */
-        const bookingId = await productReserveRepo.insertBooking(connection, {
+        const bookingId = await productBookingRepo.insertBooking(connection, {
             active_product_id,
             customer_id,
             coach_id,
@@ -241,7 +241,7 @@ export async function getUserTrainingBookingsService({ userId, db }) {
     const connection = await db.getConnection()
 
     try {
-        const exists = await productReserveRepo.hasTrainingBookings(
+        const exists = await productBookingRepo.hasTrainingBookings(
             connection,
             userId,
             APRENDE_A_ENTRENAR_PRODUCT_ID
@@ -265,7 +265,7 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
         const dayAlias = dateUtils.getDayAliasForDate(date + 'T00:00:00Z')
 
         /* ---------- Disponibilidad ---------- */
-        const availabilityRows = await productReserveRepo.fetchCoachAvailability(
+        const availabilityRows = await productBookingRepo.fetchCoachAvailability(
             connection,
             coachId,
             date
@@ -301,7 +301,7 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
         if (!rangeStart || !rangeEnd || !svcForTurn) return []
 
         /* ---------- Servicio ---------- */
-        const serviceName = await productReserveRepo.fetchServiceName(connection, svcForTurn)
+        const serviceName = await productBookingRepo.fetchServiceName(connection, svcForTurn)
 
         const isFisioONutri =
             serviceName.includes('fisio') ||
@@ -309,7 +309,7 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
             APRENDE_A_ENTRENAR_FISIO_IDS.includes(Number(svcForTurn))
 
         /* ---------- Timeslots ---------- */
-        const timeslots = await productReserveRepo.fetchServiceTimeslots(connection, svcForTurn)
+        const timeslots = await productBookingRepo.fetchServiceTimeslots(connection, svcForTurn)
 
         const filteredSlots = timeslots
             .filter(t => rangeStart <= t && t < rangeEnd)
@@ -319,7 +319,7 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
             : filteredSlots.filter(t => t.endsWith(':00'))
 
         /* ---------- Reservas ---------- */
-        const bookings = await productReserveRepo.fetchCoachBookingsForRange(
+        const bookings = await productBookingRepo.fetchCoachBookingsForRange(
             connection,
             coachId,
             date,
@@ -372,7 +372,7 @@ export async function updateBookingService({ booking_id, new_coach_id, new_servi
     const connection = await db.getConnection()
 
     try {
-        const exists = await productReserveRepo.bookingExists(connection, booking_id)
+        const exists = await productBookingRepo.bookingExists(connection, booking_id)
 
         if (!exists) {
             const err = new Error('Reserva no encontrada')
@@ -380,7 +380,7 @@ export async function updateBookingService({ booking_id, new_coach_id, new_servi
             throw err
         }
 
-        await productReserveRepo.updateBookingRow(connection, {
+        await productBookingRepo.updateBookingRow(connection, {
             booking_id,
             new_coach_id,
             new_service_id,
@@ -399,7 +399,7 @@ export async function getUserBookingsService({ userId, db }) {
     const baseUrl = 'https://human-app.duckdns.org/api/profile_pic/'
 
     try {
-        const rows = await productReserveRepo.fetchUserBookings(connection, userId)
+        const rows = await productBookingRepo.fetchUserBookings(connection, userId)
 
         return rows.map(row => ({
             ...row,
@@ -416,7 +416,7 @@ export async function cancelBookingService({ bookingId, db}) {
     const connection = await db.getConnection()
 
     try {
-        const affectedRows = await productReserveRepo.cancelBookingRow(connection, bookingId)
+        const affectedRows = await productBookingRepo.cancelBookingRow(connection, bookingId)
 
         if (affectedRows === 0) {
             const err = new Error('Reserva no encontrada o ya cancelada')
@@ -435,7 +435,7 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
     const connection = await db.getConnection()
 
     try {
-        const activeProduct = await productReserveRepo.findActiveProduct(
+        const activeProduct = await productBookingRepo.findActiveProduct(
             connection,
             customer_id,
             product_id
@@ -453,7 +453,7 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
             payment_status
         } = activeProduct
 
-        return await productReserveRepo.insertRecoveredBooking(connection, {
+        return await productBookingRepo.insertRecoveredBooking(connection, {
             active_product_id,
             customer_id,
             coach_id,
@@ -473,7 +473,7 @@ export async function getUserProductService({ userId, db }) {
     const connection = await db.getConnection()
 
     try {
-        const product = await productReserveRepo.findLatestUserProduct(connection, userId)
+        const product = await productBookingRepo.findLatestUserProduct(connection, userId)
 
         if (!product) {
             const err = new Error('Este usuario no tiene productos asignados')
@@ -491,7 +491,7 @@ export async function getUserServicesService({ userId, db }) {
     const connection = await db.getConnection()
 
     try {
-        const rows = await productReserveRepo.findUserServices(connection, userId)
+        const rows = await productBookingRepo.findUserServices(connection, userId)
 
         return rows.map(row => ({
             id: row.service_id,
@@ -507,7 +507,7 @@ export async function getTimeslotIdService({ hour, db }) {
     const connection = await db.getConnection()
 
     try {
-        const timeslot = await productReserveRepo.findTimeslotByHour(connection, formattedHour)
+        const timeslot = await productBookingRepo.findTimeslotByHour(connection, formattedHour)
 
         if (!timeslot) {
             const err = new Error('Hora no encontrada')
@@ -525,7 +525,7 @@ export async function getPreferredCoachService({ customerId, serviceId, db }) {
     const connection = await db.getConnection()
 
     try {
-        const coach = await productReserveRepo.findPreferredCoach(connection, customerId, serviceId)
+        const coach = await productBookingRepo.findPreferredCoach(connection, customerId, serviceId)
         return coach ? coach.coach_id : null
     } finally {
         connection.release()
@@ -536,7 +536,7 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
     const connection = await db.getConnection()
 
     try {
-        const products = await productReserveRepo.findActiveProducts(connection, userId)
+        const products = await productBookingRepo.findActiveProducts(connection, userId)
 
         if (!products.length) {
             return []
@@ -579,7 +579,7 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
             let weeklyLimit = r.total_session || 0
 
             // Override desde product_services si existe
-            const serviceOverride = await productReserveRepo.findProductServiceOverride(
+            const serviceOverride = await productBookingRepo.findProductServiceOverride(
                 connection,
                 r.product_id
             )
@@ -589,7 +589,7 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
             }
 
             if (r.type_of_product === 'recurrent') {
-                const used = await productReserveRepo.countWeeklyBookings(
+                const used = await productBookingRepo.countWeeklyBookings(
                     connection,
                     userId,
                     r.active_product_id,
@@ -618,7 +618,7 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
                 if (!stillValid) continue
 
                 const totalLimit = r.total_session ?? weeklyLimit
-                const used = await productReserveRepo.countTotalBookings(
+                const used = await productBookingRepo.countTotalBookings(
                     connection,
                     userId,
                     r.active_product_id
@@ -646,7 +646,7 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
 }
 
 export async function getUpcomingHolidays(connection) {
-    const rows = await productReserveRepo.findUpcomingHolidays(connection)
+    const rows = await productBookingRepo.findUpcomingHolidays(connection)
 
     if (!rows.length) {
         return []

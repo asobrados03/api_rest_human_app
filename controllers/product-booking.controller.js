@@ -1,4 +1,4 @@
-import * as productReserveService from '../services/product-booking.service.js';
+import * as productBookingService from '../services/product-booking.service.js';
 import {logActivity} from "../utils/logger.js";
 
 export function testMobileRoute(req, res) {
@@ -15,7 +15,7 @@ export async function getDailyAvailability(req, res) {
             })
         }
 
-        const result = await productReserveService.getDailyAvailabilityService({
+        const result = await productBookingService.getDailyAvailabilityService({
             serviceId: Number(service_id),
             date,
             db: req.db
@@ -47,7 +47,7 @@ export async function reserveSession(req, res) {
             return res.status(400).json({ error: 'Faltan campos obligatorios' })
         }
 
-        const result = await productReserveService.reserveSessionService({
+        const result = await productBookingService.reserveSessionService({
             customer_id,
             coach_id,
             session_timeslot_id,
@@ -89,7 +89,7 @@ export async function getUserTrainingBookings(req, res) {
             return res.status(400).json({ error: 'user_id is required' })
         }
 
-        const result = await productReserveService.getUserTrainingBookingsService({
+        const result = await productBookingService.getUserTrainingBookingsService({
             userId: Number(user_id),
             db: req.db
         })
@@ -118,7 +118,7 @@ export async function getTrainerReservationSlots(req, res) {
             return res.status(401).json({ error: 'No autorizado' })
         }
 
-        const result = await productReserveService.getTrainerReservationSlotsService({
+        const result = await productBookingService.getTrainerReservationSlotsService({
             date,
             shift,
             coachId,
@@ -157,7 +157,7 @@ export async function updateBooking(req, res) {
             return res.status(400).json({ error: 'Faltan parámetros obligatorios' })
         }
 
-        await productReserveService.updateBookingService({
+        await productBookingService.updateBookingService({
             booking_id,
             new_coach_id,
             new_service_id,
@@ -200,7 +200,7 @@ export async function getUserBookings(req, res) {
             return res.status(400).json({ error: 'Falta el parámetro user_id' })
         }
 
-        const result = await productReserveService.getUserBookingsService({
+        const result = await productBookingService.getUserBookingsService({
             userId: Number(user_id),
             db: req.db
         })
@@ -223,7 +223,7 @@ export async function cancelBooking(req, res) {
             return res.status(400).json({ error: 'Falta el ID de la reserva' })
         }
 
-        const result = await productReserveService.cancelBookingService({
+        const result = await productBookingService.cancelBookingService({
             bookingId,
             db: req.db,
             req
@@ -278,7 +278,7 @@ export async function recoverSession(req, res) {
     }
 
     try {
-        const bookingId = await productReserveService.recoverSessionService({
+        const bookingId = await productBookingService.recoverSessionService({
             customer_id,
             coach_id,
             session_timeslot_id,
@@ -325,7 +325,7 @@ export async function getUserProduct(req, res) {
     }
 
     try {
-        const productId = await productReserveService.getUserProductService({
+        const productId = await productBookingService.getUserProductService({
             userId,
             db: req.db
         })
@@ -353,7 +353,7 @@ export async function getUserServices(req, res) {
     }
 
     try {
-        const services = await productReserveService.getUserServicesService({
+        const services = await productBookingService.getUserServicesService({
             userId: user_id,
             db: req.db
         })
@@ -376,7 +376,7 @@ export async function getTimeslotId(req, res) {
     }
 
     try {
-        const sessionTimeslotId = await productReserveService.getTimeslotIdService({
+        const sessionTimeslotId = await productBookingService.getTimeslotIdService({
             hour,
             db: req.db
         })
@@ -401,7 +401,7 @@ export async function getPreferredCoach(req, res) {
     }
 
     try {
-        const coachId = await productReserveService.getPreferredCoachService({
+        const coachId = await productBookingService.getPreferredCoachService({
             customerId: customer_id,
             serviceId: service_id,
             db: req.db
@@ -425,7 +425,7 @@ export async function getUserWeeklyLimit(req, res) {
     }
 
     try {
-        const weeklyLimits = await productReserveService.getUserWeeklyLimitService({
+        const weeklyLimits = await productBookingService.getUserWeeklyLimitService({
             userId: user_id,
             targetDate: target_date,
             db: req.db
@@ -447,7 +447,7 @@ export async function getHolidays(req, res) {
     try {
         connection = await req.db.getConnection()
 
-        const holidays = await productReserveService.getUpcomingHolidays(connection)
+        const holidays = await productBookingService.getUpcomingHolidays(connection)
 
         if (!holidays.length) {
             return res.status(404).json({ error: 'No hay días festivos próximos' })

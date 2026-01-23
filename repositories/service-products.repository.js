@@ -1,5 +1,3 @@
-// repositories/service-products.repository.js
-
 export const getServices = async (connection) => {
     const [rows] = await connection.query(`
     SELECT service_id AS id, service_name AS name, service_image AS image

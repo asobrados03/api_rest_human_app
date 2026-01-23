@@ -1,8 +1,3 @@
-// user.repository.js
-
-/**
- * Obtener usuario por ID
- */
 export async function findUserById(connection, userId) {
     const [rows] = await connection.execute(
         `SELECT
@@ -24,9 +19,6 @@ export async function findUserById(connection, userId) {
     return rows[0];
 }
 
-/**
- * Obtener usuario por Email (para deleteUser)
- */
 export async function findUserByEmail(connection, email) {
     const [rows] = await connection.execute(
         "SELECT user_id FROM users WHERE email = ?",
@@ -35,9 +27,6 @@ export async function findUserByEmail(connection, email) {
     return rows[0];
 }
 
-/**
- * Listar todas las suscripciones (Nota: SQL original sin filtro de user_id)
- */
 export async function findAllSubscriptions(connection) {
     const [rows] = await connection.execute(
         `SELECT 
@@ -51,9 +40,6 @@ export async function findAllSubscriptions(connection) {
     return rows;
 }
 
-/**
- * Histórico de suscripciones
- */
 export async function findSubscriptionHistory(connection) {
     const [rows] = await connection.execute(
         `SELECT 
@@ -67,9 +53,6 @@ export async function findSubscriptionHistory(connection) {
     return rows;
 }
 
-/**
- * Obtener solo el nombre de la foto de perfil
- */
 export async function findProfilePicName(connection, userId) {
     const [rows] = await connection.execute(
         'SELECT profile_pic FROM users WHERE user_id = ?',
@@ -78,9 +61,6 @@ export async function findProfilePicName(connection, userId) {
     return rows[0] ? rows[0].profile_pic : null;
 }
 
-/**
- * Actualizar usuario dinámicamente
- */
 export async function updateUserDynamic(connection, userId, setClauses, values) {
     const sqlUpdate = `
         UPDATE users
@@ -91,9 +71,6 @@ export async function updateUserDynamic(connection, userId, setClauses, values) 
     await connection.execute(sqlUpdate, [...values, userId]);
 }
 
-/**
- * Borrar usuario por email
- */
 export async function deleteUserByEmail(connection, email) {
     const [result] = await connection.execute(
         "DELETE FROM users WHERE email = ?",
@@ -102,9 +79,6 @@ export async function deleteUserByEmail(connection, email) {
     return result.affectedRows;
 }
 
-/**
- * Obtener entrenadores
- */
 export async function findAllCoaches(connection) {
     const sql = `
         SELECT u.user_id       AS id,
@@ -120,9 +94,6 @@ export async function findAllCoaches(connection) {
     return rows;
 }
 
-/**
- * Buscar servicio por nombre
- */
 export async function findServiceByName(connection, serviceName) {
     const [rows] = await connection.query(
         `SELECT service_id FROM services WHERE service_name = ? AND deleted_at IS NULL LIMIT 1`,
@@ -131,9 +102,6 @@ export async function findServiceByName(connection, serviceName) {
     return rows[0];
 }
 
-/**
- * Buscar primary service por nombre (para getPreferredCoachWithService)
- */
 export async function findPrimaryServiceByName(connection, serviceName) {
     const [rows] = await connection.query(
         `SELECT primary_service_id FROM primary_service WHERE name = ? AND deleted_at IS NULL LIMIT 1`,
@@ -142,9 +110,6 @@ export async function findPrimaryServiceByName(connection, serviceName) {
     return rows[0];
 }
 
-/**
- * Gestión de Preferred Coach
- */
 export async function findPreferredCoachRelation(connection, customerId, serviceId) {
     const [rows] = await connection.query(
         `SELECT preferred_coach_id, coach_id
@@ -177,9 +142,6 @@ export async function findPreferredCoachByCustomer(connection, customerId) {
     return rows[0];
 }
 
-/**
- * Eliminar foto de perfil (set null)
- */
 export async function removeUserProfilePic(connection, userId) {
     await connection.execute(
         'UPDATE users SET profile_pic = NULL, updated_at = NOW() WHERE user_id = ?',
@@ -187,9 +149,6 @@ export async function removeUserProfilePic(connection, userId) {
     );
 }
 
-/**
- * Stats del usuario
- */
 export async function getStatsLastMonth(connection, userId) {
     const monthWindow = `
     b.start_date BETWEEN
@@ -236,9 +195,6 @@ export async function getStatsPending(connection, userId) {
     return rows;
 }
 
-/**
- * Cupones
- */
 export async function findValidCouponByCode(connection, couponCode) {
     const [[coupon]] = await connection.query(
         `SELECT coupon_id, customer_ids
@@ -298,7 +254,6 @@ export async function findCouponsDetails(connection, idsArr, userId) {
     return rows;
 }
 
-// --- Documentos ---
 export async function findUserDocuments(connection, userId) {
     const [rows] = await connection.execute(
         'SELECT id, filename, original_name, created_at FROM user_documents WHERE user_id = ?',
@@ -329,7 +284,6 @@ export async function deleteDocumentRecord(connection, filename, userId) {
     );
 }
 
-// --- E-Wallet & Pagos ---
 export async function findEwalletBalance(connection, userId) {
     const [rows] = await connection.execute(
         'SELECT balance FROM e_wallet WHERE user_id = ?',
