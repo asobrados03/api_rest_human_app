@@ -484,10 +484,24 @@ export async function getEwalletBalanceService(dbPool, userId) {
 }
 
 export async function getEwalletTransactionsService(dbPool, userId) {
+    if (!userId) {
+        throw new Error('Falta user_id');
+    }
+
     const conn = await dbPool.getConnection();
     try {
-        return await userRepo.findEwalletTransactions(conn, userId);
-    } finally { conn.release(); }
+        const rows = await userRepo.findEwalletTransactions(conn, userId);
+
+        return rows.map(tx => ({
+            amount: tx.amount,
+            balance: tx.balance,
+            description: tx.product_name || tx.description || "",
+            type: tx.type,
+            date: tx.created_at
+        }));
+    } finally {
+        conn.release();
+    }
 }
 
 export async function checkSavedPaymentMethodService(dbPool, userId) {

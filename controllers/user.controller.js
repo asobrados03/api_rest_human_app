@@ -230,9 +230,14 @@ export async function getEwalletBalance(req, res) {
 export async function getEwalletTransactions(req, res) {
     try {
         const userId = req.user_payload?.id || req.query.user_id;
-        const result = await userService.getEwalletTransactionsService(req.db, userId);
-        res.status(200).json(result);
-    } catch (err) { handleError(res, err, 'getEwalletTransactions'); }
+
+        const transactions =
+            await userService.getEwalletTransactionsService(req.db, userId);
+
+        res.status(200).json({ transactions });
+    } catch (err) {
+        handleError(res, err, 'getEwalletTransactions');
+    }
 }
 
 export async function checkSavedPaymentMethod(req, res) {

@@ -332,7 +332,7 @@ export async function deleteDocumentRecord(connection, filename, userId) {
 // --- E-Wallet & Pagos ---
 export async function findEwalletBalance(connection, userId) {
     const [rows] = await connection.execute(
-        'SELECT balance FROM ewallets WHERE user_id = ?',
+        'SELECT balance FROM e_wallet WHERE user_id = ?',
         [userId]
     );
     return rows[0];
@@ -340,9 +340,23 @@ export async function findEwalletBalance(connection, userId) {
 
 export async function findEwalletTransactions(connection, userId) {
     const [rows] = await connection.execute(
-        'SELECT * FROM ewallet_transactions WHERE user_id = ? ORDER BY created_at DESC',
+        `
+        SELECT 
+            l.amount,
+            l.balance,
+            l.transaction_title AS description,
+            l.transaction_type AS type,
+            l.created_at,
+            p.product_name
+        FROM e_wallet l
+        LEFT JOIN products p ON l.product_id = p.product_id
+        WHERE l.user_id = ?
+        ORDER BY l.created_at DESC
+        LIMIT 10
+        `,
         [userId]
     );
+
     return rows;
 }
 
