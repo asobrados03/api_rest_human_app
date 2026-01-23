@@ -1,4 +1,4 @@
-import { gmailTransporter } from './transporter.js';
+import { gmailTransporter } from '../utils/transporter.js';
 
 export async function sendResetEmail(email, plainPassword) {
     const mailOptions = {

@@ -1,7 +1,7 @@
 import express from 'express';
 import mysql from 'mysql2/promise';
 
-import prodReserveMobileRoutes from './routes/prod-and-reserve.routes.js';
+import prodReserveMobileRoutes from './routes/product-booking.routes.js';
 import serviceProductsMobileRoutes from './routes/service-products.routes.js';
 import paymentMobileRoutes from './routes/payments.routes.js';
 import authMobileRoutes from './routes/auth.routes.js';
