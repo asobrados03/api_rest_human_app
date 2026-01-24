@@ -286,7 +286,7 @@ export async function deleteDocumentRecord(connection, filename, userId) {
 
 export async function findEwalletBalance(connection, userId) {
     const [rows] = await connection.execute(
-        'SELECT balance FROM e_wallet WHERE user_id = ?',
+        'SELECT balance FROM e_wallet WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
         [userId]
     );
     return rows[0];
