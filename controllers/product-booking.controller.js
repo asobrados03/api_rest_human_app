@@ -417,6 +417,30 @@ export async function getPreferredCoach(req, res) {
     }
 }
 
+export async function getServiceIdForProduct(req, res) {
+    try {
+        const { productId } = req.params;
+        const db = req.db; // Asumiendo que pasas el pool de DB por el request
+
+        if (!productId) {
+            return res.status(400).json({ error: 'El ID del producto es requerido' });
+        }
+
+        const mapping = await productBookingService.getProductMappingService({
+            productId,
+            db
+        });
+
+        return res.status(200).json(mapping);
+    } catch (error) {
+        console.error(`❌ Error en getProductMapping: ${error.message}`);
+        return res.status(500).json({
+            error: 'Error interno al obtener el mapeo del producto',
+            details: error.message
+        });
+    }
+}
+
 export async function getUserWeeklyLimit(req, res) {
     const { user_id, target_date } = req.query
 

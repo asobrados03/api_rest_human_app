@@ -488,3 +488,14 @@ export async function findUpcomingHolidays(connection) {
 
     return rows
 }
+
+export const getServiceMappingByProduct = async (connection, productId) => {
+    const [rows] = await connection.execute(`
+    SELECT service_id 
+    FROM product_services 
+    WHERE product_id = ? 
+    LIMIT 1
+  `, [productId]);
+
+    return rows.length > 0 ? rows[0].service_id : null;
+};

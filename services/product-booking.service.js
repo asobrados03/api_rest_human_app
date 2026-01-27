@@ -504,6 +504,24 @@ export async function getPreferredCoachService({ customerId, serviceId, db }) {
     }
 }
 
+export const getProductMappingService = async ({ productId, db }) => {
+    const connection = await db.getConnection();
+    try {
+        const serviceId = await productBookingRepo.getServiceMappingByProduct(connection, productId);
+
+        if (!serviceId) {
+            throw new Error(`No se encontró un servicio vinculado al producto ${productId}`);
+        }
+
+        return {
+            product_id: Number(productId),
+            service_id: Number(serviceId)
+        };
+    } finally {
+        connection.release();
+    }
+};
+
 export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
     const connection = await db.getConnection()
 
