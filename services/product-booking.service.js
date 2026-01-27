@@ -513,10 +513,8 @@ export const getProductMappingService = async ({ productId, db }) => {
             throw new Error(`No se encontró un servicio vinculado al producto ${productId}`);
         }
 
-        return {
-            product_id: Number(productId),
-            service_id: Number(serviceId)
-        };
+        return Number(serviceId)
+
     } finally {
         connection.release();
     }

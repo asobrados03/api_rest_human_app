@@ -426,12 +426,12 @@ export async function getServiceIdForProduct(req, res) {
             return res.status(400).json({ error: 'El ID del producto es requerido' });
         }
 
-        const mapping = await productBookingService.getProductMappingService({
+        const serviceId = await productBookingService.getProductMappingService({
             productId,
             db
         });
 
-        return res.status(200).json(mapping);
+        return res.status(200).json(serviceId);
     } catch (error) {
         console.error(`❌ Error en getProductMapping: ${error.message}`);
         return res.status(500).json({
