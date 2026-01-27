@@ -57,6 +57,9 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
         /* ---------- Availability ---------- */
         const availabilityMap = {};
         for (const row of availabilityRows) {
+            if (coaches.length > 0 && response.length === 0) {
+                console.log("DEBUG: Revisando slot:", timeslotRows[0]?.timeslot);
+            }
             if (!dateUtils.matchesDayAlias(dateUtils.parseDayAliases(row.days), dayAlias)) continue;
 
             const entry = availabilityMap[row.coach_id] || { morning: null, afternoon: null };
@@ -77,6 +80,12 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
             }
             availabilityMap[row.coach_id] = entry;
         }
+
+        // Añade esto justo antes del "/* ---------- Response ---------- */"
+        console.log("DEBUG: Service ID recibido:", serviceId);
+        console.log("DEBUG: Coaches encontrados:", coaches.length);
+        console.log("DEBUG: Alias del día calculado:", dayAlias);
+        console.log("DEBUG: Disponibilidad cargada para:", Object.keys(availabilityMap));
 
         /* ---------- Response ---------- */
         const response = [];
