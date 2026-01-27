@@ -2,10 +2,10 @@ import * as productBookingRepo from '../repositories/product-booking.repository.
 import * as dateUtils from '../utils/date-handler.js';
 
 export async function getDailyAvailabilityService({ serviceId, date, db }) {
-    const formattedDate = new Date(date).toISOString().slice(0, 10)
-    const dayAlias = dateUtils.getDayAliasForDate(formattedDate + 'T00:00:00Z')
+    const formattedDate = new Date(date).toISOString().slice(0, 10);
+    const dayAlias = dateUtils.getDayAliasForDate(formattedDate + 'T00:00:00Z');
 
-    const connection = await db.getConnection()
+    const connection = await db.getConnection();
 
     try {
         const [
@@ -18,16 +18,12 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
             productBookingRepo.fetchCoaches(connection, serviceId, formattedDate),
             productBookingRepo.fetchBookings(connection, serviceId, formattedDate),
             productBookingRepo.fetchAvailability(connection, serviceId, formattedDate)
-        ])
+        ]);
 
         /* ---------- Coaches ---------- */
-        const coachMap = new Map()
-
+        const coachMap = new Map();
         for (const row of coachRows) {
-            if (!dateUtils.matchesDayAlias(
-                dateUtils.parseDayAliases(row.days),
-                dayAlias
-            )) continue
+            if (!dateUtils.matchesDayAlias(dateUtils.parseDayAliases(row.days), dayAlias)) continue;
 
             const existing = coachMap.get(row.coach_id) || {
                 coach_id: row.coach_id,
@@ -36,119 +32,88 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
                 service_id_afternoon: null,
                 capacity_morning: null,
                 capacity_afternoon: null
-            }
+            };
 
             if (row.service_id_morning != null) {
-                existing.service_id_morning = Number(row.service_id_morning)
-                existing.capacity_morning = Number(row.capacity_morning)
+                existing.service_id_morning = Number(row.service_id_morning);
+                existing.capacity_morning = Number(row.capacity_morning);
             }
-
             if (row.service_id_afternoon != null) {
-                existing.service_id_afternoon = Number(row.service_id_afternoon)
-                existing.capacity_afternoon = Number(row.capacity_afternoon)
+                existing.service_id_afternoon = Number(row.service_id_afternoon);
+                existing.capacity_afternoon = Number(row.capacity_afternoon);
             }
-
-            coachMap.set(row.coach_id, existing)
+            coachMap.set(row.coach_id, existing);
         }
-
-        const coaches = Array.from(coachMap.values())
+        const coaches = Array.from(coachMap.values());
 
         /* ---------- Bookings ---------- */
-        const bookingMap = {}
+        const bookingMap = {};
         for (const row of bookingRows) {
-            const hour = row.hour.length === 5 ? row.hour + ':00' : row.hour
-            const key = `${formattedDate}_${hour}_${row.coach_id}`
-            bookingMap[key] = Number(row.booked) || 0
+            const hour = row.hour.length === 5 ? row.hour + ':00' : row.hour;
+            const key = `${formattedDate}_${hour}_${row.coach_id}`;
+            bookingMap[key] = Number(row.booked) || 0;
         }
 
         /* ---------- Availability ---------- */
-        const availabilityMap = {}
-
+        const availabilityMap = {};
         for (const row of availabilityRows) {
-            if (!dateUtils.matchesDayAlias(
-                dateUtils.parseDayAliases(row.days),
-                dayAlias
-            )) continue
+            if (!dateUtils.matchesDayAlias(dateUtils.parseDayAliases(row.days), dayAlias)) continue;
 
-            const entry = availabilityMap[row.coach_id] || {
-                morning: null,
-                afternoon: null
-            }
+            const entry = availabilityMap[row.coach_id] || { morning: null, afternoon: null };
 
-            if (
-                row.morning_start_time &&
-                row.morning_end_time &&
-                Number(row.service_id_morning) === serviceId
-            ) {
+            if (row.morning_start_time && row.morning_end_time && Number(row.service_id_morning) === serviceId) {
                 entry.morning = {
                     start: row.morning_start_time,
                     end: row.morning_end_time,
                     capacity: Number(row.capacity_morning) || 0
-                }
+                };
             }
-
-            if (
-                row.afternoon_start_time &&
-                row.afternoon_end_time &&
-                Number(row.service_id_afternoon) === serviceId
-            ) {
+            if (row.afternoon_start_time && row.afternoon_end_time && Number(row.service_id_afternoon) === serviceId) {
                 entry.afternoon = {
                     start: row.afternoon_start_time,
                     end: row.afternoon_end_time,
                     capacity: Number(row.capacity_afternoon) || 0
-                }
+                };
             }
-
-            availabilityMap[row.coach_id] = entry
+            availabilityMap[row.coach_id] = entry;
         }
 
         /* ---------- Response ---------- */
-        const response = []
+        const response = [];
 
         for (const slot of timeslotRows) {
-            const formattedSlot = slot.timeslot
+            const formattedSlot = slot.timeslot; // Ej: "09:00:00"
 
             for (const coach of coaches) {
-                const coachAvailability = availabilityMap[coach.coach_id]
-                if (!coachAvailability) continue
+                const coachAvailability = availabilityMap[coach.coach_id];
+                if (!coachAvailability) continue;
 
-                let isMorning = false
-                let capacity = 0
-                let available = false
+                let isMorning = false;
+                let capacity = 0;
+                let available = false;
 
-                const ranges = []
-                if (coachAvailability.morning) {
-                    ranges.push({ ...coachAvailability.morning, isMorning: true })
-                }
-                if (coachAvailability.afternoon) {
-                    ranges.push({ ...coachAvailability.afternoon, isMorning: false })
-                }
+                // Definimos los rangos de mañana y tarde
+                const ranges = [];
+                if (coachAvailability.morning) ranges.push({ ...coachAvailability.morning, isMorning: true });
+                if (coachAvailability.afternoon) ranges.push({ ...coachAvailability.afternoon, isMorning: false });
 
                 for (const range of ranges) {
-                    if (range.start <= formattedSlot && formattedSlot < range.end) {
-                        const minute = parseInt(formattedSlot.split(':')[1], 10)
-                        const valid =
-                            (range.isMorning && minute === 30) ||
-                            (!range.isMorning && minute === 0)
-
-                        if (valid) {
-                            available = true
-                            isMorning = range.isMorning
-                            capacity = range.capacity
-                            break
-                        }
+                    // Eliminada la restricción de minutos (:00 o :30) que causaba el error
+                    // Ahora simplemente validamos que la hora esté dentro del horario del profesional
+                    if (formattedSlot >= range.start && formattedSlot < range.end) {
+                        available = true;
+                        isMorning = range.isMorning;
+                        capacity = range.capacity;
+                        break;
                     }
                 }
 
-                if (!available) continue
+                if (!available) continue;
 
-                const coachServiceId = isMorning
-                    ? coach.service_id_morning
-                    : coach.service_id_afternoon
+                const coachServiceId = isMorning ? coach.service_id_morning : coach.service_id_afternoon;
+                if (Number(coachServiceId) !== serviceId) continue;
 
-                if (Number(coachServiceId) !== serviceId) continue
-
-                const key = `${formattedDate}_${formattedSlot}_${coach.coach_id}`
+                const key = `${formattedDate}_${formattedSlot}_${coach.coach_id}`;
 
                 response.push({
                     service_id: serviceId,
@@ -158,13 +123,13 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
                     coach_name: coach.coach_name,
                     booked: bookingMap[key] || 0,
                     capacity
-                })
+                });
             }
         }
 
-        return response
+        return response;
     } finally {
-        connection.release()
+        connection.release();
     }
 }
 
