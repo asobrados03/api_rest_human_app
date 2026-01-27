@@ -2,22 +2,18 @@ import * as productBookingRepo from '../repositories/product-booking.repository.
 import * as dateUtils from '../utils/date-handler.js';
 
 export async function getDailyAvailabilityService({ serviceId, date, db }) {
+    const targetServiceId = Number(serviceId);
     const formattedDate = new Date(date).toISOString().slice(0, 10);
     const dayAlias = dateUtils.getDayAliasForDate(formattedDate + 'T00:00:00Z');
 
     const connection = await db.getConnection();
 
     try {
-        const [
-            timeslotRows,
-            coachRows,
-            bookingRows,
-            availabilityRows
-        ] = await Promise.all([
+        const [timeslotRows, coachRows, bookingRows, availabilityRows] = await Promise.all([
             productBookingRepo.fetchTimeslots(connection),
-            productBookingRepo.fetchCoaches(connection, serviceId, formattedDate),
-            productBookingRepo.fetchBookings(connection, serviceId, formattedDate),
-            productBookingRepo.fetchAvailability(connection, serviceId, formattedDate)
+            productBookingRepo.fetchCoaches(connection, targetServiceId, formattedDate),
+            productBookingRepo.fetchBookings(connection, targetServiceId, formattedDate),
+            productBookingRepo.fetchAvailability(connection, targetServiceId, formattedDate)
         ]);
 
         /* ---------- Coaches ---------- */
@@ -91,7 +87,7 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
         const response = [];
 
         for (const slot of timeslotRows) {
-            const formattedSlot = slot.timeslot; // Ej: "09:00:00"
+            const formattedSlot = slot.timeslot;
 
             for (const coach of coaches) {
                 const coachAvailability = availabilityMap[coach.coach_id];
@@ -101,14 +97,11 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
                 let capacity = 0;
                 let available = false;
 
-                // Definimos los rangos de mañana y tarde
                 const ranges = [];
                 if (coachAvailability.morning) ranges.push({ ...coachAvailability.morning, isMorning: true });
                 if (coachAvailability.afternoon) ranges.push({ ...coachAvailability.afternoon, isMorning: false });
 
                 for (const range of ranges) {
-                    // Eliminada la restricción de minutos (:00 o :30) que causaba el error
-                    // Ahora simplemente validamos que la hora esté dentro del horario del profesional
                     if (formattedSlot >= range.start && formattedSlot < range.end) {
                         available = true;
                         isMorning = range.isMorning;
@@ -120,23 +113,27 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
                 if (!available) continue;
 
                 const coachServiceId = isMorning ? coach.service_id_morning : coach.service_id_afternoon;
-                if (Number(coachServiceId) !== serviceId) continue;
-
-                const key = `${formattedDate}_${formattedSlot}_${coach.coach_id}`;
+                if (Number(coachServiceId) !== targetServiceId) continue;
 
                 response.push({
-                    service_id: serviceId,
+                    service_id: targetServiceId,
                     date: new Date(formattedDate).toISOString(),
                     hour: formattedSlot,
                     coach_id: coach.coach_id,
                     coach_name: coach.coach_name,
-                    booked: bookingMap[key] || 0,
+                    booked: 0,
                     capacity
                 });
             }
         }
 
+        // AHORA SÍ PUEDES HACER LOG DE RESPONSE
+        console.log(`[DEBUG] Final Response: ${response.length} slots encontrados`);
         return response;
+
+    } catch (error) {
+        console.error("Error detallado en el servicio:", error);
+        throw error; // Re-lanzar para que el controller maneje el 500
     } finally {
         connection.release();
     }
