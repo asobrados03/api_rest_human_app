@@ -11,13 +11,13 @@ export function fetchCoaches(connection, productId, date) {
     SELECT ca.coach_id,
            u.user_name AS coach_name,
            ca.days,
-           ca.service_id_morning,
-           ca.service_id_afternoon,
+           ca.product_id_morning,
+           ca.product_id_afternoon,
            ca.capacity_morning,
            ca.capacity_afternoon
     FROM coach_availability ca
     JOIN users u ON u.user_id = ca.coach_id
-    WHERE (ca.service_id_morning = ? OR ca.service_id_afternoon = ?)
+    WHERE (ca.product_id_morning = ? OR ca.product_id_afternoon = ?)
       AND (ca.activacion IS NULL OR ca.activacion <= ?)
       AND (ca.desactivacion IS NULL OR ca.desactivacion > ?)
       AND u.deleted_at IS NULL
@@ -55,13 +55,13 @@ export function fetchAvailability(connection, productId, date) {
            TIME_FORMAT(morning_start_time, '%H:%i:%s') AS morning_start_time,
            TIME_FORMAT(morning_end_time, '%H:%i:%s') AS morning_end_time,
            capacity_morning,
-           service_id_morning,
+           product_id_morning,
            TIME_FORMAT(afternoon_start_time, '%H:%i:%s') AS afternoon_start_time,
            TIME_FORMAT(afternoon_end_time, '%H:%i:%s') AS afternoon_end_time,
            capacity_afternoon,
-           service_id_afternoon
+           product_id_afternoon
     FROM coach_availability
-    WHERE (service_id_morning = ? OR service_id_afternoon = ?)
+    WHERE (product_id_morning = ? OR product_id_afternoon = ?)
       AND (activacion IS NULL OR activacion <= ?)
       AND (desactivacion IS NULL OR desactivacion > ?)
   `, [productId, productId, date, date]).then(([rows]) => rows)
@@ -167,8 +167,8 @@ export async function fetchCoachAvailability(connection, coachId, date) {
       TIME_FORMAT(morning_end_time, '%H:%i:%s')     AS morning_end_time,
       TIME_FORMAT(afternoon_start_time, '%H:%i:%s') AS afternoon_start_time,
       TIME_FORMAT(afternoon_end_time, '%H:%i:%s')   AS afternoon_end_time,
-      service_id_morning,
-      service_id_afternoon
+      product_id_morning,
+      product_id_afternoon
     FROM coach_availability
     WHERE coach_id = ?
       AND (activacion IS NULL OR activacion <= ?)
