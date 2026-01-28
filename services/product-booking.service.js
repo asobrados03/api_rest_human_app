@@ -1,8 +1,8 @@
 import * as productBookingRepo from '../repositories/product-booking.repository.js'
 import * as dateUtils from '../utils/date-handler.js';
 
-export async function getDailyAvailabilityService({ serviceId, date, db }) {
-    const targetServiceId = Number(serviceId);
+export async function getDailyAvailabilityService({ productId, date, db }) {
+    const targetProductId = Number(productId);
     const formattedDate = new Date(date).toISOString().slice(0, 10);
     const dayAlias = dateUtils.getDayAliasForDate(formattedDate + 'T00:00:00Z');
 
@@ -11,9 +11,9 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
     try {
         const [timeslotRows, coachRows, bookingRows, availabilityRows] = await Promise.all([
             productBookingRepo.fetchTimeslots(connection),
-            productBookingRepo.fetchCoaches(connection, targetServiceId, formattedDate),
-            productBookingRepo.fetchBookings(connection, targetServiceId, formattedDate),
-            productBookingRepo.fetchAvailability(connection, targetServiceId, formattedDate)
+            productBookingRepo.fetchCoaches(connection, targetProductId, formattedDate),
+            productBookingRepo.fetchBookings(connection, targetProductId, formattedDate),
+            productBookingRepo.fetchAvailability(connection, targetProductId, formattedDate)
         ]);
 
         /* ---------- Coaches ---------- */
@@ -24,18 +24,18 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
             const existing = coachMap.get(row.coach_id) || {
                 coach_id: row.coach_id,
                 coach_name: row.coach_name,
-                service_id_morning: null,
-                service_id_afternoon: null,
+                product_id_morning: null,
+                product_id_afternoon: null,
                 capacity_morning: null,
                 capacity_afternoon: null
             };
 
-            if (row.service_id_morning != null) {
-                existing.service_id_morning = Number(row.service_id_morning);
+            if (row.product_id_morning != null) {
+                existing.product_id_morning = Number(row.product_id_morning);
                 existing.capacity_morning = Number(row.capacity_morning);
             }
-            if (row.service_id_afternoon != null) {
-                existing.service_id_afternoon = Number(row.service_id_afternoon);
+            if (row.product_id_afternoon != null) {
+                existing.product_id_afternoon = Number(row.product_id_afternoon);
                 existing.capacity_afternoon = Number(row.capacity_afternoon);
             }
             coachMap.set(row.coach_id, existing);
@@ -57,14 +57,14 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
 
             const entry = availabilityMap[row.coach_id] || { morning: null, afternoon: null };
 
-            if (row.morning_start_time && row.morning_end_time && Number(row.service_id_morning) === serviceId) {
+            if (row.morning_start_time && row.morning_end_time && Number(row.product_id_morning) === productId) {
                 entry.morning = {
                     start: row.morning_start_time,
                     end: row.morning_end_time,
                     capacity: Number(row.capacity_morning) || 0
                 };
             }
-            if (row.afternoon_start_time && row.afternoon_end_time && Number(row.service_id_afternoon) === serviceId) {
+            if (row.afternoon_start_time && row.afternoon_end_time && Number(row.product_id_afternoon) === productId) {
                 entry.afternoon = {
                     start: row.afternoon_start_time,
                     end: row.afternoon_end_time,
@@ -75,7 +75,7 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
         }
 
         // Añade esto justo antes del "/* ---------- Response ---------- */"
-        console.log("DEBUG: Service ID recibido:", serviceId);
+        console.log("DEBUG: Product ID recibido:", productId);
         console.log("DEBUG: Coaches encontrados:", coaches.length);
         console.log("DEBUG: Alias del día calculado:", dayAlias);
         console.log("DEBUG: Disponibilidad cargada para:", Object.keys(availabilityMap));
@@ -113,11 +113,11 @@ export async function getDailyAvailabilityService({ serviceId, date, db }) {
 
                 if (!available) continue;
 
-                const coachServiceId = isMorning ? coach.service_id_morning : coach.service_id_afternoon;
-                if (Number(coachServiceId) !== targetServiceId) continue;
+                const coachServiceId = isMorning ? coach.product_id_morning : coach.product_id_morning;
+                if (Number(coachServiceId) !== targetProductId) continue;
 
                 response.push({
-                    service_id: targetServiceId,
+                    product_id: targetProductId,
                     date: new Date(formattedDate).toISOString(),
                     hour: formattedSlot,
                     coach_id: coach.coach_id,
@@ -309,7 +309,7 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
 
         /* ---------- Output ---------- */
         return validSlots.map(t => {
-            const hhmm = t.slice(0, 5)
+            const hour_minutes = t.slice(0, 5)
             const r = byTime.get(t)
             const clients = []
 
@@ -327,8 +327,8 @@ export async function getTrainerReservationSlotsService({ date, shift, coachId, 
             }
 
             return {
-                id: `${date}-${hhmm}`,
-                time: hhmm,
+                id: `${date}-${hour_minutes}`,
+                time: hour_minutes,
                 count: Number(r?.total || 0),
                 label: r?.service_name || undefined,
                 clients

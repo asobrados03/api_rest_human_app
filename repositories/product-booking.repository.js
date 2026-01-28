@@ -6,7 +6,7 @@ export function fetchTimeslots(connection) {
   `).then(([rows]) => rows)
 }
 
-export function fetchCoaches(connection, serviceId, date) {
+export function fetchCoaches(connection, productId, date) {
     return connection.execute(`
     SELECT ca.coach_id,
            u.user_name AS coach_name,
@@ -21,10 +21,10 @@ export function fetchCoaches(connection, serviceId, date) {
       AND (ca.activacion IS NULL OR ca.activacion <= ?)
       AND (ca.desactivacion IS NULL OR ca.desactivacion > ?)
       AND u.deleted_at IS NULL
-  `, [serviceId, serviceId, date, date]).then(([rows]) => rows)
+  `, [productId, productId, date, date]).then(([rows]) => rows)
 }
 
-export function fetchBookings(connection, serviceId, date) {
+export function fetchBookings(connection, productId, date) {
     return connection.execute(`
     SELECT 
       b.service_id,
@@ -45,10 +45,10 @@ export function fetchBookings(connection, serviceId, date) {
       AND coach.deleted_at IS NULL
       AND DATE(b.start_date) = ?
     GROUP BY b.service_id, date, hour, coach.user_id
-  `, [serviceId, date]).then(([rows]) => rows)
+  `, [productId, date]).then(([rows]) => rows)
 }
 
-export function fetchAvailability(connection, serviceId, date) {
+export function fetchAvailability(connection, productId, date) {
     return connection.execute(`
     SELECT coach_id,
            days,
@@ -64,7 +64,7 @@ export function fetchAvailability(connection, serviceId, date) {
     WHERE (service_id_morning = ? OR service_id_afternoon = ?)
       AND (activacion IS NULL OR activacion <= ?)
       AND (desactivacion IS NULL OR desactivacion > ?)
-  `, [serviceId, serviceId, date, date]).then(([rows]) => rows)
+  `, [productId, productId, date, date]).then(([rows]) => rows)
 }
 
 export async function findExistingBooking(
@@ -158,7 +158,6 @@ export async function hasTrainingBookings(
     return rows.length > 0
 }
 
-// repositories/trainer.repository.js
 export async function fetchCoachAvailability(connection, coachId, date) {
     const [rows] = await connection.execute(
         `

@@ -7,16 +7,16 @@ export function testMobileRoute(req, res) {
 
 export async function getDailyAvailability(req, res) {
     try {
-        const { service_id, date } = req.query || {}
+        const { product_id, date } = req.query || {}
 
-        if (!service_id || !date) {
+        if (!product_id || !date) {
             return res.status(400).json({
-                error: 'Faltan parametros: service_id o date'
+                error: 'Faltan parametros: product_id o date'
             })
         }
 
         const result = await productBookingService.getDailyAvailabilityService({
-            serviceId: Number(service_id),
+            productId: Number(product_id),
             date,
             db: req.db
         })
