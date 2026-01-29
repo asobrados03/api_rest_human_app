@@ -23,7 +23,7 @@ router.put('/update-booking', verifyToken, productBookingController.updateBookin
 router.get('/user-weekly-limit', verifyToken, productBookingController.getUserWeeklyLimit)
 router.get('/holidays', verifyToken, productBookingController.getHolidays)
 router.get('/user-training-bookings', verifyToken, productBookingController.getUserTrainingBookings);
-router.get('/trainer/reservations/slots', verifyToken, productBookingController.getTrainerReservationSlots)
+router.get('/trainer/reservations/slots', verifyToken, productBookingController.getTrainerReservationSlots) //CREO QUE NO SE USA
 router.post('/recover-session', verifyToken, productBookingController.recoverSession)
 
 export default router

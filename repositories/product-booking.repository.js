@@ -194,15 +194,15 @@ export async function fetchServiceName(connection, serviceId) {
     return row?.service_name?.toLowerCase() ?? ''
 }
 
-export async function fetchServiceTimeslots(connection, serviceId) {
+export async function fetchServiceTimeslots(connection, serviceId, dayOfWeek) {
     const [rows] = await connection.execute(
         `
-    SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
-    FROM session_timeslots
-    WHERE service_id = ?
-    ORDER BY timeslot
-    `,
-        [serviceId]
+            SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
+            FROM session_timeslots
+            WHERE service_id = ? AND day_of_week = ?
+            ORDER BY timeslot
+        `,
+        [serviceId, dayOfWeek]
     )
 
     return rows.map(r => r.timeslot)
@@ -388,12 +388,14 @@ export async function findUserServices(connection, userId) {
     return rows
 }
 
-export async function findTimeslotByHour(connection, formattedHour) {
+export async function findTimeslotByHour(connection, formattedHour, serviceId, dayOfWeek) {
     const [rows] = await connection.execute(`
-    SELECT session_timeslot_id
-    FROM session_timeslots
-    WHERE TIME_FORMAT(timeslot, '%H:%i:%s') = ?
-  `, [formattedHour])
+        SELECT session_timeslot_id
+        FROM session_timeslots
+        WHERE TIME_FORMAT(timeslot, '%H:%i:%s') = ?
+          AND service_id = ?
+          AND day_of_week = ?
+    `, [formattedHour, serviceId, dayOfWeek])
 
     return rows.length ? rows[0] : null
 }

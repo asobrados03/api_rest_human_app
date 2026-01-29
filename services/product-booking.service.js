@@ -474,12 +474,12 @@ export async function getUserServicesService({ userId, db }) {
     }
 }
 
-export async function getTimeslotIdService({ hour, db }) {
+export async function getTimeslotIdService({ hour, serviceId, dayOfWeek, db }) {
     const formattedHour = hour.length === 5 ? hour + ':00' : hour
     const connection = await db.getConnection()
 
     try {
-        const timeslot = await productBookingRepo.findTimeslotByHour(connection, formattedHour)
+        const timeslot = await productBookingRepo.findTimeslotByHour(connection, formattedHour, serviceId, dayOfWeek)
 
         if (!timeslot) {
             const err = new Error('Hora no encontrada')

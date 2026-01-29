@@ -369,7 +369,7 @@ export async function getUserServices(req, res) {
 }
 
 export async function getTimeslotId(req, res) {
-    const { hour } = req.query || {}
+    const { hour, service_id : serviceId, day_of_week: dayOfWeek } = req.query || {}
 
     if (!hour) {
         return res.status(400).json({ error: 'Falta el parámetro hour' })
@@ -378,6 +378,8 @@ export async function getTimeslotId(req, res) {
     try {
         const sessionTimeslotId = await productBookingService.getTimeslotIdService({
             hour,
+            serviceId,
+            dayOfWeek,
             db: req.db
         })
 
