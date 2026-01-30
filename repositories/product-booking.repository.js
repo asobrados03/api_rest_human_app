@@ -451,6 +451,7 @@ export async function countWeeklyBookings(
     activeProductId,
     targetDate
 ) {
+    console.log('Counting weekly bookings for user:', userId, 'product:', activeProductId, 'date:', targetDate);
     const [rows] = await connection.execute(`
     SELECT COUNT(*) AS used
     FROM bookings

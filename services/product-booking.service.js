@@ -521,99 +521,80 @@ export const getProductMappingService = async ({ productId, db }) => {
 };
 
 export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
-    const connection = await db.getConnection()
+    const connection = await db.getConnection();
 
     try {
-        const products = await productBookingRepo.findActiveProducts(connection, userId)
+        const products = await productBookingRepo.findActiveProducts(connection, userId);
 
-        if (!products.length) {
-            return []
-        }
+        if (!products.length) return [];
 
-        // Agrupar por producto y quedarse con el active_product más reciente
-        const latestByProduct = new Map()
+        // 1. FILTRADO: Agrupar por ID de producto.
+        // Esto permite tener PRODUCTOS DISTINTOS (A y B), pero elimina duplicados del MISMO producto,
+        // quedándose con la fecha de alta más reciente.
+        const uniqueProductsMap = new Map();
+
         for (const r of products) {
-            const productId = Number(r.product_id)
-            if (!productId) continue
+            const pId = Number(r.product_id);
+            if (!pId) continue;
 
-            const current = latestByProduct.get(productId)
-            const currentTs = current?.ap_created_at
-                ? new Date(current.ap_created_at).getTime()
-                : -Infinity
-            const candidateTs = r.ap_created_at
-                ? new Date(r.ap_created_at).getTime()
-                : -Infinity
+            const current = uniqueProductsMap.get(pId);
+
+            // Si es la primera vez que vemos este ID, o si este registro es más reciente que el guardado:
+            const currentTs = current ? new Date(current.ap_created_at).getTime() : -Infinity;
+            const candidateTs = r.ap_created_at ? new Date(r.ap_created_at).getTime() : -Infinity;
 
             if (!current || candidateTs > currentTs) {
-                latestByProduct.set(productId, r)
+                uniqueProductsMap.set(pId, r);
             }
         }
 
-        // Semana de referencia
-        const base = targetDate ? new Date(targetDate) : new Date()
-        const day = base.getDay() || 7
+        // 2. CÁLCULO: Iteramos solo sobre los productos únicos
+        const result = [];
+        const base = targetDate ? new Date(targetDate) : new Date();
+        const baseDateISO = base.toISOString().slice(0, 10);
 
-        const monday = new Date(base)
-        monday.setDate(base.getDate() - day + 1)
-        monday.setHours(0, 0, 0, 0)
+        for (const r of uniqueProductsMap.values()) {
 
-        const sunday = new Date(monday)
-        sunday.setDate(monday.getDate() + 6)
-        sunday.setHours(23, 59, 59, 999)
-
-        const result = []
-
-        for (const r of latestByProduct.values()) {
-            let weeklyLimit = r.total_session || 0
-
-            // Override desde product_services si existe
-            const serviceOverride = await productBookingRepo.findProductServiceOverride(
-                connection,
-                r.product_id
-            )
-
+            // --- Lógica de Override (Configuración de sesiones) ---
+            let limitConfig = r.total_session ?? 0;
+            const serviceOverride = await productBookingRepo.findProductServiceOverride(connection, r.product_id);
             if (serviceOverride?.session != null) {
-                weeklyLimit = serviceOverride.session
+                limitConfig = Number(serviceOverride.session);
             }
 
+            // --- CASO RECURRENTE ---
             if (r.type_of_product === 'recurrent') {
                 const used = await productBookingRepo.countWeeklyBookings(
-                    connection,
-                    userId,
-                    r.active_product_id,
-                    targetDate
-                )
+                    connection, userId, r.active_product_id, baseDateISO
+                );
 
                 result.push({
                     active_product_id: r.active_product_id,
                     product_id: r.product_id,
-                    type_of_product: r.type_of_product,
-                    weekly_limit: weeklyLimit,
+                    type_of_product: 'recurrent',
+                    weekly_limit: limitConfig,
                     total_limit: null,
                     used,
-                    remaining: Math.max(0, weeklyLimit - used)
-                })
-            } else {
-                // Bonos
-                let stillValid = true
-
+                    remaining: Math.max(0, limitConfig - used)
+                });
+            }
+            // --- CASO BONOS ---
+            else {
+                // Chequeo de caducidad del bono
+                let isExpired = false;
                 if (r.valid_due) {
-                    const validUntil = new Date(r.ap_created_at)
-                    validUntil.setDate(validUntil.getDate() + Number(r.valid_due))
-                    stillValid = validUntil >= new Date()
+                    const validUntil = new Date(r.ap_created_at);
+                    validUntil.setDate(validUntil.getDate() + Number(r.valid_due));
+                    if (validUntil < new Date()) isExpired = true;
                 }
 
-                if (!stillValid) continue
+                if (isExpired) continue;
 
-                const totalLimit = r.total_session ?? weeklyLimit
                 const used = await productBookingRepo.countTotalBookings(
-                    connection,
-                    userId,
-                    r.active_product_id
-                )
+                    connection, userId, r.active_product_id
+                );
 
-                const remaining =
-                    totalLimit != null ? Math.max(0, totalLimit - used) : null
+                const totalLimit = r.total_session ?? limitConfig;
 
                 result.push({
                     active_product_id: r.active_product_id,
@@ -622,14 +603,15 @@ export async function getUserWeeklyLimitService({ userId, targetDate, db }) {
                     weekly_limit: null,
                     total_limit: totalLimit,
                     used,
-                    remaining
-                })
+                    remaining: totalLimit != null ? Math.max(0, totalLimit - used) : null
+                });
             }
         }
 
-        return result
+        return result;
+
     } finally {
-        connection.release()
+        connection.release();
     }
 }
 
