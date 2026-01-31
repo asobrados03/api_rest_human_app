@@ -1,9 +1,10 @@
-export function fetchTimeslots(connection) {
+export function fetchTimeslots(connection, serviceId) {
     return connection.execute(`
-    SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
-    FROM session_timeslots
-    ORDER BY timeslot
-  `).then(([rows]) => rows)
+        SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
+        FROM session_timeslots
+        WHERE service_id = ?
+        ORDER BY timeslot
+    `, [serviceId]).then(([rows]) => rows)
 }
 
 export function fetchCoaches(connection, productId, date) {

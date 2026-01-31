@@ -9,8 +9,15 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
     const connection = await db.getConnection();
 
     try {
+        const serviceId = await productBookingRepo.getServiceMappingByProduct(connection, targetProductId);
+
+        if (!serviceId) {
+            throw new Error(`No se encontró un service_id para el producto ${targetProductId}`);
+        }
+
+        // 2. Ahora pasamos el serviceId a fetchTimeslots
         const [timeslotRows, coachRows, bookingRows, availabilityRows] = await Promise.all([
-            productBookingRepo.fetchTimeslots(connection),
+            productBookingRepo.fetchTimeslots(connection, serviceId), // <--- CAMBIO AQUÍ
             productBookingRepo.fetchCoaches(connection, targetProductId, formattedDate),
             productBookingRepo.fetchBookings(connection, targetProductId, formattedDate),
             productBookingRepo.fetchAvailability(connection, targetProductId, formattedDate)
@@ -113,7 +120,7 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
 
                 if (!available) continue;
 
-                const coachServiceId = isMorning ? coach.product_id_morning : coach.product_id_morning;
+                const coachServiceId = isMorning ? coach.product_id_morning : coach.product_id_afternoon;
                 if (Number(coachServiceId) !== targetProductId) continue;
 
                 response.push({
