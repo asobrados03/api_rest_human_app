@@ -286,24 +286,27 @@ export async function updateBookingRow(connection, data) {
 export async function fetchUserBookings(connection, userId) {
     const [rows] = await connection.execute(
         `
-    SELECT 
-      b.booking_id AS id,
-      DATE(b.start_date) AS date,
-      TIME_FORMAT(st.timeslot, '%H:%i:%s') AS hour,
-      sv.service_name AS service,
-      sv.service_id AS service_id,
-      coach.user_name AS coach_name,
-      coach.profile_pic AS coach_profile_pic,
-      b.product_id AS product_id
-    FROM bookings b
-    JOIN session_timeslots st ON b.session_timeslot_id = st.session_timeslot_id
-    JOIN services sv ON b.service_id = sv.service_id
-    JOIN users coach ON b.coach_id = coach.user_id
-    WHERE 
-      b.customer_id = ?
-      AND b.status = 'active'
-    ORDER BY b.start_date, st.timeslot
-    `,
+            SELECT
+                b.booking_id AS id,
+                DATE(b.start_date) AS date,
+                TIME_FORMAT(st.timeslot, '%H:%i:%s') AS hour,
+                sv.service_name AS service,
+                sv.service_id AS service_id,
+                p.product_name AS product,          -- <--- Nuevo campo
+                coach.user_name AS coach_name,
+                coach.profile_pic AS coach_profile_pic,
+                b.product_id AS product_id
+            FROM bookings b
+                JOIN session_timeslots st ON b.session_timeslot_id = st.session_timeslot_id
+                JOIN services sv ON b.service_id = sv.service_id
+                JOIN products p ON b.product_id = p.product_id -- <--- JOIN con la tabla de productos
+                JOIN users coach ON b.coach_id = coach.user_id
+            WHERE
+                b.customer_id = ?
+              AND b.status = 'active'
+              AND b.deleted_at IS NULL        -- Recomendado añadir esto si usas soft delete
+            ORDER BY b.start_date, st.timeslot
+        `,
         [userId]
     )
 
