@@ -33,7 +33,7 @@ router.post('/payment-method/attach', verifyToken, stripeController.attachPaymen
  * @desc    Listar métodos de pago de un cliente
  * @access  Private
  */
-router.get('/payment-methods/:customerId', authMiddleware, stripeController.listPaymentMethods);
+router.get('/payment-methods/:customerId', verifyToken, stripeController.listPaymentMethods);
 
 /**
  * @route   DELETE /api/stripe/payment-method/:paymentMethodId
