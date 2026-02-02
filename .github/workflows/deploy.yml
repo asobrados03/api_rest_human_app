@@ -2,12 +2,12 @@ name: Deploy to Digital Ocean
 
 on:
   push:
-    branches: [ master ]  # Se dispara cuando hay push a master
+    branches: [ master ]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -17,26 +17,17 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           port: 22
           script: |
+            set -e
             echo "⏳ Iniciando deploy..."
-            
-            # Entrar en la carpeta de la app
+
             cd /opt/human-app/app
 
-            # Ignorar logs localmente para no interferir con git
-            echo "logs/" >> .gitignore
-            git rm -r --cached logs/ || echo "Logs ya eliminados"
-            git add .gitignore
-            git commit -m "Ignore logs" || echo "No hay cambios para commit"
-
-            # Traer los últimos cambios de la rama master
             git fetch origin master
             git reset --hard origin/master
 
-            # Instalar dependencias (omitimos dev)
             npm ci --omit=dev
 
-            # Recargar PM2
             pm2 reload ecosystem.config.cjs
             pm2 save
 
-            echo "✅ Deploy completado exitosamente"
+            echo "✅ Deploy completado"
