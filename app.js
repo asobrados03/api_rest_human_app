@@ -1,9 +1,9 @@
 import express from 'express';
-import mysql from 'mysql2/promise';
 
+import pool from './config/database.js';
 import prodReserveMobileRoutes from './routes/product-booking.routes.js';
 import serviceProductsMobileRoutes from './routes/service-products.routes.js';
-import paymentMobileRoutes from './routes/payments.routes.js';
+import stripeMobileRoutes from './routes/stripe.routes.js';
 import authMobileRoutes from './routes/auth.routes.js';
 import userMobileRoutes from './routes/user.routes.js';
 
@@ -11,23 +11,6 @@ import path from 'path';
 import fs from 'fs';
 
 const app = express();
-
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-pool.on('connection', (conn) => {
-    conn.on('error', err => {
-        console.error('MySQL connection error:', err)
-    })
-})
-pool.on('error', err => {
-    console.error('MySQL pool error:', err)
-})
 
 app.set('db', pool);
 
@@ -87,7 +70,7 @@ app.use('/api/mobile', prodReserveMobileRoutes);
 app.use('/api/mobile', serviceProductsMobileRoutes);
 app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
-app.use('/api/payments', paymentMobileRoutes);
+app.use('/api/stripe', stripeMobileRoutes);
 
 // Imágenes de usuario (persistentes, fuera del repo)
 app.use('/api/profile_pic', express.static(path.join(UPLOAD_PATH, 'profile_pic')));
