@@ -1,5 +1,6 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
+import {cancelSubscriptionInActiveProduct} from "../repositories/stripe.repository.js";
 
 // ==================== CLIENTES ====================
 
@@ -412,7 +413,7 @@ export async function getSubscription(subscriptionId) {
 /**
  * Manejar eventos de webhook
  */
-export async function handleWebhook(event) {
+export async function handleWebhook(dbPool, event) {
     try {
         switch (event.type) {
             case 'payment_intent.succeeded':
@@ -432,7 +433,7 @@ export async function handleWebhook(event) {
                 break;
 
             case 'customer.subscription.deleted':
-                await this.handleSubscriptionDeleted(event.data.object);
+                await this.handleSubscriptionDeleted(dbPool, event.data.object);
                 break;
 
             case 'invoice.payment_succeeded':
@@ -469,14 +470,16 @@ export async function handleSubscriptionCreated(subscription) {
     console.log('Subscription created:', subscription.id);
 }
 
-export async function handleSubscriptionUpdated(subscription) {
+export async function handleSubscriptionUpdated(dbPool, subscription) {
     console.log('Subscription updated:', subscription.id);
     // Actualizar en la base de datos
 }
 
-export async function handleSubscriptionDeleted(subscription) {
+export async function handleSubscriptionDeleted(dbPool, subscription) {
     console.log('Subscription deleted:', subscription.id);
     // Actualizar en la base de datos
+    const connection = await dbPool.getConnection();
+    await stripeRepository.cancelSubscriptionInActiveProduct(connection, subscription.product_id);
 }
 
 export async function handleInvoicePaymentSucceeded(invoice) {

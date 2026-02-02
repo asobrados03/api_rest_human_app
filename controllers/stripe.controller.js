@@ -324,7 +324,7 @@ export async function createRefund(req, res) {
             });
         }
 
-        const refund = await stripeService.createRefund(req.db, paymentIntentId, amount);
+        const refund = await stripeService.createRefund(paymentIntentId, amount);
 
         res.status(200).json({
             success: true,
@@ -477,7 +477,7 @@ export async function handleWebhook(req, res) {
         const event = stripeService.verifyWebhookSignature(req.body, signature);
 
         // Procesar el evento
-        await stripeService.handleWebhook(event);
+        await stripeService.handleWebhook(req.db, event);
 
         res.status(200).json({ received: true });
     } catch (error) {
@@ -592,7 +592,7 @@ export async function setDefaultCard(req, res) {
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
 
-        await stripeRepository.setDefaultCard(connection, cardId, userId);
+        await stripeRepository.setDefaultPaymentMethod(connection, cardId, userId);
 
         res.status(200).json({
             success: true,

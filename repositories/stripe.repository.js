@@ -243,7 +243,7 @@ export async function deletePaymentMethod(connection, cardId, userId) {
 /**
  * Establecer tarjeta como predeterminada
  */
-export async function setDefaultCard(connection, paymentMethodId, userId) {
+export async function setDefaultPaymentMethod(connection, paymentMethodId, userId) {
     try {
         await connection.beginTransaction();
 
