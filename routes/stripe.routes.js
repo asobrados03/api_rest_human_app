@@ -158,6 +158,8 @@ router.delete('/cards/:cardId', verifyToken, stripeController.deleteCard);
  */
 router.put('/cards/:cardId/default', verifyToken, stripeController.setDefaultCard);
 
+router.post('/ephemeral-keys', verifyToken, stripeController.createEphemeralKey);
+
 // ==================== WEBHOOKS ====================
 
 /**

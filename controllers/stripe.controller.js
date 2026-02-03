@@ -1,5 +1,6 @@
 import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
+import * as stripe from "stripe";
 
 // ==================== CLIENTES ====================
 
@@ -402,6 +403,22 @@ export async function cancelSubscription(req, res) {
         });
     }
 }
+
+export const createEphemeralKey = async (req, res) => {
+    try {
+        const { customer_id, apiVersion } = req.body;
+
+        // Es importante usar la apiVersion que envía el SDK de Android
+        const key = await stripe.ephemeralKeys.create(
+            { customer: customer_id },
+            { apiVersion: apiVersion }
+        );
+
+        res.status(200).json(key);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 /**
  * Obtener suscripción
