@@ -3,6 +3,12 @@ const router = Router();
 import { verifyToken } from '../middlewares/verifyToken.js';
 import * as stripeController from '../controllers/stripe.controller.js';
 
+// Inyectar pool de conexión a la request para que el Controller lo pueda usar
+router.use((req, res, next) => {
+    req.db = req.app.get('db')
+    next()
+})
+
 // ==================== CLIENTES ====================
 
 /**
