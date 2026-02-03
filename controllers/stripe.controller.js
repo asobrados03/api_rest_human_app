@@ -9,7 +9,7 @@ import * as stripeRepository from '../repositories/stripe.repository.js';
  */
 export async function createCustomer(req, res) {
     try {
-        const userId = req.user?.id || req.body.userId; // Asume que el userId viene del JWT o body
+        const userId = req.user_payload?.id || req.body.userId; // Asume que el userId viene del JWT o body
 
         const result = await stripeService.createOrGetCustomer(req.db, userId);
 
