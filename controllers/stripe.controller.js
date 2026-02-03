@@ -69,7 +69,7 @@ export async function attachPaymentMethod(req, res) {
             });
         }
 
-        const paymentMethod = await stripeService.attachPaymentMethod(req.db, paymentMethodId, customerId);
+        const paymentMethod = await stripeService.attachPaymentMethod(paymentMethodId, customerId);
 
         res.status(200).json({
             success: true,
@@ -94,7 +94,7 @@ export async function listPaymentMethods(req, res) {
     try {
         const { customerId } = req.params;
 
-        const paymentMethods = await stripeService.listPaymentMethods(req.db, customerId);
+        const paymentMethods = await stripeService.listPaymentMethods(customerId);
 
         res.status(200).json({
             success: true,
@@ -118,7 +118,7 @@ export async function detachPaymentMethod(req, res) {
     try {
         const { paymentMethodId } = req.params;
 
-        const paymentMethod = await stripeService.detachPaymentMethod(req.db, paymentMethodId);
+        const paymentMethod = await stripeService.detachPaymentMethod(paymentMethodId);
 
         res.status(200).json({
             success: true,
@@ -153,7 +153,6 @@ export async function createPaymentIntent(req, res) {
         }
 
         const paymentIntent = await stripeService.createPaymentIntent({
-            dbPool : req.db,
             amount,
             currency,
             customerId,
@@ -191,7 +190,7 @@ export async function confirmPaymentIntent(req, res) {
             });
         }
 
-        const paymentIntent = await stripeService.confirmPaymentIntent(req.db, paymentIntentId, paymentMethodId);
+        const paymentIntent = await stripeService.confirmPaymentIntent(paymentIntentId, paymentMethodId);
 
         res.status(200).json({
             success: true,
@@ -215,7 +214,7 @@ export async function getPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
 
-        const paymentIntent = await stripeService.getPaymentIntent(req.db, paymentIntentId);
+        const paymentIntent = await stripeService.getPaymentIntent(paymentIntentId);
 
         res.status(200).json({
             success: true,
@@ -239,7 +238,7 @@ export async function cancelPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
 
-        const paymentIntent = await stripeService.cancelPaymentIntent(req.db, paymentIntentId);
+        const paymentIntent = await stripeService.cancelPaymentIntent(paymentIntentId);
 
         res.status(200).json({
             success: true,
@@ -274,8 +273,7 @@ export async function purchaseProduct(req, res) {
             });
         }
 
-        const result = await stripeService.processProductPurchase({
-            dbPool: req.db,
+        const result = await stripeService.processProductPurchase(req.db, {
             userId,
             productId,
             paymentMethodId,
@@ -359,8 +357,7 @@ export async function createSubscription(req, res) {
             });
         }
 
-        const subscription = await stripeService.createSubscription({
-            dbPool: req.db,
+        const subscription = await stripeService.createSubscription(req.db, {
             userId,
             priceId,
             paymentMethodId
@@ -414,7 +411,7 @@ export async function getSubscription(req, res) {
     try {
         const { subscriptionId } = req.params;
 
-        const subscription = await stripeService.getSubscription(req.db, subscriptionId);
+        const subscription = await stripeService.getSubscription(subscriptionId);
 
         res.status(200).json({
             success: true,

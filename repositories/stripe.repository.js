@@ -65,7 +65,9 @@ export async function getTransactionById(connection, transactionId) {
 /**
  * Obtener transacciones por usuario
  */
-export async function getTransactionsByCustomerId(connection, customerId) {
+export async function getTransactionsByCustomerId(dbPool, customerId) {
+    const connection = await dbPool.getConnection();
+
     const query = `
   SELECT st.*, p.product_name, p.product_name_es
   FROM stripe_transactions st
