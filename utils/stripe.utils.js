@@ -2,24 +2,31 @@
  * Utilidades para trabajar con Stripe
  */
 
+export const DEFAULT_CURRENCY = 'eur';
+export const PAYMENT_METHOD_CARD = 'card';
+export const PAYMENT_STATUS_PAID = 'paid';
+export const PRODUCT_TYPE_RECURRENT = 'recurrent';
+export const PRODUCT_TYPE_MULTI_SESSIONS = 'multi_sessions';
+export const PRODUCT_TYPE_SINGLE_SESSION = 'single_session';
+
 /**
  * Convertir monto a centavos (Stripe trabaja con centavos)
  */
-const toCents = (amount) => {
+export const toCents = (amount) => {
     return Math.round(amount * 100);
 };
 
 /**
  * Convertir centavos a monto decimal
  */
-const fromCents = (cents) => {
+export const fromCents = (cents) => {
     return cents / 100;
 };
 
 /**
  * Generar número de factura único
  */
-const generateInvoiceNumber = () => {
+export const generateInvoiceNumber = () => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
     return `INV-${timestamp}-${random}`;
@@ -28,19 +35,19 @@ const generateInvoiceNumber = () => {
 /**
  * Calcular fecha de expiración según tipo de producto
  */
-const calculateExpiryDate = (productType) => {
+export const calculateExpiryDate = (productType) => {
     const purchaseDate = new Date();
     let expiryDate = null;
 
     switch (productType) {
-        case 'recurrent':
+        case PRODUCT_TYPE_RECURRENT:
             // Suscripciones expiran en 1 mes
             expiryDate = new Date(purchaseDate);
             expiryDate.setMonth(expiryDate.getMonth() + 1);
             break;
 
-        case 'multi_sessions':
-        case 'single_session':
+        case PRODUCT_TYPE_MULTI_SESSIONS:
+        case PRODUCT_TYPE_SINGLE_SESSION:
             // Bonos expiran en 3 meses
             expiryDate = new Date(purchaseDate);
             expiryDate.setMonth(expiryDate.getMonth() + 3);
@@ -56,7 +63,7 @@ const calculateExpiryDate = (productType) => {
 /**
  * Formatear tarjeta para mostrar
  */
-const formatCardDisplay = (card) => {
+export const formatCardDisplay = (card) => {
     return {
         id: card.id,
         brand: card.card?.brand || card.brand_reference,
@@ -70,7 +77,7 @@ const formatCardDisplay = (card) => {
 /**
  * Validar monto
  */
-const validateAmount = (amount) => {
+export const validateAmount = (amount) => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
         throw new Error('El monto debe ser un número positivo');
@@ -81,7 +88,7 @@ const validateAmount = (amount) => {
 /**
  * Formatear error de Stripe para mostrar al usuario
  */
-const formatStripeError = (error) => {
+export const formatStripeError = (error) => {
     const errorMessages = {
         'card_declined': 'Tu tarjeta fue rechazada. Por favor, intenta con otra tarjeta.',
         'insufficient_funds': 'Fondos insuficientes. Por favor, intenta con otra tarjeta.',
@@ -97,7 +104,7 @@ const formatStripeError = (error) => {
 /**
  * Crear metadata para Stripe
  */
-const createStripeMetadata = (data) => {
+export const createStripeMetadata = (data) => {
     const metadata = {};
 
     Object.keys(data).forEach(key => {
@@ -106,15 +113,4 @@ const createStripeMetadata = (data) => {
     });
 
     return metadata;
-};
-
-exports = {
-    toCents,
-    fromCents,
-    generateInvoiceNumber,
-    calculateExpiryDate,
-    formatCardDisplay,
-    validateAmount,
-    formatStripeError,
-    createStripeMetadata
 };

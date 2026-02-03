@@ -1,5 +1,14 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
+import {
+    calculateExpiryDate,
+    createStripeMetadata,
+    DEFAULT_CURRENCY,
+    generateInvoiceNumber,
+    PAYMENT_METHOD_CARD,
+    PAYMENT_STATUS_PAID,
+    toCents
+} from '../utils/stripe.utils.js';
 
 // ==================== CLIENTES ====================
 
@@ -122,10 +131,10 @@ export async function createPaymentIntent(data) {
         const { amount, currency, customerId, metadata, paymentMethodId } = data;
 
         const paymentIntentData = {
-            amount: Math.round(amount * 100), // Stripe usa centavos
-            currency: currency || 'eur',
+            amount: toCents(amount), // Stripe usa centavos
+            currency: currency || DEFAULT_CURRENCY,
             customer: customerId,
-            metadata: metadata || {},
+            metadata: createStripeMetadata(metadata || {}),
             automatic_payment_methods: {
                 enabled: true,
             },
@@ -223,7 +232,7 @@ export async function processProductPurchase(dbPool, data) {
         // 4. Crear Payment Intent
         const paymentIntent = await this.createPaymentIntent({
             amount: totalAmount,
-            currency: 'eur',
+            currency: DEFAULT_CURRENCY,
             customerId: customerId,
             paymentMethodId: paymentMethodId,
             metadata: {
@@ -245,22 +254,12 @@ export async function processProductPurchase(dbPool, data) {
             });
 
             // Calcular fecha de expiración
-            let expiryDate = null;
-            if (product.type_of_product === 'recurrent') {
-                const purchaseDate = new Date();
-                expiryDate = new Date(purchaseDate);
-                expiryDate.setMonth(expiryDate.getMonth() + 1); // 1 mes
-            } else if (product.type_of_product === 'multi_sessions' || product.type_of_product === 'single_session') {
-                // Bonos típicamente tienen validez de 3 meses
-                const purchaseDate = new Date();
-                expiryDate = new Date(purchaseDate);
-                expiryDate.setMonth(expiryDate.getMonth() + 3);
-            }
+            const expiryDate = calculateExpiryDate(product.type_of_product);
 
             // Crear producto activo
             const activeProductId = await stripeRepository.createActiveProduct(connection, {
                 product_id: productId,
-                invoice_number: `INV-${Date.now()}`,
+                invoice_number: generateInvoiceNumber(),
                 customer_id: userId,
                 group_id: groupId,
                 purchase_date: new Date(),
@@ -269,8 +268,8 @@ export async function processProductPurchase(dbPool, data) {
                 discount: discount,
                 total_amount: totalAmount,
                 coupon_id: couponId,
-                payment_status: 'paid',
-                payment_method: 'card',
+                payment_status: PAYMENT_STATUS_PAID,
+                payment_method: PAYMENT_METHOD_CARD,
                 stripe_transaction_id: transactionId,
                 card_id: paymentMethodId,
                 centro: centro
@@ -309,7 +308,7 @@ export async function createRefund(paymentIntentId, amount = null) {
 
         // Si se especifica un monto, reembolsar parcialmente
         if (amount) {
-            refundData.amount = Math.round(amount * 100);
+            refundData.amount = toCents(amount);
         }
 
         return await stripe.refunds.create(refundData);
