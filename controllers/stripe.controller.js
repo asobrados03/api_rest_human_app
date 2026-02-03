@@ -408,10 +408,10 @@ export const createEphemeralKey = async (req, res) => {
     try {
         const { customer_id } = req.body;
 
-        if (!customer_id || !apiVersion) {
+        if (!customer_id) {
             return res.status(400).json({
                 success: false,
-                message: 'customer_id y apiVersion son requeridos'
+                message: 'customer_id es requerido'
             });
         }
 
