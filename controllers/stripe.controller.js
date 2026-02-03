@@ -1,6 +1,6 @@
 import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import * as stripe from "stripe";
+import stripe from '../config/stripe.config.js';
 
 // ==================== CLIENTES ====================
 
@@ -408,15 +408,29 @@ export const createEphemeralKey = async (req, res) => {
     try {
         const { customer_id, apiVersion } = req.body;
 
+        if (!customer_id || !apiVersion) {
+            return res.status(400).json({
+                success: false,
+                message: 'customer_id y apiVersion son requeridos'
+            });
+        }
+
         // Es importante usar la apiVersion que envía el SDK de Android
         const key = await stripe.ephemeralKeys.create(
             { customer: customer_id },
             { apiVersion: apiVersion }
         );
 
-        res.status(200).json(key);
+        res.status(200).json({
+            success: true,
+            data: key
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear ephemeral key',
+            error: error.message
+        });
     }
 };
 
