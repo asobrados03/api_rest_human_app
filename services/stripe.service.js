@@ -1,6 +1,5 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import {cancelSubscriptionInActiveProduct} from "../repositories/stripe.repository.js";
 
 // ==================== CLIENTES ====================
 
@@ -387,6 +386,19 @@ export async function cancelSubscription(dbPool, subscriptionId) {
                 retry_count: 0,
                 last_result: 'Subscription canceled by user'
             });
+
+            let activeProductId = null;
+            if (dbSubscription.metadata) {
+                try {
+                    const parsedMetadata = JSON.parse(dbSubscription.metadata);
+                    activeProductId = parsedMetadata.active_product_id ?? parsedMetadata.activeProductId ?? null;
+                } catch (parseError) {
+                    console.warn('Metadata inválida en suscripción:', parseError);
+                }
+            }
+            if (activeProductId) {
+                await stripeRepository.cancelSubscriptionInActiveProduct(connection, activeProductId);
+            }
         }
 
         return subscription;
