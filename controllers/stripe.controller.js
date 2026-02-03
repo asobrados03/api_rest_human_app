@@ -415,7 +415,6 @@ export const createEphemeralKey = async (req, res) => {
             });
         }
 
-        // Es importante usar la apiVersion que envía el SDK de Android
         const key = await stripe.ephemeralKeys.create(
             { customer: customer_id },
             { apiVersion: "2026-01-28.clover" }
