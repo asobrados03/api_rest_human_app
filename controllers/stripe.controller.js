@@ -36,7 +36,7 @@ export async function getCustomer(req, res) {
     try {
         const { customerId } = req.params;
 
-        const customer = await stripeService.getCustomer(req.db, customerId);
+        const customer = await stripeService.getCustomer(customerId);
 
         res.status(200).json({
             success: true,
