@@ -1,6 +1,6 @@
 import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import * as stripe from "stripe";
+import stripe from '../config/stripe.config.js';
 
 // ==================== CLIENTES ====================
 
@@ -406,12 +406,12 @@ export async function cancelSubscription(req, res) {
 
 export const createEphemeralKey = async (req, res) => {
     try {
-        const { customer_id, apiVersion } = req.body;
+        const { customer_id } = req.body;
 
         // Es importante usar la apiVersion que envía el SDK de Android
         const key = await stripe.ephemeralKeys.create(
             { customer: customer_id },
-            { apiVersion: apiVersion }
+            { apiVersion: "2026-01-28.clover" }
         );
 
         res.status(200).json(key);
