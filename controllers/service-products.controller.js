@@ -144,3 +144,26 @@ export async function searchProducts(req, res) {
         if (connection) connection.release();
     }
 }
+
+/**
+ * GET /api/products/:id
+ */
+export async function getProductDetailForHireProduct(req, res) {
+    try {
+        const productId = Number(req.params.id);
+
+        const product = await service.getProductDetail(req.db, productId);
+
+        res.status(200).json({
+            success: true,
+            data: product
+        });
+    } catch (error) {
+        const status = error.status || 500;
+
+        res.status(status).json({
+            success: false,
+            message: error.message || 'Internal server error'
+        });
+    }
+}

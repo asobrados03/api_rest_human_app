@@ -144,3 +144,22 @@ export const validateCoupon = async (connection, couponCode) => {
 export const searchProducts = async (connection, query) => {
   return await productRepo.searchProductsByName(connection, query);
 };
+
+export async function getProductDetail(dbPool, productId) {
+  if (!Number.isInteger(productId) || productId <= 0) {
+    const error = new Error('Invalid product id');
+    error.status = 400;
+    throw error;
+  }
+  const connection = await dbPool.getConnection();
+
+  const product = await productRepo.getProductDetailById(connection, productId);
+
+  if (!product) {
+    const error = new Error('Product not found');
+    error.status = 404;
+    throw error;
+  }
+
+  return product;
+}

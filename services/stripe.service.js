@@ -9,6 +9,7 @@ import {
     PAYMENT_STATUS_PAID,
     toCents
 } from '../utils/stripe.utils.js';
+import * as productService from "./service-products.service.js";
 
 // ==================== CLIENTES ====================
 
@@ -428,7 +429,7 @@ export async function handleWebhook(dbPool, event) {
     try {
         switch (event.type) {
             case 'payment_intent.succeeded':
-                await this.handlePaymentIntentSucceeded(event.data.object);
+                await this.handlePaymentIntentSucceeded(dbPool, event.data.object);
                 break;
 
             case 'payment_intent.payment_failed':
@@ -467,9 +468,15 @@ export async function handleWebhook(dbPool, event) {
 }
 
 // Handlers específicos para cada tipo de evento
-export async function handlePaymentIntentSucceeded(paymentIntent) {
+export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
     console.log('Payment Intent succeeded:', paymentIntent.id);
     // Aquí puedes actualizar el estado en tu base de datos si es necesario
+    const connection = await dbPool.getConnection();
+    const user_id = paymentIntent.metadata.user_id
+    const product_id = paymentIntent.metadata.product_id
+    const coupon_code = paymentIntent.metadata.coupon_code
+
+    await productService.assignProduct(connection, {user_id, product_id, payment_method: "card", coupon_code} )
 }
 
 export async function handlePaymentIntentFailed(paymentIntent) {

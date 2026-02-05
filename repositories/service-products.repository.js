@@ -135,6 +135,26 @@ export const getActiveProductDetail = async (connection, userId, productId) => {
     return producto;
 };
 
+export async function getProductDetailById(connection, productId) {
+    const sql = `
+        SELECT
+            product_id      AS id,
+            product_name    AS name,
+            description,
+            price,
+            product_image   AS image,
+            total_session   AS session,
+            type_of_product AS typeOfProduct
+        FROM products
+        WHERE product_id = ?
+          AND deleted_at IS NULL
+        LIMIT 1
+    `;
+
+    const [rows] = await connection.execute(sql, [productId]);
+    return rows.length ? rows[0] : null;
+}
+
 export const getProductServices = async (connection, productId) => {
     const [services] = await connection.execute(`
     SELECT DISTINCT s.service_id AS id, s.service_name AS name, s.service_image AS image
