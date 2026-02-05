@@ -155,8 +155,7 @@ export async function getProductDetailForHireProduct(req, res) {
         const product = await service.getProductDetail(req.db, productId);
 
         res.status(200).json({
-            success: true,
-            data: product
+            product
         });
     } catch (error) {
         const status = error.status || 500;
