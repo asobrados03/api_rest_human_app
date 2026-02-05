@@ -154,12 +154,9 @@ export async function getProductDetailForHireProduct(req, res) {
 
         const product = await service.getProductDetail(req.db, productId);
 
-        res.status(200).json({
-            product
-        });
+        res.status(200).json(product);  // ← Sin el wrapper { product: ... }
     } catch (error) {
         const status = error.status || 500;
-
         res.status(status).json({
             success: false,
             message: error.message || 'Internal server error'
