@@ -140,7 +140,7 @@ export async function getProductDetailById(connection, productId) {
         SELECT
             product_id      AS id,
             product_name    AS name,
-            description,
+            description_es  AS description,
             price,
             product_image   AS image,
             total_session   AS session,

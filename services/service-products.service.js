@@ -126,7 +126,7 @@ export const unassignProduct = async (connection, userId, productId) => {
   return { valid_until: lastDay };
 };
 
-export const getDetails = async (connection, userId, productId) => {
+export const getActiveProductDetail = async (connection, userId, productId) => {
   const product = await productRepo.getActiveProductDetail(connection, userId, productId);
   if (!product) throw { status: 404, message: 'No encontrado' };
 

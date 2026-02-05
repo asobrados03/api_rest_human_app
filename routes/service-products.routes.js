@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { verifyToken } from '../middlewares/verifyToken.js'
 import {
     testMobileRoute, getAllServices, getServiceProducts, getUserProducts, assignProductToUser,
-    unassignProductFromUser, getProductDetails, applyCoupon,
+    unassignProductFromUser, getActiveProductDetail, applyCoupon,
     searchProducts, getProductDetailForHireProduct
 } from '../controllers/service-products.controller.js'
 
@@ -19,7 +19,7 @@ router.get('/service-products', verifyToken, getServiceProducts)
 router.get('/user-products', verifyToken, getUserProducts)
 router.post('/assign-product', verifyToken, assignProductToUser)
 router.delete('/unassign-product', verifyToken, unassignProductFromUser)
-router.get('/product-details', verifyToken, getProductDetails)
+router.get('/active-product-detail', verifyToken, getActiveProductDetail)
 router.post('/apply-coupon', verifyToken, applyCoupon);
 router.get('/products-search', /*verifyToken,*/ searchProducts);
 router.get('/products/:id', verifyToken, getProductDetailForHireProduct);

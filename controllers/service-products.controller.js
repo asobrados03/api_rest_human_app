@@ -99,14 +99,14 @@ export async function unassignProductFromUser(req, res) {
     }
 }
 
-export async function getProductDetails(req, res) {
+export async function getActiveProductDetail(req, res) {
     const { user_id, product_id } = req.query;
     if (!user_id || !product_id) return res.status(400).json({ error: 'Faltan parámetros' });
 
     let connection;
     try {
         connection = await req.db.getConnection();
-        const data = await service.getDetails(connection, user_id, product_id);
+        const data = await service.getActiveProductDetail(connection, user_id, product_id);
         res.json(data);
     } catch (err) {
         const status = err.status || 500;
