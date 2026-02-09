@@ -634,3 +634,33 @@ export async function setDefaultCard(req, res) {
         });
     }
 }
+
+/**
+ * Obtener STRIPE_PUBLISHABLE_KEY (pública)
+ * GET /api/stripe/publishable-key
+ * Access Public
+ */
+export async function getPublishableKey(req, res) {
+    try {
+        const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+
+        if (!publishableKey) {
+            return res.status(500).json({
+                success: false,
+                message: 'STRIPE_PUBLISHABLE_KEY no está definida en el entorno'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: { publishableKey }
+        });
+    } catch (error) {
+        console.error('Error en getPublishableKey:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener la clave publishable',
+            error: error.message
+        });
+    }
+}

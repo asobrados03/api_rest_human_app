@@ -15,8 +15,8 @@ router.use((req, res, next) => {
 /**
  * @route   POST /api/stripe/webhook
  * @desc    Manejar webhook de Stripe
- * @access  Public (pero verificado por Stripe signature)
- * @note    Esta ruta NO debe usar bodyParser.json(), usa express.raw()
+ * @access  public
+ * @note    Verificado por Stripe signature. Esta ruta NO debe usar bodyParser.json(), usa express.raw().
  */
 router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
 
@@ -170,6 +170,13 @@ router.delete('/cards/:cardId', verifyToken, stripeController.deleteCard);
  * @access  Private
  */
 router.put('/cards/:cardId/default', verifyToken, stripeController.setDefaultCard);
+
+/**
+ * @route   GET /api/stripe/publishable-key
+ * @desc    Devolver la STRIPE_PUBLISHABLE_KEY (pública)
+ * @access  Public
+ */
+router.get('/publishable-key', stripeController.getPublishableKey);
 
 router.post('/ephemeral-keys', verifyToken, stripeController.createEphemeralKey);
 
