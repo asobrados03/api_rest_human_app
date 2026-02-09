@@ -9,6 +9,19 @@ router.use((req, res, next) => {
     next()
 })
 
+
+// ==================== WEBHOOKS ====================
+
+/**
+ * @route   POST /api/stripe/webhook
+ * @desc    Manejar webhook de Stripe
+ * @access  Public (pero verificado por Stripe signature)
+ * @note    Esta ruta NO debe usar bodyParser.json(), usa express.raw()
+ */
+router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
+
+router.use(express.json());
+
 // ==================== CLIENTES ====================
 
 /**
@@ -159,15 +172,5 @@ router.delete('/cards/:cardId', verifyToken, stripeController.deleteCard);
 router.put('/cards/:cardId/default', verifyToken, stripeController.setDefaultCard);
 
 router.post('/ephemeral-keys', verifyToken, stripeController.createEphemeralKey);
-
-// ==================== WEBHOOKS ====================
-
-/**
- * @route   POST /api/stripe/webhook
- * @desc    Manejar webhook de Stripe
- * @access  Public (pero verificado por Stripe signature)
- * @note    Esta ruta NO debe usar bodyParser.json(), usa express.raw()
- */
-router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
 
 export default router;

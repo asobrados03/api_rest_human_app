@@ -30,6 +30,8 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
+app.use('/api/stripe', stripeMobileRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -70,7 +72,6 @@ app.use('/api/mobile', prodReserveMobileRoutes);
 app.use('/api/mobile', serviceProductsMobileRoutes);
 app.use('/api/mobile', authMobileRoutes);
 app.use('/api/mobile', userMobileRoutes);
-app.use('/api/stripe', stripeMobileRoutes);
 
 // Imágenes de usuario (persistentes, fuera del repo)
 app.use('/api/profile_pic', express.static(path.join(UPLOAD_PATH, 'profile_pic')));
