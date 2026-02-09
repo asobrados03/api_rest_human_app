@@ -651,10 +651,8 @@ export async function getPublishableKey(req, res) {
             });
         }
 
-        res.status(200).json({
-            success: true,
-            data: { publishableKey }
-        });
+        res.status(200).json(publishableKey);
+
     } catch (error) {
         console.error('Error en getPublishableKey:', error);
         res.status(500).json({
