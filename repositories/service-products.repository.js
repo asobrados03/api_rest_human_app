@@ -173,3 +173,8 @@ export const searchProductsByName = async (connection, query) => {
   `, [`%${query}%`]);
     return rows;
 };
+
+export const updateActiveProductExpiry = async (connection, id, newDueDate) => {
+    const query = "UPDATE active_products SET due_date = ?, status = 'active' WHERE id = ?";
+    return await connection.execute(query, [newDueDate, id]);
+};

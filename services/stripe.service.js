@@ -340,24 +340,9 @@ export async function createSubscription(dbPool, data) {
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
             expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
-        });
-
-        // 4. Guardar en la base de datos (con la columna payment_method corregida del paso anterior)
-        await stripeRepository.createSubscription(connection, {
-            user_id: userId,
-            payerref: customerId,
-            // OJO: Stripe no devuelve el payment method ID en la creación inicial si aún no se ha pagado.
-            // Para la BD, podemos dejarlo pendiente o null hasta que llegue el Webhook.
-            paymentmethod: null,
-            amount_minor: subscription.items.data[0].price.unit_amount,
-            currency: subscription.currency.toUpperCase(),
-            interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,
-            start_date: new Date(subscription.start_date * 1000),
-            next_charge_at: new Date(subscription.current_period_end * 1000),
-            status: subscription.status,
-            order_prefix: `SUB-${subscription.id}`,
             metadata: {
-                stripe_subscription_id: subscription.id
+                user_id: userId.toString(),
+                type: 'subscription' // Marca para diferenciar
             }
         });
 
@@ -443,7 +428,7 @@ export async function handleWebhook(dbPool, event) {
                 break;
 
             case 'customer.subscription.created':
-                await this.handleSubscriptionCreated(event.data.object);
+                await this.handleSubscriptionCreated(dbPool, event.data.object);
                 break;
 
             case 'customer.subscription.updated':
@@ -455,7 +440,7 @@ export async function handleWebhook(dbPool, event) {
                 break;
 
             case 'invoice.payment_succeeded':
-                await this.handleInvoicePaymentSucceeded(event.data.object);
+                await this.handleInvoicePaymentSucceeded(dbPool, event.data.object);
                 break;
 
             case 'invoice.payment_failed':
@@ -490,8 +475,34 @@ export async function handlePaymentIntentFailed(paymentIntent) {
     // Notificar al usuario del fallo
 }
 
-export async function handleSubscriptionCreated(subscription) {
+export async function handleSubscriptionCreated(dbPool, subscription) {
     console.log('Subscription created:', subscription.id);
+
+    const connection = await dbPool.getConnection();
+    try {
+        const customerId = subscription.customer;
+        const userId = subscription.metadata?.user_id;
+
+        await stripeRepository.createSubscription(connection, {
+            user_id: userId,
+            payerref: customerId,
+            paymentmethod: null,
+            amount_minor: subscription.items.data[0].price.unit_amount,
+            currency: subscription.currency.toUpperCase(),
+            interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,
+            start_date: new Date(subscription.start_date * 1000),
+            next_charge_at: new Date(subscription.current_period_end * 1000),
+            status: subscription.status,
+            order_prefix: subscription.id,
+            metadata: {
+                stripe_subscription_id: subscription.id
+            }
+        });
+    } catch (error) {
+        console.error('Error en handleSubscriptionCreated:', error);
+    } finally {
+        connection.release();
+    }
 }
 
 export async function handleSubscriptionUpdated(dbPool, subscription) {
@@ -506,9 +517,58 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
     await stripeRepository.cancelSubscriptionInActiveProduct(connection, subscription.product_id);
 }
 
-export async function handleInvoicePaymentSucceeded(invoice) {
-    console.log('Invoice payment succeeded:', invoice.id);
-    // Renovar la suscripción en active_products
+export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
+    console.log('--- Procesando Pago de Factura ---');
+    console.log('Factura ID:', invoice.id);
+    console.log('Suscripción ID:', invoice.subscription);
+
+    const connection = await dbPool.getConnection();
+
+    try {
+        // 1. Obtener datos básicos
+        const subscriptionId = invoice.subscription;
+        const customerId = invoice.customer;
+        const paymentMethodId = invoice.payment_intent?.payment_method || invoice.default_payment_method;
+
+        // El userId lo recuperamos de la metadata que guardamos al crear la suscripción
+        // Stripe propaga la metadata de la suscripción a la factura
+        const userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
+
+        if (!userId) {
+            console.error('❌ No se encontró userId en la factura. No se puede activar el producto.');
+            return;
+        }
+
+        // 2. Actualizar el estado de la suscripción en nuestra DB
+        // Pasamos de 'incomplete' a 'active' y guardamos el método de pago real
+        await stripeRepository.updateSubscriptionStatus(connection, invoice.subscription, {
+            status: 'active',
+            payment_method: invoice.payment_intent?.payment_method || 'card',
+            next_charge_at: new Date(invoice.period_end * 1000)
+        });
+
+        // 3. Asignar o Renovar el producto activo
+        // Buscamos el ID del producto de Stripe en las líneas de la factura
+        const lineItem = invoice.lines.data[0];
+        const stripeProductId = lineItem.price.product;
+
+        console.log(`Asignando producto ${stripeProductId} al usuario ${userId}`);
+
+        await productService.assignProduct(connection, {
+            user_id: userId,
+            product_id: stripeProductId,
+            payment_method: "card",
+            stripe_subscription_id: subscriptionId,
+            invoice_id: invoice.id
+        });
+
+        console.log('✅ Suscripción y Producto activados correctamente.');
+
+    } catch (error) {
+        console.error('❌ Error en handleInvoicePaymentSucceeded:', error);
+    } finally {
+        connection.release();
+    }
 }
 
 export async function handleInvoicePaymentFailed(invoice) {

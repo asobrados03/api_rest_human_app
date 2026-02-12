@@ -373,4 +373,54 @@ export async function cancelSubscriptionInActiveProduct(connection, activeProduc
     return result;
 }
 
+/**
+ * Actualiza el estado y metadatos de una suscripción basada en el ID de Stripe
+ */
+export async function updateSubscriptionStatus(connection, order_prefix, data) {
+    const { status, payment_method, next_charge_at } = data;
 
+    // Construimos la query dinámicamente para actualizar solo lo que venga en 'data'
+    const updates = [];
+    const values = [];
+
+    if (status) {
+        updates.push("status = ?");
+        values.push(status);
+    }
+
+    if (payment_method) {
+        updates.push("paymentmethod = ?");
+        values.push(payment_method);
+    }
+
+    if (next_charge_at) {
+        updates.push("next_charge_at = ?");
+        values.push(next_charge_at);
+    }
+
+    if (updates.length === 0) return;
+
+    // Añadimos el ID de Stripe al final para el WHERE
+    values.push(order_prefix);
+
+    const query = `
+        UPDATE subscriptions 
+        SET ${updates.join(", ")} 
+        WHERE order_prefix = ?
+    `;
+
+    try {
+        const [result] = await connection.execute(query, values);
+
+        if (result.affectedRows === 0) {
+            console.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${order_prefix}`);
+        } else {
+            console.log(`✅ Suscripción ${order_prefix} actualizada a estado: ${status}`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error("❌ Error en updateSubscriptionStatus Repository:", error);
+        throw error;
+    }
+}
