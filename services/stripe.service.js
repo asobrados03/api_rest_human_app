@@ -362,9 +362,9 @@ export async function createSubscription(dbPool, data) {
         });
 
         return {
-            subscriptionId: subscription.id,
-            clientSecret: subscription.latest_invoice?.confirmation_secret?.client_secret,
-            customerId: customerId
+            subscription_id: subscription.id,
+            client_secret: subscription.latest_invoice?.confirmation_secret?.client_secret,
+            customer_id: customerId
         };
     } catch (error) {
         console.error('Error en createSubscription:', error);
