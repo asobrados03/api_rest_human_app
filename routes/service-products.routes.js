@@ -1,10 +1,6 @@
 import { Router } from 'express'
 import { verifyToken } from '../middlewares/verifyToken.js'
-import {
-    testMobileRoute, getAllServices, getServiceProducts, getUserProducts, assignProductToUser,
-    unassignProductFromUser, getActiveProductDetail, applyCoupon,
-    searchProducts, getProductDetailForHireProduct
-} from '../controllers/service-products.controller.js'
+import * as controller from '../controllers/service-products.controller.js'
 
 const router = Router()
 
@@ -13,15 +9,15 @@ router.use((req, res, next) => {
     next()
 })
 
-router.get('/', testMobileRoute)
-router.get('/services', verifyToken, getAllServices)
-router.get('/service-products', verifyToken, getServiceProducts)
-router.get('/user-products', verifyToken, getUserProducts)
-router.post('/assign-product', verifyToken, assignProductToUser)
-router.delete('/unassign-product', verifyToken, unassignProductFromUser)
-router.get('/active-product-detail', verifyToken, getActiveProductDetail)
-router.post('/apply-coupon', verifyToken, applyCoupon);
-router.get('/products-search', /*verifyToken,*/ searchProducts);
-router.get('/products/:id', verifyToken, getProductDetailForHireProduct);
+router.get('/', controller.testMobileRoute)
+router.get('/services', verifyToken, controller.getAllServices)
+router.get('/service-products', verifyToken, controller.getServiceProducts)
+router.get('/user-products', verifyToken, controller.getUserProducts)
+router.post('/assign-product', verifyToken, controller.assignProductToUser)
+router.delete('/unassign-product', verifyToken, controller.unassignProductFromUser)
+router.get('/active-product-detail', verifyToken, controller.getActiveProductDetail)
+router.post('/apply-coupon', verifyToken, controller.applyCoupon);
+router.get('/products-search', /*verifyToken,*/ controller.searchProducts);
+router.get('/products/:id', verifyToken, controller.getProductDetailForHireProduct);
 
 export default router

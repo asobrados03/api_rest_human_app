@@ -348,27 +348,21 @@ export async function createRefund(req, res) {
  */
 export async function createSubscription(req, res) {
     try {
-        const userId = req.user?.id || req.body.userId;
-        const { priceId, paymentMethodId } = req.body;
+        const { priceId, userId } = req.body;
 
-        if (!priceId || !paymentMethodId) {
+        if (!priceId || !userId) {
             return res.status(400).json({
                 success: false,
-                message: 'priceId y paymentMethodId son requeridos'
+                message: 'priceId y userId son requeridos'
             });
         }
 
         const subscription = await stripeService.createSubscription(req.db, {
             userId,
-            priceId,
-            paymentMethodId
+            priceId
         });
 
-        res.status(200).json({
-            success: true,
-            message: 'Suscripción creada exitosamente',
-            data: subscription
-        });
+        res.status(200).json({ subscription });
     } catch (error) {
         console.error('Error en createSubscription:', error);
         res.status(500).json({

@@ -328,19 +328,17 @@ export async function createSubscription(dbPool, data) {
     const connection = await dbPool.getConnection();
 
     try {
-        const { userId, priceId, paymentMethodId } = data;
+        const { userId, priceId } = data;
 
-        // Crear o obtener cliente
-        const { customerId } = await this.createOrGetCustomer(userId);
+        // 1. Obtener el cliente
+        const { customerId } = await this.createOrGetCustomer(dbPool, userId);
 
-        // Adjuntar método de pago
-        await this.attachPaymentMethod(paymentMethodId, customerId);
-
-        // Crear suscripción en Stripe
+        // 2. Crear suscripción en Stripe (ESTADO INCOMPLETO)
         const subscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: priceId }],
-            default_payment_method: paymentMethodId,
+            payment_behavior: 'default_incomplete', // Esto genera el PaymentIntent necesario
+            payment_settings: { save_default_payment_method: 'on_subscription' },
             expand: ['latest_invoice.payment_intent'],
         });
 
@@ -361,7 +359,11 @@ export async function createSubscription(dbPool, data) {
             }
         });
 
-        return subscription;
+        return {
+            subscription_id: subscription.id,
+            client_secret: subscription.latest_invoice.payment_intent.client_secret,
+            customer_id: customerId
+        };
     } catch (error) {
         console.error('Error en createSubscription:', error);
         throw error;

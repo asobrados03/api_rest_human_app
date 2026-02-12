@@ -144,7 +144,8 @@ export async function getProductDetailById(connection, productId) {
             price,
             product_image   AS image,
             total_session   AS session,
-            type_of_product
+            type_of_product,
+            price_id
         FROM products
         WHERE product_id = ?
           AND deleted_at IS NULL
