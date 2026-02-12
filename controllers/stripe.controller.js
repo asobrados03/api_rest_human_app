@@ -362,7 +362,7 @@ export async function createSubscription(req, res) {
             priceId
         });
 
-        res.status(200).json({ subscription });
+        res.status(200).json(subscription);
     } catch (error) {
         console.error('Error en createSubscription:', error);
         res.status(500).json({
