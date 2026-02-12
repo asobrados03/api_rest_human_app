@@ -346,7 +346,6 @@ export async function createSubscription(dbPool, data) {
         await stripeRepository.createSubscription(connection, {
             user_id: userId,
             payerref: customerId,
-            paymentmethod: paymentMethodId,
             amount_minor: subscription.items.data[0].price.unit_amount,
             currency: subscription.currency.toUpperCase(),
             interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,

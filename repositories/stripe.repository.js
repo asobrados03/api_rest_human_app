@@ -294,7 +294,6 @@ export async function createSubscription(connection, data) {
   INSERT INTO subscriptions (
     user_id,
     payerref,
-    paymentmethod,
     amount_minor,
     currency,
     interval_months,
@@ -306,10 +305,9 @@ export async function createSubscription(connection, data) {
     created_at
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 `;
-    const [result] = await db.execute(query, [
+    const [result] = await connection.execute(query, [
         data.user_id,
         data.payerref,
-        data.paymentmethod,
         data.amount_minor,
         data.currency || 'EUR',
         data.interval_months || 1,
