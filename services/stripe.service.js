@@ -339,7 +339,7 @@ export async function createSubscription(dbPool, data) {
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.payment_intent'], // Solicitamos la expansión
+            expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
         });
 
         // 4. Guardar en la base de datos (con la columna payment_method corregida del paso anterior)
@@ -363,7 +363,7 @@ export async function createSubscription(dbPool, data) {
 
         return {
             subscriptionId: subscription.id,
-            clientSecret: subscription.latest_invoice.confirmation_secret.client_secret,
+            clientSecret: subscription.latest_invoice?.confirmation_secret?.client_secret,
             customerId: customerId
         };
     } catch (error) {
