@@ -330,22 +330,34 @@ export async function createSubscription(dbPool, data) {
     try {
         const { userId, priceId } = data;
 
-        // 1. Obtener el cliente
-        const { customerId } = await this.createOrGetCustomer(dbPool, userId);
+        // 1. Obtener el cliente (Llamada directa, sin 'this')
+        const { customerId } = await createOrGetCustomer(dbPool, userId);
 
-        // 2. Crear suscripción en Stripe (ESTADO INCOMPLETO)
+        // 2. Crear suscripción en Stripe
         const subscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: priceId }],
-            payment_behavior: 'default_incomplete', // Esto genera el PaymentIntent necesario
+            payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.payment_intent'],
+            expand: ['latest_invoice.payment_intent'], // Solicitamos la expansión
         });
 
-        // Guardar en la base de datos
+        // 3. Extracción segura del Client Secret
+        const latestInvoice = subscription.latest_invoice;
+        const paymentIntent = latestInvoice?.payment_intent; // Uso de optional chaining
+        const clientSecret = paymentIntent?.client_secret;
+
+        if (!clientSecret) {
+            console.warn(`⚠️ Advertencia: No se generó client_secret para la suscripción ${subscription.id}. Es posible que el precio sea 0 o tenga periodo de prueba.`);
+        }
+
+        // 4. Guardar en la base de datos (con la columna payment_method corregida del paso anterior)
         await stripeRepository.createSubscription(connection, {
             user_id: userId,
             payerref: customerId,
+            // OJO: Stripe no devuelve el payment method ID en la creación inicial si aún no se ha pagado.
+            // Para la BD, podemos dejarlo pendiente o null hasta que llegue el Webhook.
+            paymentmethod: null,
             amount_minor: subscription.items.data[0].price.unit_amount,
             currency: subscription.currency.toUpperCase(),
             interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,
@@ -359,13 +371,15 @@ export async function createSubscription(dbPool, data) {
         });
 
         return {
-            subscription_id: subscription.id,
-            client_secret: subscription.latest_invoice.payment_intent.client_secret,
-            customer_id: customerId
+            subscriptionId: subscription.id,
+            clientSecret: clientSecret, // Puede ser null, la app Android debe manejarlo
+            customerId: customerId
         };
     } catch (error) {
         console.error('Error en createSubscription:', error);
         throw error;
+    } finally {
+        if (connection) connection.release(); // ¡Importante liberar la conexión!
     }
 }
 
