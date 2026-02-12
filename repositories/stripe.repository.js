@@ -303,7 +303,7 @@ export async function createSubscription(connection, data) {
     order_prefix,
     metadata,
     created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 `;
     const [result] = await connection.execute(query, [
         data.user_id,
