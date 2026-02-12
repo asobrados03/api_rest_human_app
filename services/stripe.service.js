@@ -342,15 +342,6 @@ export async function createSubscription(dbPool, data) {
             expand: ['latest_invoice.payment_intent'], // Solicitamos la expansión
         });
 
-        // 3. Extracción segura del Client Secret
-        const latestInvoice = subscription.latest_invoice;
-        const paymentIntent = latestInvoice?.payment_intent; // Uso de optional chaining
-        const clientSecret = paymentIntent?.client_secret;
-
-        if (!clientSecret) {
-            console.warn(`⚠️ Advertencia: No se generó client_secret para la suscripción ${subscription.id}. Es posible que el precio sea 0 o tenga periodo de prueba.`);
-        }
-
         // 4. Guardar en la base de datos (con la columna payment_method corregida del paso anterior)
         await stripeRepository.createSubscription(connection, {
             user_id: userId,
@@ -372,7 +363,7 @@ export async function createSubscription(dbPool, data) {
 
         return {
             subscriptionId: subscription.id,
-            clientSecret: clientSecret, // Puede ser null, la app Android debe manejarlo
+            clientSecret: subscription.latest_invoice.confirmation_secret.client_secret,
             customerId: customerId
         };
     } catch (error) {
