@@ -417,34 +417,45 @@ export async function getSubscription(subscriptionId) {
  * Manejar eventos de webhook
  */
 export async function handleWebhook(dbPool, event) {
+    const object = event.data.object;
+
     try {
         switch (event.type) {
             case 'payment_intent.succeeded':
-                await this.handlePaymentIntentSucceeded(dbPool, event.data.object);
+                // ¡¡¡AQUÍ ESTÁ LA CLAVE DEL ERROR!!!
+                // Si el payment_intent tiene un campo 'invoice', significa que es de una suscripción.
+                // Debemos IGNORARLO aquí, porque ya lo maneja el caso 'invoice.payment_succeeded'.
+                if (object.invoice) {
+                    console.log('Ignorando PaymentIntent de suscripción (se manejará en invoice.payment_succeeded)');
+                    return;
+                }
+
+                // Solo si NO tiene invoice, es una compra de producto único
+                await this.handlePaymentIntentSucceeded(dbPool, object);
                 break;
 
             case 'payment_intent.payment_failed':
-                await this.handlePaymentIntentFailed(event.data.object);
+                await this.handlePaymentIntentFailed(object);
                 break;
 
             case 'customer.subscription.created':
-                await this.handleSubscriptionCreated(dbPool, event.data.object);
+                await this.handleSubscriptionCreated(dbPool, object);
                 break;
 
             case 'customer.subscription.updated':
-                await this.handleSubscriptionUpdated(event.data.object);
+                await this.handleSubscriptionUpdated(object);
                 break;
 
             case 'customer.subscription.deleted':
-                await this.handleSubscriptionDeleted(dbPool, event.data.object);
+                await this.handleSubscriptionDeleted(dbPool, object);
                 break;
 
             case 'invoice.payment_succeeded':
-                await this.handleInvoicePaymentSucceeded(dbPool, event.data.object);
+                await this.handleInvoicePaymentSucceeded(dbPool, object);
                 break;
 
             case 'invoice.payment_failed':
-                await this.handleInvoicePaymentFailed(event.data.object);
+                await this.handleInvoicePaymentFailed(object);
                 break;
 
             default:
@@ -459,15 +470,36 @@ export async function handleWebhook(dbPool, event) {
 }
 
 // Handlers específicos para cada tipo de evento
-export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
-    console.log('Payment Intent succeeded:', paymentIntent.id);
-    // Aquí puedes actualizar el estado en tu base de datos si es necesario
-    const connection = await dbPool.getConnection();
-    const user_id = paymentIntent.metadata.user_id
-    const product_id = paymentIntent.metadata.product_id
-    const coupon_code = paymentIntent.metadata.coupon_code
+// En stripe.service.js
 
-    await productService.assignProduct(connection, {user_id, product_id, payment_method: "card", coupon_code} )
+export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
+    console.log('Procesando Payment Intent (Tienda):', paymentIntent.id);
+
+    // Protección contra undefined
+    const userId = paymentIntent.metadata?.user_id;
+    const productId = paymentIntent.metadata?.product_id;
+
+    if (!userId || !productId) {
+        console.warn('⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
+        return; // Salimos sin llamar a la BD, evitando el error de MySQL
+    }
+
+    const connection = await dbPool.getConnection();
+    try {
+        const coupon_code = paymentIntent.metadata.coupon_code;
+
+        await productService.assignProduct(connection, {
+            user_id: userId,
+            product_id: productId,
+            payment_method: "card",
+            coupon_code
+        });
+
+    } catch (error) {
+        console.error('Error en handlePaymentIntentSucceeded:', error);
+    } finally {
+        connection.release();
+    }
 }
 
 export async function handlePaymentIntentFailed(paymentIntent) {
@@ -505,9 +537,30 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
     }
 }
 
+// En stripe.service.js
+
 export async function handleSubscriptionUpdated(dbPool, subscription) {
-    console.log('Subscription updated:', subscription.id);
-    // Actualizar en la base de datos
+    console.log('Webhook: Subscription updated:', subscription.id);
+
+    // Si la suscripción llega vacía, salir
+    if (!subscription || !subscription.id) return;
+
+    const connection = await dbPool.getConnection();
+    try {
+        // Solo actualizamos si realmente hay cambios relevantes
+        // Usamos updateSubscriptionStatus del repositorio
+
+        await stripeRepository.updateSubscriptionStatus(connection, subscription.id, {
+            status: subscription.status,
+            next_charge_at: new Date(subscription.current_period_end * 1000)
+            // No tocamos el payment_method aquí para no sobrescribir con null si no viene
+        });
+
+    } catch (error) {
+        console.error('Error en handleSubscriptionUpdated:', error);
+    } finally {
+        connection.release();
+    }
 }
 
 export async function handleSubscriptionDeleted(dbPool, subscription) {
