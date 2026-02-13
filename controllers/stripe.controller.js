@@ -348,18 +348,19 @@ export async function createRefund(req, res) {
  */
 export async function createSubscription(req, res) {
     try {
-        const { priceId, userId } = req.body;
+        const { priceId, userId, productId } = req.body;
 
-        if (!priceId || !userId) {
+        if (!priceId || !userId || !productId) {
             return res.status(400).json({
                 success: false,
-                message: 'priceId y userId son requeridos'
+                message: 'priceId, userId y productId son requeridos'
             });
         }
 
         const subscription = await stripeService.createSubscription(req.db, {
             userId,
-            priceId
+            priceId,
+            productId
         });
 
         res.status(200).json(subscription);
