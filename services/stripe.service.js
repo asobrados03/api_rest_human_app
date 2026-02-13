@@ -338,12 +338,25 @@ export async function createSubscription(dbPool, data) {
             customer: customerId,
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
-            payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
+            // 1. Configuración de métodos de pago
+            payment_settings: {
+                save_default_payment_method: 'on_subscription',
+                // 'automatic' permite que Stripe use los métodos que activaste en el Dashboard
+                payment_method_types: ['card', 'customer_balance'],
+                payment_method_options: {
+                    customer_balance: {
+                        funding_type: 'bank_transfer',
+                        bank_transfer: {
+                            type: 'eu_bank_transfer', // Específico para transferencias SEPA en Europa
+                        },
+                    },
+                },
+            },
+            expand: ['latest_invoice.payment_intent'], // Cambiado a payment_intent para Android SDK
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString(),
-                type: 'subscription' // Marca para diferenciar
+                type: 'subscription'
             }
         });
 
