@@ -34,7 +34,7 @@ export const listUserProducts = async (connection, userId) => {
   return Array.from(productosMap.values());
 };
 
-export const assignProduct = async (connection, { user_id, product_id, payment_method, coupon_code, centro, stripe_subscription_id }) => {
+export const assignProduct = async (connection, { user_id, product_id, payment_method, coupon_code, centro, subscription_id }) => {
 
   // 1. Obtener producto (lo necesitamos para saber cuántos días sumar)
   const product = await productRepo.getProductById(connection, product_id);
@@ -46,7 +46,7 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
   const existing = await productRepo.findActiveProduct(connection, user_id, product_id);
 
   // 3. LÓGICA DE RENOVACIÓN (Si ya existe y es suscripción)
-  if (existing && stripe_subscription_id) {
+  if (existing && subscription_id) {
     console.log(`Renovando producto ${product_id} para el usuario ${user_id}`);
 
     // Calculamos la nueva fecha: Si ya está vencido, sumamos desde hoy.
@@ -61,7 +61,7 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
   }
 
   // 4. LÓGICA DE PRIMERA ASIGNACIÓN (Lo que ya tenías)
-  if (existing && !stripe_subscription_id) {
+  if (existing && !subscription_id) {
     throw { status: 409, message: 'El producto ya está activo y no es una renovación' };
   }
 

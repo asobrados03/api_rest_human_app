@@ -517,15 +517,15 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
 
         await stripeRepository.createSubscription(connection, {
             user_id: userId,
-            payerref: customerId,
-            paymentmethod: null,
+            payer_ref: customerId,
+            payment_method: null,
             amount_minor: subscription.items.data[0].price.unit_amount,
             currency: subscription.currency.toUpperCase(),
             interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,
             start_date: new Date(subscription.start_date * 1000),
             next_charge_at: new Date(subscription.current_period_end * 1000),
             status: subscription.status,
-            order_prefix: subscription.id,
+            subscription_id: subscription.id,
             metadata: {
                 stripe_subscription_id: subscription.id
             }
@@ -587,7 +587,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
 
             // Buscamos la última suscripción creada para este cliente que aún no esté activa
             const [rows] = await connection.execute(
-                `SELECT stripe_subscription_id, user_id 
+                `SELECT order_prefix, user_id 
                  FROM subscriptions 
                  WHERE payerref = ? AND status = 'incomplete' 
                  ORDER BY start_date DESC LIMIT 1`,
@@ -595,7 +595,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             );
 
             if (rows.length > 0) {
-                subscriptionId = rows[0].stripe_subscription_id;
+                subscriptionId = rows[0].order_prefix;
                 userId = rows[0].user_id;
                 console.log(`✅ Suscripción rescatada de DB local: ${subscriptionId}`);
             }
@@ -613,7 +613,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         // 2. RECUPERAR USER_ID SI AÚN NO LO TENEMOS
         if (!userId) {
             const [userRows] = await connection.execute(
-                'SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ?',
+                'SELECT user_id FROM subscriptions WHERE subscription_id = ?',
                 [subscriptionId]
             );
             if (userRows.length > 0) {
@@ -647,8 +647,8 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             await productService.assignProduct(connection, {
                 user_id: userId,
                 product_id: stripeProductId,
-                payment_method: "subscription",
-                stripe_subscription_id: subscriptionId,
+                payment_method: "card",
+                subscription_id: subscriptionId,
                 centro: invoice.metadata?.centro || null
             });
 

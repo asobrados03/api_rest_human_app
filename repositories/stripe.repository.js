@@ -293,30 +293,30 @@ export async function createSubscription(connection, data) {
     const query = `
   INSERT INTO subscriptions (
     user_id,
-    payerref,
-    paymentmethod,
+    payer_ref,
+    payment_method,
     amount_minor,
     currency,
     interval_months,
     start_date,
     next_charge_at,
     status,
-    order_prefix,
+    subscription_id,
     metadata,
     created_at
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
 `;
     const [result] = await connection.execute(query, [
         data.user_id,
-        data.payerref,
-        data.paymentmethod,
+        data.payer_ref,
+        data.payment_method,
         data.amount_minor,
         data.currency || 'EUR',
         data.interval_months || 1,
         data.start_date,
         data.next_charge_at,
         data.status,
-        data.order_prefix,
+        data.subscription_id,
         JSON.stringify(data.metadata || {})
     ]);
     return result.insertId;
@@ -376,7 +376,7 @@ export async function cancelSubscriptionInActiveProduct(connection, activeProduc
 /**
  * Actualiza el estado y metadatos de una suscripción basada en el ID de Stripe
  */
-export async function updateSubscriptionStatus(connection, order_prefix, data) {
+export async function updateSubscriptionStatus(connection, subscription_id, data) {
     const { status, payment_method, next_charge_at } = data;
 
     // Construimos la query dinámicamente para actualizar solo lo que venga en 'data'
@@ -389,7 +389,7 @@ export async function updateSubscriptionStatus(connection, order_prefix, data) {
     }
 
     if (payment_method) {
-        updates.push("paymentmethod = ?");
+        updates.push("payment_method = ?");
         values.push(payment_method);
     }
 
@@ -401,21 +401,21 @@ export async function updateSubscriptionStatus(connection, order_prefix, data) {
     if (updates.length === 0) return;
 
     // Añadimos el ID de Stripe al final para el WHERE
-    values.push(order_prefix);
+    values.push(subscription_id);
 
     const query = `
         UPDATE subscriptions 
         SET ${updates.join(", ")} 
-        WHERE order_prefix = ?
+        WHERE subscription_id = ?
     `;
 
     try {
         const [result] = await connection.execute(query, values);
 
         if (result.affectedRows === 0) {
-            console.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${order_prefix}`);
+            console.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${subscription_id}`);
         } else {
-            console.log(`✅ Suscripción ${order_prefix} actualizada a estado: ${status}`);
+            console.log(`✅ Suscripción ${subscription_id} actualizada a estado: ${status}`);
         }
 
         return result;
