@@ -337,7 +337,10 @@ export async function createSubscription(dbPool, data) {
         const subscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: priceId }],
-            payment_behavior: 'default_incomplete',
+            // 1. IMPORTANTE: Cambiar el método de cobro
+            collection_method: 'send_invoice',
+            days_until_due: 15, // Plazo para que el usuario haga la transferencia
+
             payment_settings: {
                 save_default_payment_method: 'on_subscription',
                 payment_method_types: ['card', 'customer_balance'],
@@ -346,9 +349,7 @@ export async function createSubscription(dbPool, data) {
                         funding_type: 'bank_transfer',
                         bank_transfer: {
                             type: 'eu_bank_transfer',
-                            eu_bank_transfer: {
-                                country: 'IE'
-                            }
+                            eu_bank_transfer: {} // Ya no hace falta forzar país si el método es send_invoice
                         }
                     }
                 }
