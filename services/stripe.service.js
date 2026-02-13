@@ -570,17 +570,29 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    console.log('--- Procesando Pago de Factura (Suscripción) ---');
+    console.log('--- Procesando Pago de Factura ---');
+    console.log('Factura ID:', invoice.id);
 
-    if (!invoice.subscription) {
-        console.log('⚠️ Ignorando invoice sin suscripción (probablemente pago único).');
+    // BÚSQUEDA ROBUSTA DEL ID DE SUSCRIPCIÓN
+    let subscriptionId = invoice.subscription;
+
+    // Si no está en la raíz, buscamos en la primera línea de la factura
+    if (!subscriptionId && invoice.lines && invoice.lines.data.length > 0) {
+        subscriptionId = invoice.lines.data[0].subscription;
+    }
+
+    // Si sigue sin aparecer, entonces sí es un pago único
+    if (!subscriptionId) {
+        console.log('⚠️ Ignorando invoice sin suscripción (probablemente pago único de tienda).');
         return;
     }
+
+    console.log('✅ Suscripción ID detectada:', subscriptionId);
 
     const connection = await dbPool.getConnection();
     try {
         const subscriptionId = invoice.subscription;
-        let userId = null;
+        let userId;
 
         // INTENTO 1: Buscar en la metadata de la factura (Rápido)
         userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
