@@ -346,7 +346,9 @@ export async function createSubscription(dbPool, data) {
                         funding_type: 'bank_transfer',
                         bank_transfer: {
                             type: 'eu_bank_transfer',
-                            eu_bank_transfer: { } // Dejamos que Stripe elija (usará DE, FR, IE o NL)
+                            eu_bank_transfer: {
+                                country: 'IE'
+                            }
                         }
                     }
                 }
