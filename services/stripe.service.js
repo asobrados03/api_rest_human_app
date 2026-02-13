@@ -515,6 +515,12 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
     try {
         const customerId = subscription.customer;
         const userId = subscription.metadata?.user_id;
+        const productId = subscription.metadata?.product_id;
+
+        if (!userId || !productId) {
+            console.warn('⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
+            return;
+        }
 
         await stripeRepository.createSubscription(connection, {
             user_id: userId,
@@ -528,7 +534,8 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
             status: subscription.status,
             subscription_id: subscription.id,
             metadata: {
-                stripe_subscription_id: subscription.id
+                stripe_subscription_id: subscription.id,
+                product_id: productId,
             }
         });
     } catch (error) {
@@ -602,7 +609,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
                 if (!productId && rows[0].metadata) {
                     try {
                         const meta = JSON.parse(rows[0].metadata);
-                        productId = meta.stripe_product_id || meta.product_id;
+                        productId = meta.product_id || null;
                     } catch (e) { /* no es JSON o no existe */ }
                 }
                 console.log(`✅ Datos rescatados: Sub=${subscriptionId}, User=${userId}, Prod=${productId}`);
