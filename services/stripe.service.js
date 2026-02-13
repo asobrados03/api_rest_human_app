@@ -361,10 +361,15 @@ export async function createSubscription(dbPool, data) {
             }
         });
 
-        const clientSecret = subscription.latest_invoice?.confirmation_secret?.client_secret;
+        // 2. PASO CLAVE: Finalizar la factura para forzar la creación del PaymentIntent
+        let clientSecret = subscription.latest_invoice?.confirmation_secret?.client_secret;
 
-        if (!clientSecret) {
-            console.error("⚠️ Alerta: No se generó client_secret. Revisa si el monto es 0 o si la factura falló.");
+        if (!clientSecret && subscription.latest_invoice) {
+            // Si no vino expandido, finalizamos la factura manualmente para que genere el PI
+            const finalizedInvoice = await stripe.invoices.finalizeInvoice(subscription.latest_invoice.id, {
+                expand: ['payment_intent']
+            });
+            clientSecret = finalizedInvoice.confirmation_secret?.client_secret;
         }
 
         return ({
