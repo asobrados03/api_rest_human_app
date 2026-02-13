@@ -361,14 +361,19 @@ export async function createSubscription(dbPool, data) {
             }
         });
 
-        // 2. PASO CLAVE: Finalizar la factura para forzar la creación del PaymentIntent
-        let clientSecret = subscription.latest_invoice?.confirmation_secret?.client_secret;
+        let clientSecret = null;
 
-        if (!clientSecret && subscription.latest_invoice) {
-            // Si no vino expandido, finalizamos la factura manualmente para que genere el PI
-            const finalizedInvoice = await stripe.invoices.finalizeInvoice(subscription.latest_invoice.id, {
-                expand: ['payment_intent']
+        // 2. Finalizar la factura y obtener el confirmation_secret
+        if (subscription.latest_invoice) {
+            const invoiceId = typeof subscription.latest_invoice === 'string'
+                ? subscription.latest_invoice
+                : subscription.latest_invoice.id;
+
+            const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoiceId, {
+                expand: ['confirmation_secret'] // <--- CLAVE: Expandir el secreto de confirmación
             });
+
+            // 3. Extraer el secreto de la manera que tú indicas
             clientSecret = finalizedInvoice.confirmation_secret?.client_secret;
         }
 
