@@ -347,7 +347,6 @@ export async function createSubscription(dbPool, data) {
             days_until_due: 15,
             payment_settings: {
                 save_default_payment_method: 'on_subscription',
-                payment_method_types: ['card', 'customer_balance'],
                 payment_method_options: {
                     customer_balance: {
                         funding_type: 'bank_transfer',
