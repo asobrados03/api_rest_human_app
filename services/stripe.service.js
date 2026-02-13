@@ -39,6 +39,12 @@ export async function createOrGetCustomer(dbPool, userId) {
             email: user.email,
             name: user.user_name,
             phone: user.phone,
+            address: {
+                line1: 'Calle Falsa 123', // Opcional, pero recomendado
+                city: 'Madrid',
+                postal_code: '28001',
+                country: 'ES', // <--- ESTO ES LO QUE DESBLOQUEA SEPA
+            },
             metadata: {
                 user_id: userId.toString()
             }
