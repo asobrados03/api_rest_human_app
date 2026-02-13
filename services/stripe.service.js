@@ -570,105 +570,95 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    console.log('--- Procesando Pago de Factura ---');
+    console.log('--- [WEBHOOK] Procesando Pago de Factura ---');
     console.log('Factura ID:', invoice.id);
-
-    // BÚSQUEDA ROBUSTA DEL ID DE SUSCRIPCIÓN
-    let subscriptionId = invoice.subscription;
-
-    // Si no está en la raíz, buscamos en la primera línea de la factura
-    if (!subscriptionId && invoice.lines && invoice.lines.data.length > 0) {
-        subscriptionId = invoice.lines.data[0].subscription;
-    }
-
-    // Si sigue sin aparecer, entonces sí es un pago único
-    if (!subscriptionId) {
-        console.log('⚠️ Ignorando invoice sin suscripción (probablemente pago único de tienda).');
-        return;
-    }
-
-    console.log('✅ Suscripción ID detectada:', subscriptionId);
+    console.log('Cliente Stripe (payerref):', invoice.customer);
 
     const connection = await dbPool.getConnection();
+
     try {
-        const subscriptionId = invoice.subscription;
-        let userId;
+        // 1. INTENTO DE RECUPERAR EL SUBSCRIPTION_ID
+        let subscriptionId = invoice.subscription;
+        let userId = null;
 
-        // INTENTO 1: Buscar en la metadata de la factura (Rápido)
-        userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
+        // Si el webhook viene "capado" (subscription null), buscamos en nuestra DB
+        if (!subscriptionId) {
+            console.log(`🔍 Buscando suscripción para cliente ${invoice.customer} en estado 'incomplete'...`);
 
-        // INTENTO 2: Buscar en la base de datos local
-        if (!userId) {
+            // Buscamos la última suscripción creada para este cliente que aún no esté activa
             const [rows] = await connection.execute(
-                'SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ?',
-                [subscriptionId]
+                `SELECT stripe_subscription_id, user_id 
+                 FROM subscriptions 
+                 WHERE payerref = ? AND status = 'incomplete' 
+                 ORDER BY start_date DESC LIMIT 1`,
+                [invoice.customer]
             );
-            if (rows.length > 0) userId = rows[0].user_id;
-        }
 
-        // INTENTO 3 (EL SALVAVIDAS): Preguntar a Stripe directamente
-        // Esto soluciona tu problema actual: Si la DB está lenta, Stripe nos lo dice.
-        if (!userId) {
-            console.log('⚠️ Usuario no encontrado localmente. Consultando API de Stripe...');
-            try {
-                // Importamos 'stripe' si no está disponible en el ámbito local, o úsalo desde 'this.stripe' si es una clase
-                // Asumo que tienes la instancia 'stripe' disponible globalmente o importada arriba
-                const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-                userId = stripeSubscription.metadata?.user_id;
-
-                if (userId) {
-                    console.log(`✅ Recuperado userId ${userId} desde API de Stripe.`);
-
-                    // Opcional: Ya que estamos, creamos la suscripción en local para que no falte la próxima vez
-                    // Esto repara la "Race Condition"
-                    /* await stripeRepository.createSubscription(connection, {
-                        user_id: userId,
-                        payerref: stripeSubscription.customer,
-                        paymentmethod: null,
-                        amount_minor: stripeSubscription.items.data[0].price.unit_amount,
-                        currency: stripeSubscription.currency.toUpperCase(),
-                        status: 'active', // Ya sabemos que está pagada
-                        stripe_subscription_id: subscriptionId,
-                        // ... resto de campos
-                    });
-                    */
-                }
-            } catch (apiError) {
-                console.error('❌ Error llamando a Stripe API:', apiError.message);
+            if (rows.length > 0) {
+                subscriptionId = rows[0].stripe_subscription_id;
+                userId = rows[0].user_id;
+                console.log(`✅ Suscripción rescatada de DB local: ${subscriptionId}`);
             }
+        } else {
+            // Si el ID viene en el invoice, intentamos sacar el userId de metadata
+            userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
         }
 
-        // SI FALLA TODO, NOS RENDIMOS
-        if (!userId) {
-            console.error('❌ ERROR FINAL: Imposible identificar al usuario. Se requiere intervención manual.');
+        // Validación final antes de proceder
+        if (!subscriptionId) {
+            console.error('🛑 ERROR: No se encontró ID de suscripción en el webhook ni en la DB local.');
             return;
         }
 
-        // --- A PARTIR DE AQUÍ, TODO IGUAL ---
+        // 2. RECUPERAR USER_ID SI AÚN NO LO TENEMOS
+        if (!userId) {
+            const [userRows] = await connection.execute(
+                'SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ?',
+                [subscriptionId]
+            );
+            if (userRows.length > 0) {
+                userId = userRows[0].user_id;
+            }
+        }
 
-        // 3. Actualizar estado a ACTIVE
+        if (!userId) {
+            console.error('❌ ERROR: No se pudo identificar al usuario para la suscripción:', subscriptionId);
+            return;
+        }
+
+        // 3. ACTUALIZAR ESTADO DE LA SUSCRIPCIÓN A 'ACTIVE'
+        // Usamos la fecha de fin de periodo que viene en la factura para el próximo cobro
+        const periodEnd = invoice.lines?.data[0]?.period?.end;
+        const nextChargeDate = periodEnd ? new Date(periodEnd * 1000) : null;
+
         await stripeRepository.updateSubscriptionStatus(connection, subscriptionId, {
             status: 'active',
             payment_method: invoice.payment_intent?.payment_method || 'card',
-            next_charge_at: new Date(invoice.lines.data[0].period.end * 1000)
+            next_charge_at: nextChargeDate
         });
 
-        // 4. Activar/Renovar Producto
-        const lineItem = invoice.lines.data[0];
-        const stripeProductId = lineItem.price.product;
+        // 4. ASIGNAR O RENOVAR EL PRODUCTO AL USUARIO
+        // Obtenemos el ID de producto de Stripe de la línea de factura
+        const stripeProductId = invoice.lines?.data[0]?.price?.product;
 
-        await productService.assignProduct(connection, {
-            user_id: userId,
-            product_id: stripeProductId,
-            payment_method: "card",
-            stripe_subscription_id: subscriptionId,
-            invoice_number: invoice.id
-        });
+        if (stripeProductId) {
+            console.log(`🚀 Activando producto ${stripeProductId} para usuario ${userId}`);
 
-        console.log('✅ PROCESO COMPLETADO EXITOSAMENTE.');
+            await productService.assignProduct(connection, {
+                user_id: userId,
+                product_id: stripeProductId,
+                payment_method: "subscription",
+                stripe_subscription_id: subscriptionId,
+                centro: invoice.metadata?.centro || null
+            });
+
+            console.log('✨ PROCESO COMPLETADO: Suscripción y Producto activos.');
+        } else {
+            console.warn('⚠️ No se encontró ID de producto en las líneas de la factura.');
+        }
 
     } catch (error) {
-        console.error('❌ Error procesando factura:', error);
+        console.error('❌ Error crítico en handleInvoicePaymentSucceeded:', error);
     } finally {
         connection.release();
     }
