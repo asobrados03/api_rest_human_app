@@ -368,7 +368,6 @@ export async function createSubscription(dbPool, data) {
         }
 
         return ({
-            success: true,
             subscription_id: subscription.id,
             customer_id: customerId,
             client_secret: clientSecret
