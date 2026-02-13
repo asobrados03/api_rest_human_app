@@ -572,7 +572,7 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     console.log('--- [WEBHOOK] Procesando Pago de Factura ---');
     console.log('Factura ID:', invoice.id);
-    console.log('Cliente Stripe (payerref):', invoice.customer);
+    console.log('Cliente Stripe (payer_ref):', invoice.customer);
 
     const connection = await dbPool.getConnection();
 
@@ -587,15 +587,15 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
 
             // Buscamos la última suscripción creada para este cliente que aún no esté activa
             const [rows] = await connection.execute(
-                `SELECT order_prefix, user_id 
+                `SELECT subscription_id, user_id 
                  FROM subscriptions 
-                 WHERE payerref = ? AND status = 'incomplete' 
+                 WHERE payer_ref = ? AND status = 'incomplete' 
                  ORDER BY start_date DESC LIMIT 1`,
                 [invoice.customer]
             );
 
             if (rows.length > 0) {
-                subscriptionId = rows[0].order_prefix;
+                subscriptionId = rows[0].subscription_id;
                 userId = rows[0].user_id;
                 console.log(`✅ Suscripción rescatada de DB local: ${subscriptionId}`);
             }
