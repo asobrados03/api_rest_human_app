@@ -328,7 +328,7 @@ export async function createSubscription(dbPool, data) {
     const connection = await dbPool.getConnection();
 
     try {
-        const { userId, priceId } = data;
+        const { userId, priceId, productId } = data;
 
         // 1. Obtener el cliente (Llamada directa, sin 'this')
         const { customerId } = await createOrGetCustomer(dbPool, userId);
@@ -342,6 +342,7 @@ export async function createSubscription(dbPool, data) {
             expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
             metadata: {
                 user_id: userId.toString(),
+                product_id: productId.toString(),
                 type: 'subscription' // Marca para diferenciar
             }
         });
@@ -571,25 +572,24 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     console.log('--- [WEBHOOK] Procesando Pago de Factura ---');
-    console.log('Factura ID:', invoice.id);
-    console.log('Cliente Stripe (payer_ref):', invoice.customer);
 
     const connection = await dbPool.getConnection();
 
     try {
-        // 1. INTENTO DE RECUPERAR EL SUBSCRIPTION_ID
         let subscriptionId = invoice.subscription;
         let userId = null;
+        let productId = invoice.lines?.data[0]?.price?.product;
 
-        // Si el webhook viene "capado" (subscription null), buscamos en nuestra DB
+        // 1. RESCATE DE DATOS SI EL WEBHOOK VIENE INCOMPLETO
         if (!subscriptionId) {
-            console.log(`🔍 Buscando suscripción para cliente ${invoice.customer} en estado 'incomplete'...`);
+            console.log(`🔍 Buscando datos para cliente ${invoice.customer} en DB local...`);
 
-            // Buscamos la última suscripción creada para este cliente que aún no esté activa
+            // Buscamos la suscripción Y el producto original que guardamos al crearla
+            // Asumo que el product_id de Stripe lo tienes en alguna columna o en la metadata
             const [rows] = await connection.execute(
-                `SELECT subscription_id, user_id 
-                 FROM subscriptions 
-                 WHERE payer_ref = ? AND status = 'incomplete' 
+                `SELECT subscription_id, user_id, metadata
+                 FROM subscriptions
+                 WHERE payer_ref = ? AND status = 'incomplete'
                  ORDER BY start_date DESC LIMIT 1`,
                 [invoice.customer]
             );
@@ -597,37 +597,25 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             if (rows.length > 0) {
                 subscriptionId = rows[0].subscription_id;
                 userId = rows[0].user_id;
-                console.log(`✅ Suscripción rescatada de DB local: ${subscriptionId}`);
-            }
-        } else {
-            // Si el ID viene en el invoice, intentamos sacar el userId de metadata
-            userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
-        }
 
-        // Validación final antes de proceder
-        if (!subscriptionId) {
-            console.error('🛑 ERROR: No se encontró ID de suscripción en el webhook ni en la DB local.');
-            return;
-        }
-
-        // 2. RECUPERAR USER_ID SI AÚN NO LO TENEMOS
-        if (!userId) {
-            const [userRows] = await connection.execute(
-                'SELECT user_id FROM subscriptions WHERE subscription_id = ?',
-                [subscriptionId]
-            );
-            if (userRows.length > 0) {
-                userId = userRows[0].user_id;
+                // Si el producto no venía en la factura, intentamos sacarlo de la metadata de nuestra DB
+                if (!productId && rows[0].metadata) {
+                    try {
+                        const meta = JSON.parse(rows[0].metadata);
+                        productId = meta.stripe_product_id || meta.product_id;
+                    } catch (e) { /* no es JSON o no existe */ }
+                }
+                console.log(`✅ Datos rescatados: Sub=${subscriptionId}, User=${userId}, Prod=${productId}`);
             }
         }
 
-        if (!userId) {
-            console.error('❌ ERROR: No se pudo identificar al usuario para la suscripción:', subscriptionId);
+        // 2. VALIDACIONES DE SEGURIDAD
+        if (!subscriptionId || !userId) {
+            console.error('🛑 ERROR: No se puede identificar la suscripción o el usuario.');
             return;
         }
 
-        // 3. ACTUALIZAR ESTADO DE LA SUSCRIPCIÓN A 'ACTIVE'
-        // Usamos la fecha de fin de periodo que viene en la factura para el próximo cobro
+        // 3. ACTUALIZAR ESTADO A 'ACTIVE'
         const periodEnd = invoice.lines?.data[0]?.period?.end;
         const nextChargeDate = periodEnd ? new Date(periodEnd * 1000) : null;
 
@@ -637,28 +625,29 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             next_charge_at: nextChargeDate
         });
 
-        // 4. ASIGNAR O RENOVAR EL PRODUCTO AL USUARIO
-        // Obtenemos el ID de producto de Stripe de la línea de factura
-        const stripeProductId = invoice.lines?.data[0]?.price?.product;
+        // 4. ASIGNACIÓN DEL PRODUCTO (CON FALLBACK)
+        if (!productId) {
+            // Si llegamos aquí sin producto, es el último recurso:
+            // Probamos a ver si está en la metadata de la factura de Stripe
+            productId = invoice.metadata?.product_id || invoice.subscription_details?.metadata?.product_id;
+        }
 
-        if (stripeProductId) {
-            console.log(`🚀 Activando producto ${stripeProductId} para usuario ${userId}`);
-
+        if (productId) {
             await productService.assignProduct(connection, {
                 user_id: userId,
-                product_id: stripeProductId,
+                product_id: productId,
                 payment_method: "card",
                 subscription_id: subscriptionId,
                 centro: invoice.metadata?.centro || null
             });
-
-            console.log('✨ PROCESO COMPLETADO: Suscripción y Producto activos.');
+            console.log('✨ ÉXITO: Suscripción y Producto activados correctamente.');
         } else {
-            console.warn('⚠️ No se encontró ID de producto en las líneas de la factura.');
+            console.error('❌ ERROR FATAL: El pago se hizo pero no sabemos qué producto activar.');
+            // Aquí podrías enviar un email de alerta interno
         }
 
     } catch (error) {
-        console.error('❌ Error crítico en handleInvoicePaymentSucceeded:', error);
+        console.error('❌ Error crítico:', error);
     } finally {
         connection.release();
     }
