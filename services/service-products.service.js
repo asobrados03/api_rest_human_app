@@ -66,6 +66,7 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
   }
 
   // ... (Tus pasos 3, 4 y 5 de precios, cupones y facturas se mantienen igual) ...
+  // 3. Calcular precios y descuentos
   const price = product.sell_price ?? 0;
   const validDays = product.valid_due ?? 0;
   let centroFinal = centro || product.centro || 'general';
@@ -80,7 +81,30 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
     }
   }
 
-  // 6. Asignar producto por primera vez
+  const totalAmount = Math.max(0, price - discount);
+
+  // 4. Generar número de factura
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const count = await productRepo.countInvoicesByPrefix(connection, `R/${yearMonth}/%`);
+  const invoiceNumber = `R/${yearMonth}/${String(count + 1).padStart(5, '0')}`;
+
+  // 5. Gestión de pagos (Cash/Wallet)
+  if (payment_method === "cash") {
+    const currentBalance = await productRepo.getLatestWalletBalance(connection, user_id);
+    if (currentBalance < totalAmount) {
+      throw { status: 402, message: 'Saldo insuficiente' };
+    }
+
+    await productRepo.createWalletTransaction(connection, {
+      userId: user_id,
+      productId: product_id,
+      amount: -totalAmount,
+      newBalance: currentBalance - totalAmount
+    });
+  }
+
+  // 6. Asignar producto
   const result = await productRepo.createActiveProduct(connection, {
     userId: user_id,
     productId: product_id,

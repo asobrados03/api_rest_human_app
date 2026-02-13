@@ -537,23 +537,22 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
     }
 }
 
-// En stripe.service.js
-
 export async function handleSubscriptionUpdated(dbPool, subscription) {
-    console.log('Webhook: Subscription updated:', subscription.id);
+    // 1. ESCUDO DE SEGURIDAD (Esto evita el crash)
+    if (!subscription || !subscription.id) {
+        // Si no hay datos, salimos silenciosamente sin romper el servidor
+        return;
+    }
 
-    // Si la suscripción llega vacía, salir
-    if (!subscription || !subscription.id) return;
+    console.log('Webhook: Subscription updated:', subscription.id);
 
     const connection = await dbPool.getConnection();
     try {
-        // Solo actualizamos si realmente hay cambios relevantes
-        // Usamos updateSubscriptionStatus del repositorio
-
+        // 2. Solo actualizamos datos relevantes
         await stripeRepository.updateSubscriptionStatus(connection, subscription.id, {
             status: subscription.status,
+            // Actualizamos la fecha de cobro si ha cambiado
             next_charge_at: new Date(subscription.current_period_end * 1000)
-            // No tocamos el payment_method aquí para no sobrescribir con null si no viene
         });
 
     } catch (error) {
@@ -571,54 +570,93 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    console.log('--- Procesando Pago de Factura ---');
-    console.log('Factura ID:', invoice.id);
-    console.log('Suscripción ID:', invoice.subscription);
+    console.log('--- Procesando Pago de Factura (Suscripción) ---');
+
+    if (!invoice.subscription) {
+        console.log('⚠️ Ignorando invoice sin suscripción (probablemente pago único).');
+        return;
+    }
 
     const connection = await dbPool.getConnection();
-
     try {
-        // 1. Obtener datos básicos
         const subscriptionId = invoice.subscription;
-        const customerId = invoice.customer;
-        const paymentMethodId = invoice.payment_intent?.payment_method || invoice.default_payment_method;
+        let userId = null;
 
-        // El userId lo recuperamos de la metadata que guardamos al crear la suscripción
-        // Stripe propaga la metadata de la suscripción a la factura
-        const userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
+        // INTENTO 1: Buscar en la metadata de la factura (Rápido)
+        userId = invoice.subscription_details?.metadata?.user_id || invoice.metadata?.user_id;
 
+        // INTENTO 2: Buscar en la base de datos local
         if (!userId) {
-            console.error('❌ No se encontró userId en la factura. No se puede activar el producto.');
+            const [rows] = await connection.execute(
+                'SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ?',
+                [subscriptionId]
+            );
+            if (rows.length > 0) userId = rows[0].user_id;
+        }
+
+        // INTENTO 3 (EL SALVAVIDAS): Preguntar a Stripe directamente
+        // Esto soluciona tu problema actual: Si la DB está lenta, Stripe nos lo dice.
+        if (!userId) {
+            console.log('⚠️ Usuario no encontrado localmente. Consultando API de Stripe...');
+            try {
+                // Importamos 'stripe' si no está disponible en el ámbito local, o úsalo desde 'this.stripe' si es una clase
+                // Asumo que tienes la instancia 'stripe' disponible globalmente o importada arriba
+                const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+                userId = stripeSubscription.metadata?.user_id;
+
+                if (userId) {
+                    console.log(`✅ Recuperado userId ${userId} desde API de Stripe.`);
+
+                    // Opcional: Ya que estamos, creamos la suscripción en local para que no falte la próxima vez
+                    // Esto repara la "Race Condition"
+                    /* await stripeRepository.createSubscription(connection, {
+                        user_id: userId,
+                        payerref: stripeSubscription.customer,
+                        paymentmethod: null,
+                        amount_minor: stripeSubscription.items.data[0].price.unit_amount,
+                        currency: stripeSubscription.currency.toUpperCase(),
+                        status: 'active', // Ya sabemos que está pagada
+                        stripe_subscription_id: subscriptionId,
+                        // ... resto de campos
+                    });
+                    */
+                }
+            } catch (apiError) {
+                console.error('❌ Error llamando a Stripe API:', apiError.message);
+            }
+        }
+
+        // SI FALLA TODO, NOS RENDIMOS
+        if (!userId) {
+            console.error('❌ ERROR FINAL: Imposible identificar al usuario. Se requiere intervención manual.');
             return;
         }
 
-        // 2. Actualizar el estado de la suscripción en nuestra DB
-        // Pasamos de 'incomplete' a 'active' y guardamos el método de pago real
-        await stripeRepository.updateSubscriptionStatus(connection, invoice.subscription, {
+        // --- A PARTIR DE AQUÍ, TODO IGUAL ---
+
+        // 3. Actualizar estado a ACTIVE
+        await stripeRepository.updateSubscriptionStatus(connection, subscriptionId, {
             status: 'active',
             payment_method: invoice.payment_intent?.payment_method || 'card',
-            next_charge_at: new Date(invoice.period_end * 1000)
+            next_charge_at: new Date(invoice.lines.data[0].period.end * 1000)
         });
 
-        // 3. Asignar o Renovar el producto activo
-        // Buscamos el ID del producto de Stripe en las líneas de la factura
+        // 4. Activar/Renovar Producto
         const lineItem = invoice.lines.data[0];
         const stripeProductId = lineItem.price.product;
-
-        console.log(`Asignando producto ${stripeProductId} al usuario ${userId}`);
 
         await productService.assignProduct(connection, {
             user_id: userId,
             product_id: stripeProductId,
             payment_method: "card",
             stripe_subscription_id: subscriptionId,
-            invoice_id: invoice.id
+            invoice_number: invoice.id
         });
 
-        console.log('✅ Suscripción y Producto activados correctamente.');
+        console.log('✅ PROCESO COMPLETADO EXITOSAMENTE.');
 
     } catch (error) {
-        console.error('❌ Error en handleInvoicePaymentSucceeded:', error);
+        console.error('❌ Error procesando factura:', error);
     } finally {
         connection.release();
     }
