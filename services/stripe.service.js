@@ -361,11 +361,18 @@ export async function createSubscription(dbPool, data) {
             }
         });
 
-        return {
+        const clientSecret = subscription.latest_invoice?.confirmation_secret?.client_secret;
+
+        if (!clientSecret) {
+            console.error("⚠️ Alerta: No se generó client_secret. Revisa si el monto es 0 o si la factura falló.");
+        }
+
+        return ({
+            success: true,
             subscription_id: subscription.id,
-            client_secret: subscription.latest_invoice?.confirmation_secret?.client_secret,
-            customer_id: customerId
-        };
+            customer_id: customerId,
+            client_secret: clientSecret
+        });
     } catch (error) {
         console.error('Error en createSubscription:', error);
         throw error;
