@@ -534,7 +534,6 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
             status: subscription.status,
             subscription_id: subscription.id,
             metadata: {
-                stripe_subscription_id: subscription.id,
                 product_id: productId,
             }
         });
@@ -578,83 +577,63 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    console.log('--- [WEBHOOK] Procesando Pago de Factura ---');
+    console.log('--- [WEBHOOK] Procesando Pago ---');
 
     const connection = await dbPool.getConnection();
 
     try {
-        let subscriptionId = invoice.subscription;
-        let userId = null;
-        let productId = invoice.lines?.data[0]?.price?.product;
+        // 1. BUSCAR EN BD USANDO EL CLIENTE (payer_ref)
+        // Sacamos el subscription_id, user_id y el productId (que está en metadata)
+        const [rows] = await connection.execute(
+            `SELECT subscription_id, user_id, metadata 
+             FROM subscriptions 
+             WHERE payer_ref = ? AND status = 'incomplete' 
+             ORDER BY created_at DESC LIMIT 1`,
+            [invoice.customer]
+        );
 
-        // 1. RESCATE DE DATOS SI EL WEBHOOK VIENE INCOMPLETO
-        if (!subscriptionId) {
-            console.log(`🔍 Buscando datos para cliente ${invoice.customer} en DB local...`);
-
-            // Buscamos la suscripción Y el producto original que guardamos al crearla
-            // Asumo que el product_id de Stripe lo tienes en alguna columna o en la metadata
-            const [rows] = await connection.execute(
-                `SELECT subscription_id, user_id, metadata
-                 FROM subscriptions
-                 WHERE payer_ref = ? AND status = 'incomplete'
-                 ORDER BY start_date DESC LIMIT 1`,
-                [invoice.customer]
-            );
-
-            if (rows.length > 0) {
-                subscriptionId = rows[0].subscription_id;
-                userId = rows[0].user_id;
-
-                // Si el producto no venía en la factura, intentamos sacarlo de la metadata de nuestra DB
-                if (!productId && rows[0].metadata) {
-                    try {
-                        const meta = JSON.parse(rows[0].metadata);
-                        productId = meta.product_id || null;
-                    } catch (e) { /* no es JSON o no existe */ }
-                }
-                console.log(`✅ Datos rescatados: Sub=${subscriptionId}, User=${userId}, Prod=${productId}`);
-            }
-        }
-
-        // 2. VALIDACIONES DE SEGURIDAD
-        if (!subscriptionId || !userId) {
-            console.error('🛑 ERROR: No se puede identificar la suscripción o el usuario.');
+        if (rows.length === 0) {
+            console.log('⚠️ No se encontró suscripción pendiente para este cliente.');
             return;
         }
 
-        // 3. ACTUALIZAR ESTADO A 'ACTIVE'
-        const periodEnd = invoice.lines?.data[0]?.period?.end;
-        const nextChargeDate = periodEnd ? new Date(periodEnd * 1000) : null;
+        const { subscription_id, user_id, metadata } = rows[0];
+        let productId = null;
 
-        await stripeRepository.updateSubscriptionStatus(connection, subscriptionId, {
+        // 2. EXTRAER PRODUCTID DE TU METADATA
+        if (metadata) {
+            try {
+                const meta = JSON.parse(metadata);
+                productId = meta.product_id;
+            } catch (e) { console.error("Error parseando metadata local"); }
+        }
+
+        if (!productId || !user_id) {
+            console.error('❌ Faltan datos críticos en la BD local para activar.');
+            return;
+        }
+
+        // 3. ACTUALIZAR Y ACTIVAR
+        // Marcamos como activa en tu tabla
+        await stripeRepository.updateSubscriptionStatus(connection, subscription_id, {
             status: 'active',
-            payment_method: invoice.payment_intent?.payment_method || 'card',
-            next_charge_at: nextChargeDate
+            payment_method: "card",
+            next_charge_at: new Date(invoice.lines?.data[0]?.period?.end * 1000)
         });
 
-        // 4. ASIGNACIÓN DEL PRODUCTO (CON FALLBACK)
-        if (!productId) {
-            // Si llegamos aquí sin producto, es el último recurso:
-            // Probamos a ver si está en la metadata de la factura de Stripe
-            productId = invoice.metadata?.product_id || invoice.subscription_details?.metadata?.product_id;
-        }
+        // Activamos el producto en tu lógica de negocio
+        await productService.assignProduct(connection, {
+            user_id: user_id,
+            product_id: productId,
+            payment_method: "card",
+            subscription_id: subscription_id,
+            centro: invoice.metadata?.centro || null
+        });
 
-        if (productId) {
-            await productService.assignProduct(connection, {
-                user_id: userId,
-                product_id: productId,
-                payment_method: "card",
-                subscription_id: subscriptionId,
-                centro: invoice.metadata?.centro || null
-            });
-            console.log('✨ ÉXITO: Suscripción y Producto activados correctamente.');
-        } else {
-            console.error('❌ ERROR FATAL: El pago se hizo pero no sabemos qué producto activar.');
-            // Aquí podrías enviar un email de alerta interno
-        }
+        console.log(`✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
 
     } catch (error) {
-        console.error('❌ Error crítico:', error);
+        console.error('❌ Error:', error);
     } finally {
         connection.release();
     }
