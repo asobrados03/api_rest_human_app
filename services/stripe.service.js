@@ -237,7 +237,7 @@ export async function createSubscription(dbPool, data) {
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.confirmation_secret'],
+            expand: ['latest_invoice.payment_intent'],
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString()
