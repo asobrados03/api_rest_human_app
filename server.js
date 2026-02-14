@@ -7,8 +7,8 @@ const HOST = '0.0.0.0';
 
 const server = createServer(app);
 
-server.keepAliveTimeout = 10000;     // 10 segundos (recomendado)
-server.headersTimeout   = 12000;     // debe ser mayor que keepAliveTimeout
+server.keepAliveTimeout = 0;
+server.headersTimeout   = 5000;     // debe ser mayor que keepAliveTimeout
 
 server.listen(PORT, HOST, () => {
     console.log(`API REST corriendo en http://${HOST}:${PORT}`);
