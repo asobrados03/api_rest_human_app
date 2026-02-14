@@ -237,34 +237,19 @@ export async function createSubscription(dbPool, data) {
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.payment_intent'],
+            expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
             metadata: {
                 user_id: userId.toString(),
-                product_id: productId.toString()
+                product_id: productId.toString(),
+                type: 'subscription' // Marca para diferenciar
             }
         });
 
-        let clientSecret = null;
-
-        // 2. Finalizar la factura y obtener el confirmation_secret
-        if (subscription.latest_invoice) {
-            const invoiceId = typeof subscription.latest_invoice === 'string'
-                ? subscription.latest_invoice
-                : subscription.latest_invoice.id;
-
-            const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoiceId, {
-                expand: ['confirmation_secret'] // <--- CLAVE: Expandir el secreto de confirmación
-            });
-
-            // 3. Extraer el secreto de la manera que tú indicas
-            clientSecret = finalizedInvoice.confirmation_secret?.client_secret;
-        }
-
-        return ({
+        return {
             subscription_id: subscription.id,
-            customer_id: customerId,
-            client_secret: clientSecret
-        });
+            client_secret: subscription.latest_invoice?.confirmation_secret?.client_secret,
+            customer_id: customerId
+        };
     } catch (error) {
         console.error('Error en createSubscription:', error);
         throw error;
