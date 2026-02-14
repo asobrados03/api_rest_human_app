@@ -542,11 +542,6 @@ export async function handleInvoicePaymentFailed(invoice) {
     // Notificar al usuario
 }
 
-// ==================== UTILIDADES ====================
-
-/**
- * Verificar webhook signature
- */
 export function verifyWebhookSignature(payload, signature) {
     try {
         return stripe.webhooks.constructEvent(

@@ -218,8 +218,8 @@ export async function findCouponByCodeSimple(connection, couponCode) {
 }
 
 export async function getUserCouponsIds(connection, userId) {
-    const [[u]] = await connection.query(`SELECT coupons_ids FROM users WHERE user_id = ? LIMIT 1`, [userId]);
-    return u; // Retorna objeto { coupons_ids: '...' } o undefined
+    // const [[u]] = await connection.query(`SELECT coupons_ids FROM users WHERE user_id = ? LIMIT 1`, [userId]);
+    return { }; // Retorna objeto { coupons_ids: '...' } o undefined
 }
 
 export async function updateUserCouponsIds(connection, userId, csvIds) {

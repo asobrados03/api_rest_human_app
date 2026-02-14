@@ -3,7 +3,7 @@ module.exports = {
     name: 'human-app',
     script: './server.js',
     instances: 1,
-    exec_mode: 'cluster',
+    exec_mode: 'fork',
     env: {
       NODE_ENV: 'production',
       PORT: 8085
@@ -11,6 +11,8 @@ module.exports = {
     error_file: './logs/err.log',
     out_file: './logs/out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    merge_logs: true
+    merge_logs: true,
+    kill_timeout: 3000, // da tiempo a graceful shutdown
+    max_restarts: 10,
   }]
 };
