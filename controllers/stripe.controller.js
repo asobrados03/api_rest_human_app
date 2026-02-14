@@ -256,56 +256,6 @@ export async function cancelPaymentIntent(req, res) {
     }
 }
 
-// ==================== COMPRA DE PRODUCTO ====================
-
-/**
- * Procesar compra de producto
- * POST /api/stripe/purchase
- */
-export async function purchaseProduct(req, res) {
-    try {
-        const userId = req.user?.id || req.body.userId;
-        const { productId, paymentMethodId, couponId, groupId, centro } = req.body;
-
-        if (!productId || !paymentMethodId) {
-            return res.status(400).json({
-                success: false,
-                message: 'productId y paymentMethodId son requeridos'
-            });
-        }
-
-        const result = await stripeService.processProductPurchase(req.db, {
-            userId,
-            productId,
-            paymentMethodId,
-            couponId,
-            groupId,
-            centro
-        });
-
-        if (result.success) {
-            res.status(200).json({
-                success: true,
-                message: 'Compra procesada exitosamente',
-                data: result
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: result.message,
-                data: result
-            });
-        }
-    } catch (error) {
-        console.error('Error en purchaseProduct:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al procesar la compra',
-            error: error.message
-        });
-    }
-}
-
 // ==================== REEMBOLSOS ====================
 
 /**

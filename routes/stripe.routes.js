@@ -91,15 +91,6 @@ router.get('/payment-intent/:paymentIntentId', verifyToken, stripeController.get
  */
 router.post('/payment-intent/:paymentIntentId/cancel', verifyToken, stripeController.cancelPaymentIntent);
 
-// ==================== COMPRA DE PRODUCTO ====================
-
-/**
- * @route   POST /api/stripe/purchase
- * @desc    Procesar compra de producto
- * @access  Private
- */
-router.post('/purchase', verifyToken, stripeController.purchaseProduct);
-
 // ==================== REEMBOLSOS ====================
 
 /**

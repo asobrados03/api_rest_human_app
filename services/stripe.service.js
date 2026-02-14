@@ -235,12 +235,10 @@ export async function createSubscription(dbPool, data) {
         const subscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: priceId }],
-            collection_method: 'send_invoice',
+            payment_behavior: 'default_incomplete',
             days_until_due: 15,
-            payment_settings: {
-                save_default_payment_method: 'on_subscription'
-            },
-            expand: ['latest_invoice.payment_intent'],
+            payment_settings: { save_default_payment_method: 'on_subscription' },
+            expand: ['latest_invoice.confirmation_secret'],
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString()
