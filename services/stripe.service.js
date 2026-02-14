@@ -352,9 +352,9 @@ export async function createSubscription(dbPool, data) {
                     customer_balance: {
                         funding_type: 'bank_transfer',
                         bank_transfer: {
-                            type: 'eu_bank_transfer',
+                            type: 'eu_bank_transfer',  // Para transferencias bancarias SEPA en Europa
                             eu_bank_transfer: {
-                                country: 'IE' // Forzamos para validar el esquema de la API
+                                country: 'ES'  // Específico para España
                             }
                         }
                     }
