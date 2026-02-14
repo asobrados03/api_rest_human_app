@@ -3,7 +3,7 @@ import app from './app.js';
 import { createServer } from 'http';
 
 const PORT = process.env.PORT || 8085;
-const HOST = '0.0.0.0';
+const HOST = '127.0.0.1';
 
 const server = createServer(app);
 
