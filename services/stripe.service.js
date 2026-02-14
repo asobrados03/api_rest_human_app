@@ -1,12 +1,8 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
 import {
-    calculateExpiryDate,
     createStripeMetadata,
     DEFAULT_CURRENCY,
-    generateInvoiceNumber,
-    PAYMENT_METHOD_CARD,
-    PAYMENT_STATUS_PAID,
     toCents
 } from '../utils/stripe.utils.js';
 import * as productService from "./service-products.service.js";
@@ -198,110 +194,6 @@ export async function cancelPaymentIntent(paymentIntentId) {
     }
 }
 
-// ==================== COMPRA DE PRODUCTO ====================
-
-/**
- * Procesar compra de producto
- */
-export async function processProductPurchase(dbPool, data) {
-    const connection = await dbPool.getConnection();
-    try {
-        const {
-            userId,
-            productId,
-            paymentMethodId,
-            couponId,
-            groupId,
-            centro
-        } = data;
-
-        // 1. Obtener información del producto
-        const product = await stripeRepository.getProductById(connection, productId);
-        if (!product) {
-            throw new Error('Producto no encontrado');
-        }
-
-        // 2. Calcular montos
-        let amount = parseFloat(product.product_price);
-        let discount = 0;
-        let totalAmount = amount;
-
-        // Si hay cupón, aplicar descuento (implementar lógica de cupones)
-        if (couponId) {
-            // TODO: Implementar lógica de cupones
-            // discount = ...
-            // totalAmount = amount - discount;
-        }
-
-        // 3. Crear o obtener cliente de Stripe
-        const { customerId } = await this.createOrGetCustomer(userId);
-
-        // 4. Crear Payment Intent
-        const paymentIntent = await this.createPaymentIntent({
-            amount: totalAmount,
-            currency: DEFAULT_CURRENCY,
-            customerId: customerId,
-            paymentMethodId: paymentMethodId,
-            metadata: {
-                user_id: userId.toString(),
-                product_id: productId.toString(),
-                product_name: product.product_name
-            }
-        });
-
-        // 5. Si el pago fue exitoso, crear registro en la BD
-        if (paymentIntent.status === 'succeeded') {
-            // Crear transacción de Stripe
-            const transactionId = await stripeRepository.createStripeTransaction(connection, {
-                product_id: productId,
-                customer_id: userId,
-                amount: totalAmount,
-                stripe_charge_id: paymentIntent.id,
-                stripe_card_id: paymentMethodId
-            });
-
-            // Calcular fecha de expiración
-            const expiryDate = calculateExpiryDate(product.type_of_product);
-
-            // Crear producto activo
-            const activeProductId = await stripeRepository.createActiveProduct(connection, {
-                product_id: productId,
-                invoice_number: generateInvoiceNumber(),
-                customer_id: userId,
-                group_id: groupId,
-                purchase_date: new Date(),
-                expiry_date: expiryDate,
-                amount: amount,
-                discount: discount,
-                total_amount: totalAmount,
-                coupon_id: couponId,
-                payment_status: PAYMENT_STATUS_PAID,
-                payment_method: PAYMENT_METHOD_CARD,
-                stripe_transaction_id: transactionId,
-                card_id: paymentMethodId,
-                centro: centro
-            });
-
-            return {
-                success: true,
-                paymentIntent: paymentIntent,
-                transactionId: transactionId,
-                activeProductId: activeProductId
-            };
-        } else {
-            return {
-                success: false,
-                paymentIntent: paymentIntent,
-                message: 'El pago no se completó correctamente'
-            };
-        }
-
-    } catch (error) {
-        console.error('Error en processProductPurchase:', error);
-        throw error;
-    }
-}
-
 // ==================== REEMBOLSOS ====================
 
 /**
@@ -346,19 +238,7 @@ export async function createSubscription(dbPool, data) {
             collection_method: 'send_invoice',
             days_until_due: 15,
             payment_settings: {
-                save_default_payment_method: 'on_subscription',
-                payment_method_types: ['card', 'customer_balance'],
-                payment_method_options: {
-                    customer_balance: {
-                        funding_type: 'bank_transfer',
-                        bank_transfer: {
-                            type: 'eu_bank_transfer',  // Para transferencias bancarias SEPA en Europa
-                            eu_bank_transfer: {
-                                country: 'ES'  // Específico para España
-                            }
-                        }
-                    }
-                }
+                save_default_payment_method: 'on_subscription'
             },
             expand: ['latest_invoice.payment_intent'],
             metadata: {
@@ -383,17 +263,10 @@ export async function createSubscription(dbPool, data) {
             clientSecret = finalizedInvoice.confirmation_secret?.client_secret;
         }
 
-        const billingName = subscription.customer.name || 'Cliente';
-        const billingEmail = subscription.customer.email || '';
-        const billingCountry = subscription.customer.address?.country || '';
-
         return ({
             subscription_id: subscription.id,
             customer_id: customerId,
-            client_secret: clientSecret,
-            /*billing_name: billingName,
-            billing_email: billingEmail,
-            billing_country: billingCountry*/
+            client_secret: clientSecret
         });
     } catch (error) {
         console.error('Error en createSubscription:', error);
