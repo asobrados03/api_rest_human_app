@@ -347,6 +347,7 @@ export async function createSubscription(dbPool, data) {
             days_until_due: 15,
             payment_settings: {
                 save_default_payment_method: 'on_subscription',
+                payment_method_types: ['card', 'customer_balance'],
                 payment_method_options: {
                     customer_balance: {
                         funding_type: 'bank_transfer',
@@ -382,10 +383,17 @@ export async function createSubscription(dbPool, data) {
             clientSecret = finalizedInvoice.confirmation_secret?.client_secret;
         }
 
+        const billingName = subscription.customer.name || 'Cliente';
+        const billingEmail = subscription.customer.email || '';
+        const billingCountry = subscription.customer.address?.country || '';
+
         return ({
             subscription_id: subscription.id,
             customer_id: customerId,
-            client_secret: clientSecret
+            client_secret: clientSecret,
+            /*billing_name: billingName,
+            billing_email: billingEmail,
+            billing_country: billingCountry*/
         });
     } catch (error) {
         console.error('Error en createSubscription:', error);
