@@ -31,8 +31,7 @@ export const getActiveProductsByUserId = async (connection, userId) => {
         FROM active_products ap
                  JOIN products p ON ap.product_id = p.product_id
                  LEFT JOIN product_services ps ON p.product_id = ps.product_id
-            -- Join con suscripciones (buscando la activa para ese usuario/producto)
-                 LEFT JOIN subscriptions s ON ap.product_id = s.metadata->>'$.product_id'
+                 LEFT JOIN subscriptions s ON ap.product_id = JSON_UNQUOTE(JSON_EXTRACT(s.metadata, '$.product_id'))
             AND ap.customer_id = s.user_id
             AND s.status = 'active'
              -- Join con transacciones de pago único
