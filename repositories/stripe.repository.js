@@ -273,3 +273,13 @@ export async function updateSubscriptionStatus(connection, subscription_id, data
         throw error;
     }
 }
+
+export async function saveStripeTransaction(productId, userId, paymentIntent, connection) {
+    const query = `INSERT INTO stripe_transactions (product_id, customer_id, amount, stripe_charge_id, stripe_card_id)
+                   VALUES (?, ?, ?, ?, ?)`;
+
+    const result = await connection.execute(query,
+        [productId, userId, paymentIntent.amount / 100, paymentIntent.id, paymentIntent.payment_method]
+    );
+    return result[0].insertId;
+}

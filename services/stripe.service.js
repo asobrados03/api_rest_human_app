@@ -369,7 +369,6 @@ export async function handleWebhook(dbPool, event) {
 }
 
 // Handlers específicos para cada tipo de evento
-// En stripe.service.js
 
 export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
     console.log('Procesando Payment Intent (Tienda):', paymentIntent.id);
@@ -393,6 +392,8 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
             payment_method: "card",
             coupon_code
         });
+
+        await stripeRepository.saveStripeTransaction(userId, productId, paymentIntent, connection);
 
     } catch (error) {
         console.error('Error en handlePaymentIntentSucceeded:', error);

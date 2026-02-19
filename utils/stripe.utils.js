@@ -1,9 +1,4 @@
 export const DEFAULT_CURRENCY = 'eur';
-export const PAYMENT_METHOD_CARD = 'card';
-export const PAYMENT_STATUS_PAID = 'paid';
-export const PRODUCT_TYPE_RECURRENT = 'recurrent';
-export const PRODUCT_TYPE_MULTI_SESSIONS = 'multi_sessions';
-export const PRODUCT_TYPE_SINGLE_SESSION = 'single_session';
 
 export const toCents = (amount) => {
     return Math.round(amount * 100);

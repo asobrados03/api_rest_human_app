@@ -20,20 +20,30 @@ export const getProductsByServiceId = async (connection, serviceId) => {
 
 export const getActiveProductsByUserId = async (connection, userId) => {
     const [rows] = await connection.execute(`
-    SELECT DISTINCT
-      p.product_id AS id, p.product_name_es AS name, p.description_es AS description,
-      p.sell_price AS price, p.product_image AS image, ps.service_id AS service_id,
-      ap.expiry_date, p.type_of_product, ap.centro AS centro,
-      ap.payment_method, ap.payment_status, ap.active_product_status
-    FROM active_products ap
-    JOIN products p ON ap.product_id = p.product_id
-    LEFT JOIN product_services ps ON p.product_id = ps.product_id
-    WHERE ap.customer_id = ?
-      AND ap.deleted_at IS NULL AND p.deleted_at IS NULL
-      AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())
-      AND LOWER(ap.active_product_status) IN ('booked','active','paid')
-      AND (ap.payment_status = 'paid' OR (ap.payment_method = 'bank_transfer' AND ap.payment_status = 'unpaid'))
-  `, [userId]);
+        SELECT DISTINCT
+            p.product_id AS id, p.product_name_es AS name, p.description_es AS description,
+            p.sell_price AS price, p.product_image AS image, ps.service_id AS service_id,
+            ap.expiry_date, p.type_of_product, ap.centro AS centro,
+            ap.payment_method, ap.payment_status, ap.active_product_status,
+            -- Traemos los ID de Stripe
+            s.subscription_id AS stripe_subscription_id,
+            st.stripe_charge_id AS stripe_payment_intent_id
+        FROM active_products ap
+                 JOIN products p ON ap.product_id = p.product_id
+                 LEFT JOIN product_services ps ON p.product_id = ps.product_id
+            -- Join con suscripciones (buscando la activa para ese usuario/producto)
+                 LEFT JOIN subscriptions s ON ap.product_id = s.metadata->>'$.product_id'
+            AND ap.customer_id = s.user_id
+            AND s.status = 'active'
+             -- Join con transacciones de pago único
+            LEFT JOIN stripe_transactions st ON ap.product_id = st.product_id
+            AND ap.customer_id = st.customer_id
+        WHERE ap.customer_id = ?
+          AND ap.deleted_at IS NULL AND p.deleted_at IS NULL
+          AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())
+          AND LOWER(ap.active_product_status) IN ('booked','active','paid')
+          AND (ap.payment_status = 'paid' OR (ap.payment_method = 'bank_transfer' AND ap.payment_status = 'unpaid'))
+    `, [userId]);
     return rows;
 };
 
@@ -100,11 +110,11 @@ export const createActiveProduct = async (connection, data) => {
     return result;
 };
 
-export const createSubscription = async (connection, { userId, totalAmount, orderPrefix }) => {
+export const createSubscription = async (connection, { userId, totalAmount, subscription_id }) => {
     await connection.execute(`
-    INSERT INTO subscriptions (user_id, amount_minor, status, order_prefix, created_at)
+    INSERT INTO subscriptions (user_id, amount_minor, status, subscription_id, created_at)
     VALUES (?, ?, 'active', ?, NOW())
-  `, [userId, Math.round(totalAmount * 100), orderPrefix]);
+  `, [userId, Math.round(totalAmount * 100), subscription_id]);
 };
 
 export const cancelActiveProduct = async (connection, { userId, productId, lastDay }) => {
@@ -115,11 +125,11 @@ export const cancelActiveProduct = async (connection, { userId, productId, lastD
   `, [lastDay, userId, productId]);
 };
 
-export const cancelSubscription = async (connection, { userId, orderPrefix }) => {
+export const cancelSubscription = async (connection, { userId, subscription_id }) => {
     await connection.execute(`
     UPDATE subscriptions SET status = 'canceled', updated_at = NOW()
-    WHERE user_id = ? AND order_prefix = ?
-  `, [userId, orderPrefix]);
+    WHERE user_id = ? AND subscription_id = ?
+  `, [userId, subscription_id]);
 };
 
 export const getActiveProductDetail = async (connection, userId, productId) => {

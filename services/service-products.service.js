@@ -10,8 +10,6 @@ export const listServiceProducts = async (connection, serviceId) => {
 
 export const listUserProducts = async (connection, userId) => {
   const rows = await productRepo.getActiveProductsByUserId(connection, userId);
-
-  // Lógica de transformación (Map) movida aquí
   const productosMap = new Map();
 
   for (const row of rows) {
@@ -24,6 +22,8 @@ export const listUserProducts = async (connection, userId) => {
         image: row.image,
         centro: row.centro,
         type_of_product: row.type_of_product,
+        stripe_subscription_id: row.stripe_subscription_id,
+        stripe_payment_intent_id: row.stripe_payment_intent_id,
         service_ids: []
       });
     }
@@ -65,7 +65,6 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
     throw { status: 409, message: 'El producto ya está activo y no es una renovación' };
   }
 
-  // ... (Tus pasos 3, 4 y 5 de precios, cupones y facturas se mantienen igual) ...
   // 3. Calcular precios y descuentos
   const price = product.sell_price ?? 0;
   const validDays = product.valid_due ?? 0;
@@ -118,6 +117,15 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
     centro: centroFinal
   });
 
+  if(payment_method === "cash" && product.type_of_product === "recurrent") {
+    // Si es una suscripción, también creamos el registro en subscriptions
+    await productRepo.createSubscription(connection, {
+      userId: user_id,
+      totalAmount,
+      subscription_id: `sub_${user_id}_${product_id}`
+    });
+  }
+
   return { assigned_id: result.insertId, action: 'created' };
 };
 
@@ -130,7 +138,7 @@ export const unassignProduct = async (connection, userId, productId) => {
   // Intentamos cancelar suscripción, aunque no exista
   await productRepo.cancelSubscription(connection, {
     userId,
-    orderPrefix: `sub_${userId}_${productId}`
+    subscription_id: `sub_${userId}_${productId}`
   });
 
   return { valid_until: lastDay };
