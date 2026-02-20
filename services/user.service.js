@@ -316,22 +316,20 @@ export async function getUserStatsService(dbPool, userId) {
             userRepo.getStatsPending(connection, userId)
         ]);
 
-        const byService = new Map();
-        const upsert = (sid, name) => {
-            if (!byService.has(sid)) {
-                byService.set(sid, {
-                    service_id: sid, service_name: name || '',
-                    entrenamientosMesPasado: 0, entrenadorMasUsado: null, reservasPendientes: 0
-                });
-            }
-            return byService.get(sid);
+        // 1. Calculamos totales numéricos
+        const totalLastMonth = lastMonth.reduce((acc, r) => acc + (r.total ?? 0), 0);
+        const totalPending = pending.reduce((acc, r) => acc + (r.total ?? 0), 0);
+
+        // 2. Buscamos al entrenador con el 'cnt' más alto en la lista de la imagen
+        // Usamos sort para poner al que tiene más sesiones primero
+        const globalTopCoach = [...topCoach].sort((a, b) => b.cnt - a.cnt)[0];
+
+        return {
+            last_month_workouts: totalLastMonth,
+            pending_bookings: totalPending,
+            most_frequent_trainer: globalTopCoach?.coach_name || null
         };
 
-        for (const r of lastMonth) upsert(r.service_id, r.service_name).entrenamientosMesPasado = r.total ?? 0;
-        for (const r of topCoach) upsert(r.service_id, r.service_name).entrenadorMasUsado = r.coach_name || null;
-        for (const r of pending) upsert(r.service_id, r.service_name).reservasPendientes = r.total ?? 0;
-
-        return Array.from(byService.values());
     } finally {
         if (connection) connection.release();
     }

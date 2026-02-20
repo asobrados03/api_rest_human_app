@@ -147,7 +147,10 @@ export async function deleteProfilePic(req, res) {
 export async function getUserStats(req, res) {
     try {
         const stats = await userService.getUserStatsService(req.db, req.query.user_id);
-        return res.status(200).json({ byService: stats });
+
+        // Enviamos 'stats' directamente, sin el envoltorio { byService: ... }
+        return res.status(200).json(stats);
+
     } catch (err) {
         return handleError(res, err, 'getUserStats');
     }
