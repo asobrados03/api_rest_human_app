@@ -153,12 +153,6 @@ export const getActiveProductDetail = async (connection, userId, productId) => {
   return { ...product, services };
 };
 
-export const validateCoupon = async (connection, couponCode) => {
-  const coupon = await productRepo.getCouponByCode(connection, couponCode);
-  if (!coupon) throw { status: 404, message: 'Cupón inválido' };
-  return { message: 'Cupón válido' };
-};
-
 export const searchProducts = async (connection, query) => {
   return await productRepo.searchProductsByName(connection, query);
 };

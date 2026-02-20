@@ -88,7 +88,7 @@ export const getLatestWalletBalance = async (connection, userId) => {
 };
 
 export const createWalletTransaction = async (connection, { userId, productId, amount, newBalance }) => {
-    const transactionCode = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const transactionCode = `TXN_${Date.now()}_${crypto.randomUUID()}`;
     const transactionTitle = `Compra de producto ID: ${productId}`;
 
     await connection.execute(`

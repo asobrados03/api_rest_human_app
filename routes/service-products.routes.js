@@ -16,7 +16,6 @@ router.get('/user-products', verifyToken, controller.getUserProducts)
 router.post('/assign-product', verifyToken, controller.assignProductToUser)
 router.delete('/unassign-product', verifyToken, controller.unassignProductFromUser)
 router.get('/active-product-detail', verifyToken, controller.getActiveProductDetail)
-router.post('/apply-coupon', verifyToken, controller.applyCoupon);
 router.get('/products-search', /*verifyToken,*/ controller.searchProducts);
 router.get('/products/:id', verifyToken, controller.getProductDetailForHireProduct);
 

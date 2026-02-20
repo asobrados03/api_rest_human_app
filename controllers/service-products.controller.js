@@ -116,21 +116,6 @@ export async function getActiveProductDetail(req, res) {
     }
 }
 
-export async function applyCoupon(req, res) {
-    const { coupon_code } = req.body;
-    let connection;
-    try {
-        connection = await req.db.getConnection();
-        const result = await service.validateCoupon(connection, coupon_code);
-        res.json({ success: true, ...result });
-    } catch (err) {
-        const status = err.status || 500;
-        res.status(status).json({ error: err.message });
-    } finally {
-        if (connection) connection.release();
-    }
-}
-
 export async function searchProducts(req, res) {
     const { query } = req.query;
     let connection;
