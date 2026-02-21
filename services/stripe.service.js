@@ -1,6 +1,10 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import {createStripeMetadata, DEFAULT_CURRENCY, toCents} from '../utils/stripe.utils.js';
+import {
+    createStripeMetadata,
+    DEFAULT_CURRENCY,
+    toCents
+} from '../utils/stripe.utils.js';
 import * as productService from "./service-products.service.js";
 
 // ==================== CLIENTES ====================
@@ -260,75 +264,55 @@ export async function createSubscription(dbPool, data) {
 export async function cancelSubscription(dbPool, subscriptionId) {
     const connection = await dbPool.getConnection();
     try {
-        // 1. Obtenemos la suscripción de Stripe
+        // 1. OBTENER INFORMACIÓN (Para el reembolso)
+        // Necesitamos 'expand' para ver la factura y el pago realizado
         const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-            expand: ['latest_invoice']
+            expand: ['latest_invoice.payment_intent']
         });
 
-        // --- LÓGICA DE REEMBOLSO (Solo si está activa en este momento) ---
-        if (subscription.status === 'active') {
+        // 2. CÁLCULO DE REEMBOLSO PROPORCIONAL
+        if (subscription.status === 'active' && subscription.latest_invoice) {
             const invoice = subscription.latest_invoice;
-            if (invoice && invoice.status === 'paid' && invoice.amount_paid > 0) {
-                const now = Math.floor(Date.now() / 1000);
-                const ratio = (subscription.current_period_end - now) /
-                    (subscription.current_period_end - subscription.current_period_start);
-                const refundAmount = Math.floor(invoice.amount_paid * ratio);
+            const paymentIntentId = invoice.payment_intent ? invoice.payment_intent.id : null;
 
+            if (paymentIntentId && invoice.amount_paid > 0) {
+                const now = Math.floor(Date.now() / 1000);
+                const start = subscription.current_period_start;
+                const end = subscription.current_period_end;
+
+                // Fórmula: (Tiempo restante / Tiempo total) * Importe pagado
+                const ratioRemaining = (end - now) / (end - start);
+                const refundAmount = Math.floor(invoice.amount_paid * ratioRemaining);
+
+                // Stripe requiere un mínimo de 0.50€ para reembolsos
                 if (refundAmount >= 50) {
+                    console.log(`💰 Reembolsando proporcionalmente: ${refundAmount / 100}€`);
                     await stripe.refunds.create({
-                        payment_intent: invoice.payment_intent,
+                        payment_intent: paymentIntentId,
                         amount: refundAmount,
                         reason: 'requested_by_customer'
                     });
                 }
             }
-            // Cancelamos en Stripe
-            await stripe.subscriptions.cancel(subscriptionId);
         }
 
-        // --- 2. SINCRONIZACIÓN LOCAL (Aquí estaba el fallo) ---
-        // Primero: Actualizamos la tabla 'subscriptions' pase lo que pase
-        await connection.execute(
-            "UPDATE subscriptions SET status = 'canceled', updated_at = NOW() WHERE subscription_id = ?",
-            [subscriptionId]
-        );
+        // 3. CANCELAR EN STRIPE (Según los docs que enviaste)
+        // .del() y .cancel() hacen lo mismo en la librería de Node
+        const deletedSubscription = await stripe.subscriptions.cancel(subscriptionId);
+        console.log(`✅ Suscripción cancelada en Stripe: ${deletedSubscription.id}`);
 
-        // Segundo: Buscamos los IDs en tu base de datos local (es más fiable que la metadata de Stripe)
-        const [dbRows] = await connection.execute(
-            "SELECT user_id, metadata FROM subscriptions WHERE subscription_id = ?",
-            [subscriptionId]
-        );
-
-        if (dbRows.length > 0) {
-            const userId = dbRows[0].user_id; // Es el '13' de tu ejemplo
-            let productId = null;
-
-            // Extraemos el product_id del JSON que me has mostrado: {"product_id":"22"}
-            try {
-                const localMeta = typeof dbRows[0].metadata === 'string'
-                    ? JSON.parse(dbRows[0].metadata)
-                    : dbRows[0].metadata;
-                productId = localMeta?.product_id;
-            } catch (e) {
-                console.error("Error parseando metadata local:", e);
-            }
-
-            if (userId && productId) {
-                // Actualizamos active_products usando tus columnas reales
-                await connection.execute(`
-                    UPDATE active_products 
-                    SET active_product_status = 'canceled', deleted_at = NOW()
-                    WHERE customer_id = ? AND product_id = ?
-                `, [userId, productId]);
-
-                console.log(`✅ Sincronización exitosa: User ${userId}, Product ${productId}`);
-            }
-        }
-
-        return { success: true };
+        return deletedSubscription;
 
     } catch (error) {
-        console.error('❌ Error en cancelSubscription:', error.message);
+        // Si el error es que ya estaba cancelada en Stripe, aun así limpiamos nuestra DB
+        if (error.code === 'resource_missing' || error.message.includes('canceled')) {
+            console.log("⚠️ La suscripción ya no estaba activa en Stripe, limpiando DB local...");
+            await connection.execute(
+                "UPDATE subscriptions SET status = 'canceled' WHERE subscription_id = ?",
+                [subscriptionId]
+            );
+        }
+        console.error('❌ Error en el proceso de cancelación:', error.message);
         throw error;
     } finally {
         connection.release();
@@ -506,45 +490,11 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
 }
 
 export async function handleSubscriptionDeleted(dbPool, subscription) {
-    console.log('--- [WEBHOOK] Borrando acceso ---');
+    console.log('Subscription deleted:', subscription.id);
+    // Actualizar en la base de datos
     const connection = await dbPool.getConnection();
-    try {
-        // CORRECCIÓN: Stripe guarda esto en metadata, no en la raíz del objeto
-        const productId = subscription.metadata?.product_id;
-        // Si no vienen en la metadata de Stripe, los buscamos en nuestra tabla subscriptions
-        let finalUserId = subscription.metadata?.user_id;
-        let finalProductId = productId;
-
-        if (!finalUserId || !finalProductId) {
-            const [rows] = await connection.execute(
-                "SELECT user_id, metadata FROM subscriptions WHERE subscription_id = ?",
-                [subscription.id]
-            );
-            if (rows.length > 0) {
-                finalUserId = rows[0].user_id;
-                const meta = typeof rows[0].metadata === 'string' ? JSON.parse(rows[0].metadata) : rows[0].metadata;
-                finalProductId = meta?.product_id;
-            }
-        }
-
-        if (finalUserId && finalProductId) {
-            await connection.execute(`
-                UPDATE active_products 
-                SET active_product_status = 'canceled', deleted_at = NOW()
-                WHERE customer_id = ? AND product_id = ?
-            `, [finalUserId, finalProductId]);
-
-            await connection.execute(
-                "UPDATE subscriptions SET status = 'canceled' WHERE subscription_id = ?",
-                [subscription.id]
-            );
-            console.log(`✅ Webhook procesado: Acceso revocado para ${finalUserId}`);
-        }
-    } catch (error) {
-        console.error('Error en webhook delete:', error);
-    } finally {
-        connection.release();
-    }
+    await stripeRepository.cancelSubscriptionInActiveProduct(connection, subscription.metadata.product_id);
+    await stripeRepository.cancelSubscription(connection, subscription.id);
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {

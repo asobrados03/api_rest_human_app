@@ -222,6 +222,16 @@ export async function cancelSubscriptionInActiveProduct(connection, activeProduc
     return result;
 }
 
+export async function cancelSubscription(connection, subscriptionId) {
+    const query = `
+  UPDATE subscriptions 
+  SET status = 'canceled', updated_at = NOW() 
+  WHERE subscription_id = ?
+`;
+    const [result] = await connection.execute(query, [subscriptionId]);
+    return result;
+}
+
 /**
  * Actualiza el estado y metadatos de una suscripción basada en el ID de Stripe
  */
