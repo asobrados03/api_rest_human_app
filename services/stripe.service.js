@@ -264,37 +264,87 @@ export async function createSubscription(dbPool, data) {
 export async function cancelSubscription(dbPool, subscriptionId) {
     const connection = await dbPool.getConnection();
     try {
-        const subscription = await stripe.subscriptions.cancel(subscriptionId);
+        // 1. Recuperar la suscripción con la factura más reciente expandida
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['latest_invoice']
+        });
 
+        if (!subscription || subscription.status === 'canceled') {
+            throw new Error("La suscripción ya no existe o ya está cancelada.");
+        }
 
-        // Actualizar en la base de datos
-        const dbSubscription = await stripeRepository.getSubscriptionByUserId(connection, subscription.customer);
-        if (dbSubscription) {
-            await stripeRepository.updateSubscription(connection, dbSubscription.id, {
-                status: 'canceled',
-                next_charge_at: null,
-                retry_count: 0,
-                last_result: 'Subscription canceled by user'
-            });
+        const invoice = subscription.latest_invoice;
 
-            let activeProductId = null;
-            if (dbSubscription.metadata) {
-                try {
-                    const parsedMetadata = JSON.parse(dbSubscription.metadata);
-                    activeProductId = parsedMetadata.active_product_id ?? parsedMetadata.activeProductId ?? null;
-                } catch (parseError) {
-                    console.warn('Metadata inválida en suscripción:', parseError);
+        // --- LÓGICA DE PRORRATEO SEGURO ---
+        // Solo reembolsamos si la factura está pagada.
+        // Si está 'open' o 'void', no hay dinero que devolver.
+        if (invoice && invoice.status === 'paid' && invoice.amount_paid > 0) {
+            const now = Math.floor(Date.now() / 1000);
+            const periodStart = subscription.current_period_start;
+            const periodEnd = subscription.current_period_end;
+
+            // Calculamos cuánto tiempo queda del mes actual
+            const duration = periodEnd - periodStart;
+            const remaining = periodEnd - now;
+
+            if (remaining > 0) {
+                const percentRemaining = remaining / duration;
+                // Calculamos el monto proporcional en céntimos
+                const refundAmount = Math.floor(invoice.amount_paid * percentRemaining);
+
+                // Stripe no acepta reembolsos menores a 50 céntimos (o 0.50 USD)
+                if (refundAmount >= 50) {
+                    console.log(`Prorrateo Seguro: Reembolsando ${refundAmount / 100}€ del pago ${invoice.payment_intent}`);
+
+                    await stripe.refunds.create({
+                        payment_intent: invoice.payment_intent,
+                        amount: refundAmount,
+                        reason: 'requested_by_customer',
+                        metadata: {
+                            action: 'cancellation_prorated_refund',
+                            subscription_id: subscriptionId
+                        }
+                    });
                 }
-            }
-            if (activeProductId) {
-                await stripeRepository.cancelSubscriptionInActiveProduct(connection, activeProductId);
             }
         }
 
-        return subscription;
+        // 2. CANCELACIÓN INMEDIATA EN STRIPE
+        // Importante: Al cancelar, Stripe detiene el ciclo de facturación.
+        const canceledSub = await stripe.subscriptions.cancel(subscriptionId);
+
+        // 3. SINCRONIZACIÓN CON TU BASE DE DATOS (MariaDB)
+        const [dbRows] = await connection.execute(
+            'SELECT * FROM subscriptions WHERE subscription_id = ?',
+            [subscriptionId]
+        );
+        const dbSub = dbRows[0];
+
+        if (dbSub) {
+            // Actualizamos tu tabla de suscripciones
+            await stripeRepository.updateSubscription(connection, dbSub.id, {
+                status: 'canceled',
+                last_result: 'Canceled with prorated refund'
+            });
+
+            // Extraemos los metadatos de forma segura (Stripe ya los devuelve como objeto)
+            const metadata = canceledSub.metadata || {};
+            const activeProductId = metadata.active_product_id || metadata.activeProductId;
+
+            if (activeProductId) {
+                // Quitamos el acceso al producto en active_products
+                await stripeRepository.cancelSubscriptionInActiveProduct(connection, activeProductId);
+                console.log(`✅ Producto activo ${activeProductId} dado de baja.`);
+            }
+        }
+
+        return canceledSub;
+
     } catch (error) {
-        console.error('Error en cancelSubscription:', error);
-        throw error;
+        console.error('❌ Error Crítico en Cancelación:', error.message);
+        throw error; // Esto lanza el 500 a la App con el motivo real
+    } finally {
+        if (connection) connection.release();
     }
 }
 
