@@ -279,7 +279,7 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
             // Opcional: si quieres forzar factura inmediata con el crédito
             invoice_now: true,          // crea y finaliza invoice con proration
             prorate: true,              // default = true en cancel immediate
-            cancellation_reason: 'customer_initiated', // o 'too_expensive', etc.
+            expand: ['latest_invoice.payment_intent'] // Expande para obtener detalles del pago
         });
 
         console.log(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
