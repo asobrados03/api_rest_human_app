@@ -276,10 +276,13 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
         // 2. Cancelar inmediatamente con proration nativo
         // Esto genera un proration credit si corresponde (negative invoice item)
         const canceledSub = await stripe.subscriptions.cancel(subscriptionId, {
+            cancellation_details: {
+                comment: `Cancelado por usuario ${userId} para producto ${productId}`,
+                reason: 'requested_by_customer'  // o 'other' – evita inventar si no es enum oficial
+            },
             // Opcional: si quieres forzar factura inmediata con el crédito
-            invoice_now: true,          // crea y finaliza invoice con proration
-            prorate: true,              // default = true en cancel immediate
-            expand: ['latest_invoice.payment_intent'] // Expande para obtener detalles del pago
+            invoice_now: true, // crea y finaliza invoice con proration
+            prorate: true // default = true en cancel immediate
         });
 
         console.log(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
