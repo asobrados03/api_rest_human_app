@@ -6,6 +6,7 @@ import {
     toCents
 } from '../utils/stripe.utils.js';
 import * as productService from "./service-products.service.js";
+import * as productRepo from "../repositories/service-products.repository.js";
 
 // ==================== CLIENTES ====================
 
@@ -261,58 +262,76 @@ export async function createSubscription(dbPool, data) {
 /**
  * Cancelar suscripción
  */
-export async function cancelSubscription(dbPool, subscriptionId) {
+export async function cancelSubscription(dbPool, subscriptionId, userId, productId) {
     const connection = await dbPool.getConnection();
     try {
-        // 1. OBTENER INFORMACIÓN (Para el reembolso)
-        // Necesitamos 'expand' para ver la factura y el pago realizado
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-            expand: ['latest_invoice.payment_intent']
+        // 1. Actualizar metadata primero (buena práctica para webhooks)
+        await stripe.subscriptions.update(subscriptionId, {
+            metadata: {
+                user_id: userId,
+                product_id: productId
+            }
         });
 
-        // 2. CÁLCULO DE REEMBOLSO PROPORCIONAL
-        if (subscription.status === 'active' && subscription.latest_invoice) {
-            const invoice = subscription.latest_invoice;
-            const paymentIntentId = invoice.payment_intent ? invoice.payment_intent.id : null;
+        // 2. Cancelar inmediatamente con proration nativo
+        // Esto genera un proration credit si corresponde (negative invoice item)
+        const canceledSub = await stripe.subscriptions.cancel(subscriptionId, {
+            // Opcional: si quieres forzar factura inmediata con el crédito
+            invoice_now: true,          // crea y finaliza invoice con proration
+            prorate: true,              // default = true en cancel immediate
+            cancellation_reason: 'customer_initiated', // o 'too_expensive', etc.
+        });
 
-            if (paymentIntentId && invoice.amount_paid > 0) {
-                const now = Math.floor(Date.now() / 1000);
-                const start = subscription.current_period_start;
-                const end = subscription.current_period_end;
+        console.log(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
 
-                // Fórmula: (Tiempo restante / Tiempo total) * Importe pagado
-                const ratioRemaining = (end - now) / (end - start);
-                const refundAmount = Math.floor(invoice.amount_paid * ratioRemaining);
+        // 3. Opcional: Intentar reembolso automático del proration o del último pago
+        //    (Stripe no reembolsa automáticamente el crédito → hay que hacerlo manual)
+        if (canceledSub.latest_invoice) {
+            const invoice = await stripe.invoices.retrieve(canceledSub.latest_invoice.id, {
+                expand: ['payment_intent', 'charge']
+            });
 
-                // Stripe requiere un mínimo de 0.50€ para reembolsos
-                if (refundAmount >= 50) {
-                    console.log(`💰 Reembolsando proporcionalmente: ${refundAmount / 100}€`);
-                    await stripe.refunds.create({
-                        payment_intent: paymentIntentId,
-                        amount: refundAmount,
-                        reason: 'requested_by_customer'
-                    });
+            // Si hay un payment_intent succeeded del último cobro → podemos reembolsar parcial
+            if (invoice.payment_intent && typeof invoice.payment_intent !== 'string') {
+                const pi = invoice.payment_intent;
+
+                if (pi.status === 'succeeded' && pi.amount > 0) {
+                    const now = Math.floor(Date.now() / 1000);
+                    const periodStart = canceledSub.current_period_start;
+                    const periodEnd = canceledSub.current_period_end;
+
+                    // Stripe ya calculó el proration credit, pero si quieres reembolso directo:
+                    const daysTotal = (periodEnd - periodStart) / 86400;
+                    const daysUsed = (now - periodStart) / 86400;
+                    const daysRemaining = daysTotal - daysUsed;
+
+                    const proratedRefund = Math.floor((daysRemaining / daysTotal) * pi.amount);
+
+                    if (proratedRefund >= 50) {  // mínimo Stripe
+                        console.log(`🔄 Reembolsando prorrateado: ${(proratedRefund / 100).toFixed(2)} €`);
+                        await stripe.refunds.create({
+                            payment_intent: pi.id,
+                            amount: proratedRefund,
+                            reason: 'requested_by_customer'
+                        });
+                    } else if (proratedRefund > 0) {
+                        console.log(`⚠️ Reembolso muy pequeño (${proratedRefund / 100}€), no se procesa`);
+                    }
                 }
             }
         }
 
-        // 3. CANCELAR EN STRIPE (Según los docs que enviaste)
-        // .del() y .cancel() hacen lo mismo en la librería de Node
-        const deletedSubscription = await stripe.subscriptions.cancel(subscriptionId);
-        console.log(`✅ Suscripción cancelada en Stripe: ${deletedSubscription.id}`);
-
-        return deletedSubscription;
+        return canceledSub;
 
     } catch (error) {
-        // Si el error es que ya estaba cancelada en Stripe, aun así limpiamos nuestra DB
-        if (error.code === 'resource_missing' || error.message.includes('canceled')) {
-            console.log("⚠️ La suscripción ya no estaba activa en Stripe, limpiando DB local...");
-            await connection.execute(
-                "UPDATE subscriptions SET status = 'canceled' WHERE subscription_id = ?",
-                [subscriptionId]
-            );
+        if (error.type === 'StripeInvalidRequestError' &&
+            (error.code === 'resource_missing' || error.message?.includes('canceled'))) {
+            console.log("⚠️ Suscripción ya cancelada en Stripe, solo limpiamos DB");
+            await stripeRepository.cancelSubscription(connection, subscriptionId);
+            return { id: subscriptionId, status: 'canceled' };
         }
-        console.error('❌ Error en el proceso de cancelación:', error.message);
+
+        console.error('❌ Error cancelando suscripción:', error);
         throw error;
     } finally {
         connection.release();
@@ -491,9 +510,15 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
 
 export async function handleSubscriptionDeleted(dbPool, subscription) {
     console.log('Subscription deleted:', subscription.id);
+
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const userId = subscription.metadata?.user_id;
+    const productId = subscription.metadata?.product_id;
+
     // Actualizar en la base de datos
     const connection = await dbPool.getConnection();
-    await stripeRepository.cancelSubscriptionInActiveProduct(connection, subscription.metadata.product_id);
+    await productRepo.cancelActiveProduct(connection, { userId, productId, lastDay });
     await stripeRepository.cancelSubscription(connection, subscription.id);
 }
 

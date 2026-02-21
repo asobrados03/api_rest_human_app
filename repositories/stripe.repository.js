@@ -212,15 +212,6 @@ export async function getSubscriptionByUserId(connection, userId) {
 /**
  * Cancelar suscripción en active_products
  */
-export async function cancelSubscriptionInActiveProduct(connection, activeProductId) {
-    const query = `
-  UPDATE active_products 
-  SET is_canceled_subscription = 1, updated_at = NOW()
-  WHERE active_product_id = ?
-`;
-    const [result] = await connection.execute(query, [activeProductId]);
-    return result;
-}
 
 export async function cancelSubscription(connection, subscriptionId) {
     const query = `

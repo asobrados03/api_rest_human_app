@@ -331,8 +331,10 @@ export async function createSubscription(req, res) {
 export async function cancelSubscription(req, res) {
     try {
         const { subscriptionId } = req.params;
+        const userId = req.query.user_id || req.user?.id;
+        const productId = req.query.product_id;
 
-        const subscription = await stripeService.cancelSubscription(req.db, subscriptionId);
+        const subscription = await stripeService.cancelSubscription(req.db, subscriptionId, userId, productId);
 
         res.status(200).json({
             success: true,
