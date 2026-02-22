@@ -22,6 +22,7 @@ import {
     getUserSubscriptions,
     getSubscriptionsHistory
 } from '../controllers/user.controller.js'
+import logger from '../utils/pino.js';
 import { compressImageIfNeeded, handleProfilePicUpload } from "../middlewares/uploadProfile_Pic.js"
 import uploadMobileDocument from '../middlewares/uploadDocument.js'
 import path from 'path'
@@ -64,12 +65,12 @@ router.get('/user/document/:filename', verifyToken, async (req, res) => {
 
         return res.download(filePath, (err) => {
             if (err) {
-                console.error('Error al descargar archivo:', err)
+                logger.error('Error al descargar archivo:', err)
                 return res.status(404).json({ error: 'Error al descargar el documento' })
             }
         })
     } catch (err) {
-        console.error('Error al acceder al documento:', err)
+        logger.error('Error al acceder al documento:', err)
         return res.status(404).json({ error: 'Documento no encontrado' })
     }
 })

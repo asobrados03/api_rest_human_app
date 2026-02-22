@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 
+import logger from '../utils/pino.js';
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
@@ -15,12 +16,12 @@ const pool = mysql.createPool({
 
 pool.on('connection', (conn) => {
     conn.on('error', (err) => {
-        console.error('MySQL connection error:', err);
+        logger.error('MySQL connection error:', err);
     });
 });
 
 pool.on('error', (err) => {
-    console.error('MySQL pool error:', err);
+    logger.error('MySQL pool error:', err);
 });
 
 export default pool;

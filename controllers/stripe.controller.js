@@ -2,6 +2,7 @@ import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
 import stripe from '../config/stripe.config.js';
 
+import logger from '../utils/pino.js';
 // ==================== CLIENTES ====================
 
 /**
@@ -20,7 +21,7 @@ export async function createCustomer(req, res) {
             data: result
         });
     } catch (error) {
-        console.error('Error en createCustomer:', error);
+        logger.error('Error en createCustomer:', error);
         res.status(500).json({
             success: false,
             message: 'Error al crear/obtener cliente',
@@ -44,7 +45,7 @@ export async function getCustomer(req, res) {
             data: customer
         });
     } catch (error) {
-        console.error('Error en getCustomer:', error);
+        logger.error('Error en getCustomer:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener cliente',
@@ -78,7 +79,7 @@ export async function attachPaymentMethod(req, res) {
             data: paymentMethod
         });
     } catch (error) {
-        console.error('Error en attachPaymentMethod:', error);
+        logger.error('Error en attachPaymentMethod:', error);
         res.status(500).json({
             success: false,
             message: 'Error al adjuntar método de pago',
@@ -102,7 +103,7 @@ export async function listPaymentMethods(req, res) {
             data: paymentMethods
         });
     } catch (error) {
-        console.error('Error en listPaymentMethods:', error);
+        logger.error('Error en listPaymentMethods:', error);
         res.status(500).json({
             success: false,
             message: 'Error al listar métodos de pago',
@@ -127,7 +128,7 @@ export async function detachPaymentMethod(req, res) {
             data: paymentMethod
         });
     } catch (error) {
-        console.error('Error en detachPaymentMethod:', error);
+        logger.error('Error en detachPaymentMethod:', error);
         res.status(500).json({
             success: false,
             message: 'Error al eliminar método de pago',
@@ -166,7 +167,7 @@ export async function createPaymentIntent(req, res) {
             data: paymentIntent
         });
     } catch (error) {
-        console.error('Error en createPaymentIntent:', error);
+        logger.error('Error en createPaymentIntent:', error);
         res.status(500).json({
             success: false,
             message: 'Error al crear Payment Intent',
@@ -198,7 +199,7 @@ export async function confirmPaymentIntent(req, res) {
             data: paymentIntent
         });
     } catch (error) {
-        console.error('Error en confirmPaymentIntent:', error);
+        logger.error('Error en confirmPaymentIntent:', error);
         res.status(500).json({
             success: false,
             message: 'Error al confirmar Payment Intent',
@@ -222,7 +223,7 @@ export async function getPaymentIntent(req, res) {
             data: paymentIntent
         });
     } catch (error) {
-        console.error('Error en getPaymentIntent:', error);
+        logger.error('Error en getPaymentIntent:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener Payment Intent',
@@ -247,7 +248,7 @@ export async function cancelPaymentIntent(req, res) {
             data: paymentIntent
         });
     } catch (error) {
-        console.error('Error en cancelPaymentIntent:', error);
+        logger.error('Error en cancelPaymentIntent:', error);
         res.status(500).json({
             success: false,
             message: 'Error al cancelar Payment Intent',
@@ -281,7 +282,7 @@ export async function createRefund(req, res) {
             data: refund
         });
     } catch (error) {
-        console.error('Error en createRefund:', error);
+        logger.error('Error en createRefund:', error);
         res.status(500).json({
             success: false,
             message: 'Error al crear reembolso',
@@ -315,7 +316,7 @@ export async function createSubscription(req, res) {
 
         res.status(200).json(subscription);
     } catch (error) {
-        console.error('Error en createSubscription:', error);
+        logger.error('Error en createSubscription:', error);
         res.status(500).json({
             success: false,
             message: 'Error al crear suscripción',
@@ -342,7 +343,7 @@ export async function cancelSubscription(req, res) {
             data: subscription
         });
     } catch (error) {
-        console.error('Error en cancelSubscription:', error);
+        logger.error('Error en cancelSubscription:', error);
         res.status(500).json({
             success: false,
             message: 'Error al cancelar suscripción',
@@ -395,7 +396,7 @@ export async function getSubscription(req, res) {
             data: subscription
         });
     } catch (error) {
-        console.error('Error en getSubscription:', error);
+        logger.error('Error en getSubscription:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener suscripción',
@@ -428,7 +429,7 @@ export async function getUserTransactions(req, res) {
             data: transactions
         });
     } catch (error) {
-        console.error('Error en getUserTransactions:', error);
+        logger.error('Error en getUserTransactions:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener transacciones',
@@ -455,7 +456,7 @@ export async function handleWebhook(req, res) {
 
         res.status(200).json({ received: true });
     } catch (error) {
-        console.error('Error en handleWebhook:', error);
+        logger.error('Error en handleWebhook:', error);
         res.status(400).json({
             success: false,
             message: 'Error al procesar webhook',
@@ -490,7 +491,7 @@ export async function saveCard(req, res) {
             data: { cardId }
         });
     } catch (error) {
-        console.error('Error en saveCard:', error);
+        logger.error('Error en saveCard:', error);
         res.status(500).json({
             success: false,
             message: 'Error al guardar tarjeta',
@@ -517,7 +518,7 @@ export async function getUserCards(req, res) {
             data: cards
         });
     } catch (error) {
-        console.error('Error en getUserCards:', error);
+        logger.error('Error en getUserCards:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener tarjetas',
@@ -545,7 +546,7 @@ export async function deleteCard(req, res) {
             message: 'Tarjeta eliminada exitosamente'
         });
     } catch (error) {
-        console.error('Error en deleteCard:', error);
+        logger.error('Error en deleteCard:', error);
         res.status(500).json({
             success: false,
             message: 'Error al eliminar tarjeta',
@@ -573,7 +574,7 @@ export async function setDefaultCard(req, res) {
             message: 'Tarjeta establecida como predeterminada'
         });
     } catch (error) {
-        console.error('Error en setDefaultCard:', error);
+        logger.error('Error en setDefaultCard:', error);
         res.status(500).json({
             success: false,
             message: 'Error al establecer tarjeta predeterminada',
@@ -601,7 +602,7 @@ export async function getPublishableKey(req, res) {
         res.status(200).json({ publishableKey })
 
     } catch (error) {
-        console.error('Error en getPublishableKey:', error);
+        logger.error('Error en getPublishableKey:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener la clave publishable',

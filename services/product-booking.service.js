@@ -1,6 +1,7 @@
 import * as productBookingRepo from '../repositories/product-booking.repository.js'
 import * as dateUtils from '../utils/date-handler.js';
 
+import logger from '../utils/pino.js';
 export async function getDailyAvailabilityService({ productId, date, db }) {
     const targetProductId = Number(productId);
     const formattedDate = new Date(date).toISOString().slice(0, 10);
@@ -82,10 +83,10 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
         }
 
         // Añade esto justo antes del "/* ---------- Response ---------- */"
-        console.log("DEBUG: Product ID recibido:", productId);
-        console.log("DEBUG: Coaches encontrados:", coaches.length);
-        console.log("DEBUG: Alias del día calculado:", dayAlias);
-        console.log("DEBUG: Disponibilidad cargada para:", Object.keys(availabilityMap));
+        logger.info("DEBUG: Product ID recibido:", productId);
+        logger.info("DEBUG: Coaches encontrados:", coaches.length);
+        logger.info("DEBUG: Alias del día calculado:", dayAlias);
+        logger.info("DEBUG: Disponibilidad cargada para:", Object.keys(availabilityMap));
 
         /* ---------- Response ---------- */
         const response = [];
@@ -94,7 +95,7 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
             const formattedSlot = slot.timeslot;
 
             if (coaches.length > 0 && response.length === 0) {
-                console.log("DEBUG: Revisando slot:", timeslotRows[0]?.timeslot);
+                logger.info("DEBUG: Revisando slot:", timeslotRows[0]?.timeslot);
             }
 
             for (const coach of coaches) {
@@ -136,11 +137,11 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
         }
 
         // AHORA SÍ PUEDES HACER LOG DE RESPONSE
-        console.log(`[DEBUG] Final Response: ${response.length} slots encontrados`);
+        logger.info(`[DEBUG] Final Response: ${response.length} slots encontrados`);
         return response;
 
     } catch (error) {
-        console.error("Error detallado en el servicio:", error);
+        logger.error("Error detallado en el servicio:", error);
         throw error; // Re-lanzar para que el controller maneje el 500
     } finally {
         connection.release();

@@ -1,6 +1,7 @@
 import * as productBookingService from '../services/product-booking.service.js';
 import {logActivity} from "../utils/logger.js";
 
+import logger from '../utils/pino.js';
 export function testMobileRoute(req, res) {
     res.json({ message: 'Ruta activa para el bloque: movil' })
 }
@@ -23,7 +24,7 @@ export async function getDailyAvailability(req, res) {
 
         res.json(result)
     } catch (err) {
-        console.error('[ERROR] /api/mobile/daily ->', err)
+        logger.error('[ERROR] /api/mobile/daily ->', err)
         res.status(500).json({
             error: 'Error al consultar disponibilidad diaria',
             details: err.message
@@ -65,7 +66,7 @@ export async function reserveSession(req, res) {
                 userId: customer_id
             })
         } catch (logErr) {
-            console.error('⚠️ Logging error (reserveSession):', logErr)
+            logger.error('⚠️ Logging error (reserveSession):', logErr)
         }
 
         res.status(201).json({
@@ -73,7 +74,7 @@ export async function reserveSession(req, res) {
             booking_id: result.booking_id
         })
     } catch (err) {
-        console.error('[ERROR] POST /api/mobile/reserve →', err)
+        logger.error('[ERROR] POST /api/mobile/reserve →', err)
         res.status(500).json({
             error: 'Error al insertar la reserva',
             details: err.message
@@ -96,7 +97,7 @@ export async function getUserTrainingBookings(req, res) {
 
         res.json(result) // { count }
     } catch (err) {
-        console.error('[ERROR] GET /user-training-bookings →', err)
+        logger.error('[ERROR] GET /user-training-bookings →', err)
         res.status(500).json({
             error: 'Error retrieving training bookings'
         })
@@ -127,7 +128,7 @@ export async function getTrainerReservationSlots(req, res) {
 
         res.json(result)
     } catch (err) {
-        console.error('[ERROR] /api/mobile/trainer/reservations/slots →', err)
+        logger.error('[ERROR] /api/mobile/trainer/reservations/slots →', err)
         res.status(500).json({
             error: 'Error interno',
             details: err?.message
@@ -174,12 +175,12 @@ export async function updateBooking(req, res) {
                 userId: req.user?.id || 0
             })
         } catch (logErr) {
-            console.error('⚠️ Logging error (updateBooking):', logErr)
+            logger.error('⚠️ Logging error (updateBooking):', logErr)
         }
 
         res.json({ message: 'Reserva actualizada correctamente' })
     } catch (err) {
-        console.error('[ERROR] PUT /api/mobile/update-booking →', err)
+        logger.error('[ERROR] PUT /api/mobile/update-booking →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -207,7 +208,7 @@ export async function getUserBookings(req, res) {
 
         res.json(result)
     } catch (err) {
-        console.error('[ERROR] /api/mobile/user-bookings →', err)
+        logger.error('[ERROR] /api/mobile/user-bookings →', err)
         res.status(500).json({
             error: 'Error al consultar las reservas',
             details: err.message
@@ -235,7 +236,7 @@ export async function cancelBooking(req, res) {
                 userId: req.user?.id || 0
             })
         } catch (logErr) {
-            console.error('⚠️ Logging error (cancelBooking):', logErr)
+            logger.error('⚠️ Logging error (cancelBooking):', logErr)
         }
 
         res.json({
@@ -243,7 +244,7 @@ export async function cancelBooking(req, res) {
             updated: result.updated
         })
     } catch (err) {
-        console.error('[ERROR] /booking/:id CANCEL →', err)
+        logger.error('[ERROR] /booking/:id CANCEL →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -294,7 +295,7 @@ export async function recoverSession(req, res) {
                 userId: customer_id
             })
         } catch (logErr) {
-            console.error('⚠️ Logging error (recoverSession):', logErr)
+            logger.error('⚠️ Logging error (recoverSession):', logErr)
         }
 
         res.status(201).json({
@@ -302,7 +303,7 @@ export async function recoverSession(req, res) {
             booking_id: bookingId
         })
     } catch (err) {
-        console.error('[ERROR] POST /api/mobile/recover-session →', err)
+        logger.error('[ERROR] POST /api/mobile/recover-session →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -332,7 +333,7 @@ export async function getUserProduct(req, res) {
 
         res.json({ product_id: productId })
     } catch (err) {
-        console.error('[ERROR] GET /user-product →', err)
+        logger.error('[ERROR] GET /user-product →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -360,7 +361,7 @@ export async function getUserServices(req, res) {
 
         res.json(services)
     } catch (err) {
-        console.error('[ERROR] /mobile/user-services', err)
+        logger.error('[ERROR] /mobile/user-services', err)
         res.status(500).json({
             error: 'Error al consultar servicios del usuario',
             details: err.message
@@ -385,7 +386,7 @@ export async function getTimeslotId(req, res) {
 
         res.json({ session_timeslot_id: sessionTimeslotId })
     } catch (err) {
-        console.error('[ERROR] GET /timeslot-id →', err)
+        logger.error('[ERROR] GET /timeslot-id →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -411,7 +412,7 @@ export async function getPreferredCoach(req, res) {
 
         res.json({ coach_id: coachId })
     } catch (err) {
-        console.error('[ERROR] GET /mobile/preferred-coach →', err)
+        logger.error('[ERROR] GET /mobile/preferred-coach →', err)
         res.status(500).json({
             error: 'Error al consultar el entrenador preferido',
             details: err.message
@@ -435,7 +436,7 @@ export async function getServiceIdForProduct(req, res) {
 
         return res.status(200).json(serviceId);
     } catch (error) {
-        console.error(`❌ Error en getProductMapping: ${error.message}`);
+        logger.error(`❌ Error en getProductMapping: ${error.message}`);
         return res.status(500).json({
             error: 'Error interno al obtener el mapeo del producto',
             details: error.message
@@ -459,7 +460,7 @@ export async function getUserWeeklyLimit(req, res) {
 
         res.json({ weekly_limits: weeklyLimits })
     } catch (err) {
-        console.error('[ERROR] GET /user-weekly-limit:', err)
+        logger.error('[ERROR] GET /user-weekly-limit:', err)
         res.status(500).json({
             error: 'Error al calcular límite semanal',
             details: err.message
@@ -481,7 +482,7 @@ export async function getHolidays(req, res) {
 
         res.json(holidays)
     } catch (err) {
-        console.error('[ERROR] GET /holidays →', err)
+        logger.error('[ERROR] GET /holidays →', err)
         res.status(500).json({
             error: 'Error al consultar los días festivos',
             details: err.message

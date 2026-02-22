@@ -1,5 +1,6 @@
 import * as productRepo from '../repositories/service-products.repository.js';
 
+import logger from '../utils/pino.js';
 export const listAllServices = async (connection) => {
   return await productRepo.getServices(connection);
 };
@@ -47,7 +48,7 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
 
   // 3. LÓGICA DE RENOVACIÓN (Si ya existe y es suscripción)
   if (existing && subscription_id) {
-    console.log(`Renovando producto ${product_id} para el usuario ${user_id}`);
+    logger.info(`Renovando producto ${product_id} para el usuario ${user_id}`);
 
     // Calculamos la nueva fecha: Si ya está vencido, sumamos desde hoy.
     // Si aún es válido, sumamos desde la fecha de vencimiento actual.

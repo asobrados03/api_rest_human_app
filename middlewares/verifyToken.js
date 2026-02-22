@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 
+import logger from '../utils/pino.js';
 export function verifyToken(req, res, next) {
     const authHeader = req.headers.authorization || ''
     const token = authHeader.startsWith('Bearer ')
@@ -20,7 +21,7 @@ export function verifyToken(req, res, next) {
         req.user_payload = jwt.verify(token, process.env.SECRET_JWT_KEY)
         next()
     } catch (err) {
-        console.error('🔒 verifyToken failed:', err.message)
+        logger.error('🔒 verifyToken failed:', err.message)
         return res
             .status(401)
             .set(

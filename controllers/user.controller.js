@@ -1,8 +1,9 @@
 import * as userService from '../services/user.service.js';
 import { logActivity } from "../utils/logger.js";
 
+import logger from '../utils/pino.js';
 function handleError(res, err, context) {
-    console.error(`❌ Error en ${context}:`, err);
+    logger.error(`❌ Error en ${context}:`, err);
     const status = err.status || 500;
     const message = err.message || "Error interno del servidor";
     return res.status(status).json({ error: message });
@@ -51,7 +52,7 @@ export async function updateUser(req, res) {
         await logActivity(req, {
             subject: `El usuario ${resultUser.email} (ID: ${resultUser.id}) actualizó su perfil`,
             userId: resultUser.id
-        }).catch(e => console.error("Log error:", e));
+        }).catch(e => logger.error("Log error:", e));
 
         return res.status(200).json(resultUser);
     } catch (err) {
@@ -69,7 +70,7 @@ export async function deleteUser(req, res) {
         await logActivity(req, {
             subject: `El usuario con email ${result.email} fue eliminado (via Mobile)`,
             userId: result.userId,
-        }).catch(e => console.error("Log error:", e));
+        }).catch(e => logger.error("Log error:", e));
 
         return res.status(200).json({ message: `Usuario '${result.email}' eliminado correctamente` });
     } catch (err) {
@@ -93,7 +94,7 @@ export async function assignPreferredCoach(req, res) {
         await logActivity(req, {
             subject: `El usuario ${req.body.customer_id} marcó como favorito al coach ${req.body.coach_id}`,
             userId: req.user_payload.id || 0
-        }).catch(e => console.error("Log error:", e));
+        }).catch(e => logger.error("Log error:", e));
 
         return res.status(result.status).json({ message: result.message + ' correctamente.' });
     } catch (err) {
@@ -108,7 +109,7 @@ export async function getPreferredCoach(req, res) {
         await logActivity(req, {
             subject: `El usuario ${req.query.customer_id} consultó su coach preferido`,
             userId: req.user_payload.id || 0
-        }).catch(e => console.error("Log error:", e));
+        }).catch(e => logger.error("Log error:", e));
 
         return res.status(200).json(result);
     } catch (err) {
@@ -136,7 +137,7 @@ export async function deleteProfilePic(req, res) {
         await logActivity(req, {
             subject: `La foto de perfil del usuario ${result.email} fue eliminada`,
             userId: result.userId
-        }).catch(e => console.error("Log error:", e));
+        }).catch(e => logger.error("Log error:", e));
 
         return res.status(200).json({ message: 'Foto de perfil eliminada correctamente' });
     } catch (err) {

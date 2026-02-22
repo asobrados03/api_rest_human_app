@@ -1,6 +1,7 @@
 import * as authService from "../services/auth.service.js";
 import { logActivity } from "../utils/logger.js";
 
+import logger from '../utils/pino.js';
 export async function registerUser(req, res) {
     try {
         const body = req.body || {};
@@ -16,12 +17,12 @@ export async function registerUser(req, res) {
                 userId: result.userId
             });
         } catch (logErr) {
-            console.error("⚠️ Logging error (registerUser):", logErr);
+            logger.error("⚠️ Logging error (registerUser):", logErr);
         }
 
         return res.status(201).json({ message: 'Se ha creado el registro correctamente' });
     } catch (err) {
-        console.error('Error en registerUser:', err);
+        logger.error('Error en registerUser:', err);
         const status = err.status || 500;
         const message = err.message || 'Error interno al crear el usuario';
         return res.status(status).json({ error: message });
@@ -37,7 +38,7 @@ export async function loginUser(req, res) {
             refreshToken: result.refreshToken
         });
     } catch (err) {
-        console.error('Error en loginUser:', err);
+        logger.error('Error en loginUser:', err);
         const status = err.status || 500;
         const message = err.message || 'Error interno al iniciar sesión';
         return res.status(status).json({ error: message });
@@ -71,7 +72,7 @@ export async function updateUserPayInfo(req, res) {
 
         return res.json({ message: 'Datos actualizados correctamente' });
     } catch (err) {
-        console.error('Error en updateUserPayInfo:', err);
+        logger.error('Error en updateUserPayInfo:', err);
         const status = err.status || 500;
         return res.status(status).json({ error: err.message || 'Error interno' });
     }
@@ -96,7 +97,7 @@ export async function changePassword(req, res) {
 
         return res.status(200).json({ message: 'Has cambiado la contraseña exitosamente' });
     } catch (err) {
-        console.error('Error changePassword:', err);
+        logger.error('Error changePassword:', err);
         const status = err.status || 500;
         return res.status(status).json({ error: err.message });
     }
@@ -114,7 +115,7 @@ export async function resetPassword(req, res) {
 
         return res.json({ message: 'Contraseña restablecida. Revisa tu correo.' });
     } catch (err) {
-        console.error('resetPassword error:', err);
+        logger.error('resetPassword error:', err);
         const status = err.status || 500;
         return res.status(status).json({ error: err.message || 'Error al restablecer' });
     }
