@@ -10,6 +10,7 @@ import userMobileRoutes from './routes/user.routes.js';
 import path from 'path';
 import fs from 'fs';
 
+import logger from './utils/pino.js';
 const app = express();
 
 app.set('db', pool);
@@ -25,7 +26,7 @@ app.get('/api/health', async (req, res) => {
         conn.release();
         res.status(200).json({ ok: true });
     } catch (err) {
-        console.error('❌ Error en /api/health:', err.message);
+        logger.error('❌ Error en /api/health:', err.message);
         res.status(500).json({ ok: false, error: 'DB not responding' });
     }
 });

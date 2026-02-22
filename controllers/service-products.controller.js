@@ -1,6 +1,7 @@
 import * as service from '../services/service-products.service.js';
 import { logActivity } from "../utils/logger.js";
 
+import logger from '../utils/pino.js';
 export function testMobileRoute(req, res) {
     res.json({ message: 'Ruta activa para el bloque: movil' });
 }
@@ -12,7 +13,7 @@ export async function getAllServices(req, res) {
         const data = await service.listAllServices(connection);
         res.json(data);
     } catch (err) {
-        console.error('[ERROR] GET /services →', err);
+        logger.error('[ERROR] GET /services →', err);
         res.status(500).json({ error: 'Error al obtener los servicios', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -31,7 +32,7 @@ export async function getServiceProducts(req, res) {
         const data = await service.listServiceProducts(connection, primary_service_id);
         res.json(data);
     } catch (err) {
-        console.error('[ERROR] GET /service-products →', err);
+        logger.error('[ERROR] GET /service-products →', err);
         res.status(500).json({ error: 'Error al obtener productos', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -50,7 +51,7 @@ export async function getUserProducts(req, res) {
         const data = await service.listUserProducts(connection, user_id);
         res.json(data);
     } catch (err) {
-        console.error('[ERROR] GET /user-products →', err);
+        logger.error('[ERROR] GET /user-products →', err);
         res.status(500).json({ error: 'Error al obtener productos del usuario', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -74,7 +75,7 @@ export async function assignProductToUser(req, res) {
 
         res.json({ success: true, ...result });
     } catch (err) {
-        console.error('[ERROR] POST /assign-product →', err);
+        logger.error('[ERROR] POST /assign-product →', err);
         const status = err.status || 500;
         const message = err.message || 'Error al asignar producto';
         res.status(status).json({ error: message, details: err.message });

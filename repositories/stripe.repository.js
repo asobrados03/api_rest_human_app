@@ -1,3 +1,4 @@
+import logger from '../utils/pino.js';
 /**
  * Actualizar el stripe_customer_id en la tabla users
  */
@@ -263,14 +264,14 @@ export async function updateSubscriptionStatus(connection, subscription_id, data
         const [result] = await connection.execute(query, values);
 
         if (result.affectedRows === 0) {
-            console.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${subscription_id}`);
+            logger.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${subscription_id}`);
         } else {
-            console.log(`✅ Suscripción ${subscription_id} actualizada a estado: ${status}`);
+            logger.info(`✅ Suscripción ${subscription_id} actualizada a estado: ${status}`);
         }
 
         return result;
     } catch (error) {
-        console.error("❌ Error en updateSubscriptionStatus Repository:", error);
+        logger.error("❌ Error en updateSubscriptionStatus Repository:", error);
         throw error;
     }
 }

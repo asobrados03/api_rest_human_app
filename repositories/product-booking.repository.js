@@ -1,3 +1,4 @@
+import logger from '../utils/pino.js';
 export function fetchTimeslots(connection, serviceId) {
     return connection.execute(`
         SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
@@ -455,7 +456,7 @@ export async function countWeeklyBookings(
     activeProductId,
     targetDate
 ) {
-    console.log('Counting weekly bookings for user:', userId, 'product:', activeProductId, 'date:', targetDate);
+    logger.info('Counting weekly bookings for user:', userId, 'product:', activeProductId, 'date:', targetDate);
     const [rows] = await connection.execute(`
     SELECT COUNT(*) AS used
     FROM bookings

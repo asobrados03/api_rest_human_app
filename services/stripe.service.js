@@ -5,6 +5,7 @@ import {
     DEFAULT_CURRENCY,
     toCents
 } from '../utils/stripe.utils.js';
+import logger from '../utils/pino.js';
 import * as productService from "./service-products.service.js";
 import * as productRepo from "../repositories/service-products.repository.js";
 
@@ -55,7 +56,7 @@ export async function createOrGetCustomer(dbPool, userId) {
             isNew: true
         };
     } catch (error) {
-        console.error('Error en createOrGetCustomer:', error);
+        logger.error('Error en createOrGetCustomer:', error);
         throw error;
     }
 }
@@ -67,7 +68,7 @@ export async function getCustomer(stripeCustomerId) {
     try {
         return await stripe.customers.retrieve(stripeCustomerId);
     } catch (error) {
-        console.error('Error en getCustomer:', error);
+        logger.error('Error en getCustomer:', error);
         throw error;
     }
 }
@@ -92,7 +93,7 @@ export async function attachPaymentMethod(paymentMethodId, customerId) {
 
         return paymentMethod;
     } catch (error) {
-        console.error('Error en attachPaymentMethod:', error);
+        logger.error('Error en attachPaymentMethod:', error);
         throw error;
     }
 }
@@ -108,7 +109,7 @@ export async function listPaymentMethods(customerId) {
         });
         return paymentMethods.data;
     } catch (error) {
-        console.error('Error en listPaymentMethods:', error);
+        logger.error('Error en listPaymentMethods:', error);
         throw error;
     }
 }
@@ -120,7 +121,7 @@ export async function detachPaymentMethod(paymentMethodId) {
     try {
         return await stripe.paymentMethods.detach(paymentMethodId);
     } catch (error) {
-        console.error('Error en detachPaymentMethod:', error);
+        logger.error('Error en detachPaymentMethod:', error);
         throw error;
     }
 }
@@ -152,7 +153,7 @@ export async function createPaymentIntent(data) {
 
         return await stripe.paymentIntents.create(paymentIntentData);
     } catch (error) {
-        console.error('Error en createPaymentIntent:', error);
+        logger.error('Error en createPaymentIntent:', error);
         throw error;
     }
 }
@@ -166,7 +167,7 @@ export async function confirmPaymentIntent(paymentIntentId, paymentMethodId) {
             payment_method: paymentMethodId,
         });
     } catch (error) {
-        console.error('Error en confirmPaymentIntent:', error);
+        logger.error('Error en confirmPaymentIntent:', error);
         throw error;
     }
 }
@@ -178,7 +179,7 @@ export async function getPaymentIntent(paymentIntentId) {
     try {
         return await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
-        console.error('Error en getPaymentIntent:', error);
+        logger.error('Error en getPaymentIntent:', error);
         throw error;
     }
 }
@@ -190,7 +191,7 @@ export async function cancelPaymentIntent(paymentIntentId) {
     try {
         return await stripe.paymentIntents.cancel(paymentIntentId);
     } catch (error) {
-        console.error('Error en cancelPaymentIntent:', error);
+        logger.error('Error en cancelPaymentIntent:', error);
         throw error;
     }
 }
@@ -213,7 +214,7 @@ export async function createRefund(paymentIntentId, amount = null) {
 
         return await stripe.refunds.create(refundData);
     } catch (error) {
-        console.error('Error en createRefund:', error);
+        logger.error('Error en createRefund:', error);
         throw error;
     }
 }
@@ -252,7 +253,7 @@ export async function createSubscription(dbPool, data) {
             customer_id: customerId
         };
     } catch (error) {
-        console.error('Error en createSubscription:', error);
+        logger.error('Error en createSubscription:', error);
         throw error;
     } finally {
         if (connection) connection.release(); // ¡Importante liberar la conexión!
@@ -285,7 +286,7 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
             prorate: true // default = true en cancel immediate
         });
 
-        console.log(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
+        logger.info(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
 
         // 3. Opcional: Intentar reembolso automático del proration o del último pago
         //    (Stripe no reembolsa automáticamente el crédito → hay que hacerlo manual)
@@ -311,14 +312,14 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
                     const proratedRefund = Math.floor((daysRemaining / daysTotal) * pi.amount);
 
                     if (proratedRefund >= 50) {  // mínimo Stripe
-                        console.log(`🔄 Reembolsando prorrateado: ${(proratedRefund / 100).toFixed(2)} €`);
+                        logger.info(`🔄 Reembolsando prorrateado: ${(proratedRefund / 100).toFixed(2)} €`);
                         await stripe.refunds.create({
                             payment_intent: pi.id,
                             amount: proratedRefund,
                             reason: 'requested_by_customer'
                         });
                     } else if (proratedRefund > 0) {
-                        console.log(`⚠️ Reembolso muy pequeño (${proratedRefund / 100}€), no se procesa`);
+                        logger.info(`⚠️ Reembolso muy pequeño (${proratedRefund / 100}€), no se procesa`);
                     }
                 }
             }
@@ -329,12 +330,12 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
     } catch (error) {
         if (error.type === 'StripeInvalidRequestError' &&
             (error.code === 'resource_missing' || error.message?.includes('canceled'))) {
-            console.log("⚠️ Suscripción ya cancelada en Stripe, solo limpiamos DB");
+            logger.info("⚠️ Suscripción ya cancelada en Stripe, solo limpiamos DB");
             await stripeRepository.cancelSubscription(connection, subscriptionId);
             return { id: subscriptionId, status: 'canceled' };
         }
 
-        console.error('❌ Error cancelando suscripción:', error);
+        logger.error('❌ Error cancelando suscripción:', error);
         throw error;
     } finally {
         connection.release();
@@ -348,7 +349,7 @@ export async function getSubscription(subscriptionId) {
     try {
         return await stripe.subscriptions.retrieve(subscriptionId);
     } catch (error) {
-        console.error('Error en getSubscription:', error);
+        logger.error('Error en getSubscription:', error);
         throw error;
     }
 }
@@ -368,7 +369,7 @@ export async function handleWebhook(dbPool, event) {
                 // Si el payment_intent tiene un campo 'invoice', significa que es de una suscripción.
                 // Debemos IGNORARLO aquí, porque ya lo maneja el caso 'invoice.payment_succeeded'.
                 if (object.invoice) {
-                    console.log('Ignorando PaymentIntent de suscripción (se manejará en invoice.payment_succeeded)');
+                    logger.info('Ignorando PaymentIntent de suscripción (se manejará en invoice.payment_succeeded)');
                     return;
                 }
 
@@ -401,12 +402,12 @@ export async function handleWebhook(dbPool, event) {
                 break;
 
             default:
-                console.log(`Evento no manejado: ${event.type}`);
+                logger.info(`Evento no manejado: ${event.type}`);
         }
 
         return { received: true };
     } catch (error) {
-        console.error('Error en handleWebhook:', error);
+        logger.error('Error en handleWebhook:', error);
         throw error;
     }
 }
@@ -414,14 +415,14 @@ export async function handleWebhook(dbPool, event) {
 // Handlers específicos para cada tipo de evento
 
 export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
-    console.log('Procesando Payment Intent (Tienda):', paymentIntent.id);
+    logger.info('Procesando Payment Intent (Tienda):', paymentIntent.id);
 
     // Protección contra undefined
     const userId = paymentIntent.metadata?.user_id;
     const productId = paymentIntent.metadata?.product_id;
 
     if (!userId || !productId) {
-        console.warn('⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
+        logger.warn('⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
         return; // Salimos sin llamar a la BD, evitando el error de MySQL
     }
 
@@ -439,19 +440,19 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
         await stripeRepository.saveStripeTransaction(userId, productId, paymentIntent, connection);
 
     } catch (error) {
-        console.error('Error en handlePaymentIntentSucceeded:', error);
+        logger.error('Error en handlePaymentIntentSucceeded:', error);
     } finally {
         connection.release();
     }
 }
 
 export async function handlePaymentIntentFailed(paymentIntent) {
-    console.log('Payment Intent failed:', paymentIntent.id);
+    logger.info('Payment Intent failed:', paymentIntent.id);
     // Notificar al usuario del fallo
 }
 
 export async function handleSubscriptionCreated(dbPool, subscription) {
-    console.log('Subscription created:', subscription.id);
+    logger.info('Subscription created:', subscription.id);
 
     const connection = await dbPool.getConnection();
     try {
@@ -460,7 +461,7 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
         const productId = subscription.metadata?.product_id;
 
         if (!userId || !productId) {
-            console.warn('⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
+            logger.warn('⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
             return;
         }
 
@@ -480,7 +481,7 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
             }
         });
     } catch (error) {
-        console.error('Error en handleSubscriptionCreated:', error);
+        logger.error('Error en handleSubscriptionCreated:', error);
     } finally {
         connection.release();
     }
@@ -493,7 +494,7 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
         return;
     }
 
-    console.log('Webhook: Subscription updated:', subscription.id);
+    logger.info('Webhook: Subscription updated:', subscription.id);
 
     const connection = await dbPool.getConnection();
     try {
@@ -505,14 +506,14 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
         });
 
     } catch (error) {
-        console.error('Error en handleSubscriptionUpdated:', error);
+        logger.error('Error en handleSubscriptionUpdated:', error);
     } finally {
         connection.release();
     }
 }
 
 export async function handleSubscriptionDeleted(dbPool, subscription) {
-    console.log('Subscription deleted:', subscription.id);
+    logger.info('Subscription deleted:', subscription.id);
 
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -526,7 +527,7 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    console.log('--- [WEBHOOK] Procesando Pago ---');
+    logger.info('--- [WEBHOOK] Procesando Pago ---');
 
     const connection = await dbPool.getConnection();
 
@@ -542,7 +543,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         );
 
         if (rows.length === 0) {
-            console.log('⚠️ No se encontró suscripción pendiente para este cliente.');
+            logger.info('⚠️ No se encontró suscripción pendiente para este cliente.');
             return;
         }
 
@@ -554,11 +555,11 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             try {
                 const meta = JSON.parse(metadata);
                 productId = meta.product_id;
-            } catch (e) { console.error("Error parseando metadata local"); }
+            } catch (e) { logger.error("Error parseando metadata local"); }
         }
 
         if (!productId || !user_id) {
-            console.error('❌ Faltan datos críticos en la BD local para activar.');
+            logger.error('❌ Faltan datos críticos en la BD local para activar.');
             return;
         }
 
@@ -579,17 +580,17 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             centro: invoice.metadata?.centro || null
         });
 
-        console.log(`✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
+        logger.info(`✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        logger.error('❌ Error:', error);
     } finally {
         connection.release();
     }
 }
 
 export async function handleInvoicePaymentFailed(invoice) {
-    console.log('Invoice payment failed:', invoice.id);
+    logger.info('Invoice payment failed:', invoice.id);
     // Notificar al usuario
 }
 
@@ -601,7 +602,7 @@ export function verifyWebhookSignature(payload, signature) {
             process.env.STRIPE_WEBHOOK_SECRET
         );
     } catch (error) {
-        console.error('Error verificando webhook signature:', error);
+        logger.error('Error verificando webhook signature:', error);
         throw error;
     }
 }

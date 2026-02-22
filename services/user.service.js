@@ -1,3 +1,4 @@
+import logger from '../utils/pino.js';
 // user.service.js
 import fs from 'fs'
 import path, { join } from 'path'
@@ -152,7 +153,7 @@ export async function updateUserService(dbPool, { rawUserJson, file, tokenPayloa
         // Borrar fichero antiguo
         if (file && oldImageName) {
             const oldPath = path.join(UPLOAD_PATH, oldImageName);
-            await unlinkAsync(oldPath).catch(err => console.warn(`No se pudo eliminar imagen antigua:`, err));
+            await unlinkAsync(oldPath).catch(err => logger.warn(`No se pudo eliminar imagen antigua:`, err));
         }
 
         // Formatear para retorno
@@ -293,7 +294,7 @@ export async function deleteProfilePicService(dbPool, { queryEmail, queryPicName
         await connection.commit();
 
         const filePath = join(UPLOAD_PATH, oldImageName);
-        await unlinkAsync(filePath).catch(err => console.warn(`Error borrando archivo ${oldImageName}`, err));
+        await unlinkAsync(filePath).catch(err => logger.warn(`Error borrando archivo ${oldImageName}`, err));
 
         return { userId: tokenPayload.id, email: queryEmail };
     } catch (err) {
@@ -466,7 +467,7 @@ export async function deleteUserDocumentService(dbPool, { userId, filename }) {
 
         // Borrar del disco (asumiendo ruta de documentos)
         const filePath = path.join(process.cwd(), 'uploads', 'users', 'documents', String(userId), filename);
-        await fs.promises.unlink(filePath).catch(() => console.warn("Archivo no estaba en disco"));
+        await fs.promises.unlink(filePath).catch(() => logger.warn("Archivo no estaba en disco"));
 
         return { message: "Documento eliminado" };
     } finally { conn.release(); }
