@@ -31,7 +31,14 @@ export async function registerUser(req, res) {
 
 export async function loginUser(req, res) {
     try {
+        logger.info('Auth loginUser iniciado', { email: req.body?.email });
         const result = await authService.loginUserService(req.db, req.body || {});
+
+        await logActivity(req, {
+            subject: `Inicio de sesión: ${result.user?.email || 'usuario desconocido'}`,
+            userId: result.user?.id || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (loginUser):', logErr));
+
         return res.status(200).json({
             ...result.user,
             accessToken: result.accessToken,
@@ -54,8 +61,15 @@ export async function refreshTokenController(req, res) {
         const oldRefresh = authHeader.slice(7);
 
         const tokens = authService.refreshTokensService(oldRefresh);
+
+        await logActivity(req, {
+            subject: 'Refresh token generado',
+            userId: req.user_payload?.id || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (refreshTokenController):', logErr));
+
         return res.status(200).json(tokens);
     } catch (err) {
+        logger.error('Error en refreshTokenController:', err);
         const status = err.status || 500;
         return res.status(status).json({ error: err.message });
     }

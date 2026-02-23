@@ -81,6 +81,7 @@ export async function deleteUser(req, res) {
 export async function getCoaches(req, res) {
     try {
         const rows = await userService.getCoachesService(req.db);
+        logger.info('User getCoaches completado', { total: rows?.length || 0 });
         return res.status(200).json(rows);
     } catch (err) {
         return handleError(res, err, 'getCoaches');
@@ -120,6 +121,12 @@ export async function getPreferredCoach(req, res) {
 export async function getPreferredCoachWithService(req, res) {
     try {
         const result = await userService.getPreferredCoachWithServiceService(req.db, req.query);
+
+        await logActivity(req, {
+            subject: `El usuario ${req.query.customer_id} consultó su coach preferido con servicio`,
+            userId: req.user_payload?.id || 0
+        }).catch(e => logger.error("Log error:", e));
+
         return res.status(200).json(result);
     } catch (err) {
         return handleError(res, err, 'getPreferredCoachWithService');
@@ -149,6 +156,11 @@ export async function getUserStats(req, res) {
     try {
         const stats = await userService.getUserStatsService(req.db, req.query.user_id);
 
+        await logActivity(req, {
+            subject: `Consulta de estadísticas del usuario ${req.query.user_id}`,
+            userId: Number(req.query.user_id) || req.user_payload?.id || 0
+        }).catch(e => logger.error("Log error:", e));
+
         // Enviamos 'stats' directamente, sin el envoltorio { byService: ... }
         return res.status(200).json(stats);
 
@@ -164,6 +176,12 @@ export async function addCouponToUser(req, res) {
             coupon_code: req.body.coupon_code,
             tokenPayload: req.user_payload
         });
+
+        await logActivity(req, {
+            subject: `Cupón ${req.body.coupon_code} añadido al usuario ${req.params.userId}`,
+            userId: Number(req.params.userId)
+        }).catch(e => logger.error("Log error:", e));
+
         return res.sendStatus(204);
     } catch (err) {
         return handleError(res, err, 'addCouponToUser');
@@ -177,6 +195,12 @@ export async function removeCouponToUser(req, res) {
             coupon_code: req.body.coupon_code,
             tokenPayload: req.user_payload
         });
+
+        await logActivity(req, {
+            subject: `Cupón ${req.body.coupon_code} eliminado del usuario ${req.params.userId}`,
+            userId: Number(req.params.userId)
+        }).catch(e => logger.error("Log error:", e));
+
         return res.sendStatus(204);
     } catch (err) {
         return handleError(res, err, 'removeCouponToUser');
@@ -189,6 +213,9 @@ export async function getUserCoupon(req, res) {
             userId: Number(req.params.userId),
             tokenPayload: req.user_payload
         });
+
+        logger.info('User getUserCoupon completado', { userId: Number(req.params.userId), total: coupons.length });
+
         if (coupons.length === 0) return res.sendStatus(204);
         return res.status(200).json(coupons);
     } catch (err) {
@@ -199,6 +226,9 @@ export async function getUserCoupon(req, res) {
 export async function getUserDocuments(req, res) {
     try {
         const docs = await userService.getUserDocumentsService(req.db, req.user_payload.id);
+
+        logger.info('User getUserDocuments completado', { userId: req.user_payload.id, total: docs?.length || 0 });
+
         res.status(200).json(docs);
     } catch (err) { handleError(res, err, 'getUserDocuments'); }
 }
@@ -209,6 +239,12 @@ export async function uploadUserDocument(req, res) {
             userId: req.user_payload.id,
             file: req.file
         });
+
+        await logActivity(req, {
+            subject: `Documento subido por usuario ${req.user_payload.id}: ${req.file?.filename || 'archivo'}`,
+            userId: req.user_payload.id
+        }).catch(e => logger.error("Log error:", e));
+
         res.status(201).json(result);
     } catch (err) { handleError(res, err, 'uploadUserDocument'); }
 }
@@ -219,6 +255,12 @@ export async function deleteUserDocument(req, res) {
             userId: req.user_payload.id,
             filename: req.params.filename
         });
+
+        await logActivity(req, {
+            subject: `Documento eliminado por usuario ${req.user_payload.id}: ${req.params.filename}`,
+            userId: req.user_payload.id
+        }).catch(e => logger.error("Log error:", e));
+
         res.status(200).json(result);
     } catch (err) { handleError(res, err, 'deleteUserDocument'); }
 }
@@ -227,6 +269,9 @@ export async function getEwalletBalance(req, res) {
     try {
         const userId = req.user_payload?.id || req.query.user_id; // Depende de si usas verifyToken
         const result = await userService.getEwalletBalanceService(req.db, userId);
+
+        logger.info('User getEwalletBalance completado', { userId });
+
         res.status(200).json(result);
     } catch (err) { handleError(res, err, 'getEwalletBalance'); }
 }
@@ -238,6 +283,8 @@ export async function getEwalletTransactions(req, res) {
         const transactions =
             await userService.getEwalletTransactionsService(req.db, userId);
 
+        logger.info('User getEwalletTransactions completado', { userId, total: transactions?.length || 0 });
+
         res.status(200).json({ transactions });
     } catch (err) {
         handleError(res, err, 'getEwalletTransactions');
@@ -247,6 +294,9 @@ export async function getEwalletTransactions(req, res) {
 export async function checkSavedPaymentMethod(req, res) {
     try {
         const result = await userService.checkSavedPaymentMethodService(req.db, req.user_payload.id);
+
+        logger.info('User checkSavedPaymentMethod completado', { userId: req.user_payload.id });
+
         res.status(200).json(result);
     } catch (err) { handleError(res, err, 'checkSavedPaymentMethod'); }
 }
