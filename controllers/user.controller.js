@@ -3,7 +3,7 @@ import { logActivity } from "../utils/logger.js";
 
 import logger from '../utils/pino.js';
 function handleError(res, err, context) {
-    logger.error(`❌ Error en ${context}:`, err);
+    logger.error(err, `❌ Error en ${context}`);
     const status = err.status || 500;
     const message = err.message || "Error interno del servidor";
     return res.status(status).json({ error: message });
