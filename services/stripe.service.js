@@ -266,24 +266,19 @@ export async function createSubscription(dbPool, data) {
 export async function cancelSubscription(dbPool, subscriptionId, userId, productId) {
     const connection = await dbPool.getConnection();
     try {
-        // 1. Actualizar metadata primero (buena práctica para webhooks)
         await stripe.subscriptions.update(subscriptionId, {
             metadata: {
                 user_id: userId,
-                product_id: productId
+                product_id: productId,
+                cancellation_reason: 'requested_by_customer', // Guardado aquí no falla
+                cancellation_comment: `Cancelado por usuario ${userId}`
             }
         });
 
-        // 2. Cancelar inmediatamente con proration nativo
-        // Esto genera un proration credit si corresponde (negative invoice item)
+        // 2. Cancelar sin los parámetros conflictivos
         const canceledSub = await stripe.subscriptions.cancel(subscriptionId, {
-            cancellation_details: {
-                comment: `Cancelado por usuario ${userId} para producto ${productId}`,
-                reason: 'requested_by_customer'  // o 'other' – evita inventar si no es enum oficial
-            },
-            // Opcional: si quieres forzar factura inmediata con el crédito
-            invoice_now: true, // crea y finaliza invoice con proration
-            prorate: true // default = true en cancel immediate
+            invoice_now: true,
+            prorate: true
         });
 
         logger.info(`✅ Suscripción cancelada en Stripe: ${canceledSub.id}`);
