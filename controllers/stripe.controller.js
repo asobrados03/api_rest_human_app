@@ -1,6 +1,7 @@
 import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
 import stripe from '../config/stripe.config.js';
+import { logActivity } from '../utils/logger.js';
 
 import logger from '../utils/pino.js';
 // ==================== CLIENTES ====================
@@ -13,6 +14,8 @@ export async function createCustomer(req, res) {
     try {
         const userId = req.user_payload?.id || req.body.userId; // Asume que el userId viene del JWT o body
 
+        logger.info('[STRIPE] createCustomer iniciado', { userId });
+
         const result = await stripeService.createOrGetCustomer(req.db, userId);
 
         res.status(200).json({
@@ -20,6 +23,13 @@ export async function createCustomer(req, res) {
             message: result.isNew ? 'Cliente creado exitosamente' : 'Cliente obtenido exitosamente',
             data: result
         });
+
+        await logActivity(req, {
+            subject: result.isNew
+                ? `Stripe: cliente creado para usuario ${userId}`
+                : `Stripe: cliente reutilizado para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (createCustomer):', logErr));
     } catch (error) {
         logger.error('Error en createCustomer:', error);
         res.status(500).json({
@@ -63,6 +73,7 @@ export async function getCustomer(req, res) {
 export async function attachPaymentMethod(req, res) {
     try {
         const { paymentMethodId, customerId } = req.body;
+        logger.info('[STRIPE] attachPaymentMethod iniciado', { customerId, paymentMethodId });
 
         if (!paymentMethodId || !customerId) {
             return res.status(400).json({
@@ -78,6 +89,11 @@ export async function attachPaymentMethod(req, res) {
             message: 'Método de pago adjuntado exitosamente',
             data: paymentMethod
         });
+
+        await logActivity(req, {
+            subject: `Stripe: método de pago ${paymentMethodId} adjuntado a cliente ${customerId}`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (attachPaymentMethod):', logErr));
     } catch (error) {
         logger.error('Error en attachPaymentMethod:', error);
         res.status(500).json({
@@ -119,6 +135,7 @@ export async function listPaymentMethods(req, res) {
 export async function detachPaymentMethod(req, res) {
     try {
         const { paymentMethodId } = req.params;
+        logger.info('[STRIPE] detachPaymentMethod iniciado', { paymentMethodId });
 
         const paymentMethod = await stripeService.detachPaymentMethod(paymentMethodId);
 
@@ -127,6 +144,11 @@ export async function detachPaymentMethod(req, res) {
             message: 'Método de pago eliminado exitosamente',
             data: paymentMethod
         });
+
+        await logActivity(req, {
+            subject: `Stripe: método de pago ${paymentMethodId} eliminado`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (detachPaymentMethod):', logErr));
     } catch (error) {
         logger.error('Error en detachPaymentMethod:', error);
         res.status(500).json({
@@ -146,6 +168,7 @@ export async function detachPaymentMethod(req, res) {
 export async function createPaymentIntent(req, res) {
     try {
         const { amount, currency, customerId, metadata, paymentMethodId } = req.body;
+        logger.info('[STRIPE] createPaymentIntent iniciado', { customerId, amount, currency });
 
         if (!amount || !customerId) {
             return res.status(400).json({
@@ -166,6 +189,11 @@ export async function createPaymentIntent(req, res) {
             success: true,
             data: paymentIntent
         });
+
+        await logActivity(req, {
+            subject: `Stripe: payment intent creado (${paymentIntent.id}) para cliente ${customerId}`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (createPaymentIntent):', logErr));
     } catch (error) {
         logger.error('Error en createPaymentIntent:', error);
         res.status(500).json({
@@ -184,6 +212,7 @@ export async function confirmPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
         const { paymentMethodId } = req.body;
+        logger.info('[STRIPE] confirmPaymentIntent iniciado', { paymentIntentId, paymentMethodId });
 
         if (!paymentMethodId) {
             return res.status(400).json({
@@ -198,6 +227,11 @@ export async function confirmPaymentIntent(req, res) {
             success: true,
             data: paymentIntent
         });
+
+        await logActivity(req, {
+            subject: `Stripe: payment intent confirmado (${paymentIntentId})`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (confirmPaymentIntent):', logErr));
     } catch (error) {
         logger.error('Error en confirmPaymentIntent:', error);
         res.status(500).json({
@@ -239,6 +273,7 @@ export async function getPaymentIntent(req, res) {
 export async function cancelPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
+        logger.info('[STRIPE] cancelPaymentIntent iniciado', { paymentIntentId });
 
         const paymentIntent = await stripeService.cancelPaymentIntent(paymentIntentId);
 
@@ -247,6 +282,11 @@ export async function cancelPaymentIntent(req, res) {
             message: 'Payment Intent cancelado exitosamente',
             data: paymentIntent
         });
+
+        await logActivity(req, {
+            subject: `Stripe: payment intent cancelado (${paymentIntentId})`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (cancelPaymentIntent):', logErr));
     } catch (error) {
         logger.error('Error en cancelPaymentIntent:', error);
         res.status(500).json({
@@ -266,6 +306,7 @@ export async function cancelPaymentIntent(req, res) {
 export async function createRefund(req, res) {
     try {
         const { paymentIntentId, amount } = req.body;
+        logger.info('[STRIPE] createRefund iniciado', { paymentIntentId, amount });
 
         if (!paymentIntentId) {
             return res.status(400).json({
@@ -281,6 +322,11 @@ export async function createRefund(req, res) {
             message: 'Reembolso creado exitosamente',
             data: refund
         });
+
+        await logActivity(req, {
+            subject: `Stripe: reembolso creado para payment intent ${paymentIntentId}`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (createRefund):', logErr));
     } catch (error) {
         logger.error('Error en createRefund:', error);
         res.status(500).json({
@@ -300,6 +346,7 @@ export async function createRefund(req, res) {
 export async function createSubscription(req, res) {
     try {
         const { priceId, userId, productId } = req.body;
+        logger.info('[STRIPE] createSubscription iniciado', { userId, productId, priceId });
 
         if (!priceId || !userId || !productId) {
             return res.status(400).json({
@@ -315,6 +362,11 @@ export async function createSubscription(req, res) {
         });
 
         res.status(200).json(subscription);
+
+        await logActivity(req, {
+            subject: `Stripe: suscripción creada para usuario ${userId} (producto ${productId})`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (createSubscription):', logErr));
     } catch (error) {
         logger.error('Error en createSubscription:', error);
         res.status(500).json({
@@ -334,6 +386,7 @@ export async function cancelSubscription(req, res) {
         const { subscriptionId } = req.params;
         const userId = req.query.user_id || req.user?.id;
         const productId = req.query.product_id;
+        logger.info('[STRIPE] cancelSubscription iniciado', { subscriptionId, userId, productId });
 
         const subscription = await stripeService.cancelSubscription(req.db, subscriptionId, userId, productId);
 
@@ -342,6 +395,11 @@ export async function cancelSubscription(req, res) {
             message: 'Suscripción cancelada exitosamente',
             data: subscription
         });
+
+        await logActivity(req, {
+            subject: `Stripe: suscripción cancelada (${subscriptionId}) para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (cancelSubscription):', logErr));
     } catch (error) {
         logger.error('Error en cancelSubscription:', error);
         res.status(500).json({
@@ -355,6 +413,7 @@ export async function cancelSubscription(req, res) {
 export const createEphemeralKey = async (req, res) => {
     try {
         const { customer_id } = req.body;
+        logger.info('[STRIPE] createEphemeralKey iniciado', { customer_id });
 
         if (!customer_id) {
             return res.status(400).json({
@@ -372,7 +431,13 @@ export const createEphemeralKey = async (req, res) => {
             success: true,
             data: key
         });
+
+        await logActivity(req, {
+            subject: `Stripe: ephemeral key creada para cliente ${customer_id}`,
+            userId: req.user_payload?.id || req.body.userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (createEphemeralKey):', logErr));
     } catch (error) {
+        logger.error('Error en createEphemeralKey:', error);
         res.status(500).json({
             success: false,
             message: 'Error al crear ephemeral key',
@@ -475,6 +540,7 @@ export async function saveCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const cardData = req.body;
+        logger.info('[STRIPE] saveCard iniciado', { userId });
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
@@ -490,6 +556,11 @@ export async function saveCard(req, res) {
             message: 'Tarjeta guardada exitosamente',
             data: { cardId }
         });
+
+        await logActivity(req, {
+            subject: `Stripe: tarjeta guardada para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (saveCard):', logErr));
     } catch (error) {
         logger.error('Error en saveCard:', error);
         res.status(500).json({
@@ -535,6 +606,7 @@ export async function deleteCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const { cardId } = req.params;
+        logger.info('[STRIPE] deleteCard iniciado', { userId, cardId });
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
@@ -545,6 +617,11 @@ export async function deleteCard(req, res) {
             success: true,
             message: 'Tarjeta eliminada exitosamente'
         });
+
+        await logActivity(req, {
+            subject: `Stripe: tarjeta ${cardId} eliminada para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (deleteCard):', logErr));
     } catch (error) {
         logger.error('Error en deleteCard:', error);
         res.status(500).json({
@@ -563,6 +640,7 @@ export async function setDefaultCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const { cardId } = req.params;
+        logger.info('[STRIPE] setDefaultCard iniciado', { userId, cardId });
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
@@ -573,6 +651,11 @@ export async function setDefaultCard(req, res) {
             success: true,
             message: 'Tarjeta establecida como predeterminada'
         });
+
+        await logActivity(req, {
+            subject: `Stripe: tarjeta ${cardId} establecida por defecto para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error('⚠️ Logging error (setDefaultCard):', logErr));
     } catch (error) {
         logger.error('Error en setDefaultCard:', error);
         res.status(500).json({
