@@ -268,9 +268,7 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
     try {
         await stripe.subscriptions.update(subscriptionId, {
             metadata: {
-                user_id: userId,
-                product_id: productId,
-                cancellation_reason: 'requested_by_customer', // Guardado aquí no falla
+                cancellation_reason: 'requested_by_customer',
                 cancellation_comment: `Cancelado por usuario ${userId}`
             }
         });
@@ -319,6 +317,16 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
                 }
             }
         }
+
+        // ACTUALIZACIÓN INMEDIATA: No esperes al webhook para limpiar tu DB local
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+        logger.info(`🧹 Limpiando base de datos local para usuario ${userId}...`);
+
+        // Ejecutamos la misma lógica que tiene tu webhook
+        await productRepo.cancelActiveProduct(connection, { userId, productId, lastDay });
+        await stripeRepository.cancelSubscription(connection, subscriptionId);
 
         return canceledSub;
 
