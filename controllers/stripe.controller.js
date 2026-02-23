@@ -401,7 +401,8 @@ export async function cancelSubscription(req, res) {
             userId: userId || null
         }).catch((logErr) => logger.error('⚠️ Logging error (cancelSubscription):', logErr));
     } catch (error) {
-        logger.error('Error en cancelSubscription:', error);
+        logger.error({ error }, "❌ Error cancelando suscripción"); // El objeto va primero
+        logger.error("Error en cancelSubscription: " + error.message);
         res.status(500).json({
             success: false,
             message: 'Error al cancelar suscripción',
