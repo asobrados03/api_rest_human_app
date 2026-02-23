@@ -14,7 +14,7 @@ export async function logActivity(req, { subject, userId = null }) {
       VALUES (?, ?, ?, ?, ?, ?, NOW())
     `, [subject, originalUrl, method, ip, agent, userId]);
     } catch (err) {
-        logger.error("⚠️ Failed to write log activity:", err.message, err.stack);
+        logger.error({ err, subject, userId }, "⚠️ Failed to write log activity");
 
         logger.error("⚠️ Failed to write log activity:", err);
     }

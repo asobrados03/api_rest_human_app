@@ -67,6 +67,8 @@ export async function refreshTokenController(req, res) {
             userId: req.user_payload?.id || null
         }).catch((logErr) => logger.error('⚠️ Logging error (refreshTokenController):', logErr));
 
+        logger.info('Refresh token generado exitosamente', { userId: req.user_payload?.id || null });
+
         return res.status(200).json(tokens);
     } catch (err) {
         logger.error('Error en refreshTokenController:', err);
