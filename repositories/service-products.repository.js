@@ -22,7 +22,7 @@ export const getActiveProductsByUserId = async (connection, userId) => {
     const [rows] = await connection.execute(`
         SELECT DISTINCT
             p.product_id AS id, p.product_name_es AS name, p.description_es AS description,
-            p.sell_price AS price, p.product_image AS image, ps.service_id AS service_id,
+            ap.total_amount AS price, p.product_image AS image, ps.service_id AS service_id,
             ap.expiry_date, p.type_of_product, ap.centro AS centro,
             ap.payment_method, ap.payment_status, ap.active_product_status,
             -- Traemos los ID de Stripe
