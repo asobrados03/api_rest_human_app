@@ -228,11 +228,8 @@ export async function createSubscription(dbPool, data) {
 
     try {
         const { userId, priceId, productId, couponCode } = data;
-
-        // 1. Obtener el cliente (Llamada directa, sin 'this')
         const { customerId } = await createOrGetCustomer(dbPool, userId);
 
-        // 2. Preparar los parámetros de la suscripción
         const subscriptionParams = {
             customer: customerId,
             items: [{ price: priceId }],
@@ -246,47 +243,55 @@ export async function createSubscription(dbPool, data) {
             }
         };
 
-        // Si viene un cupón, lo añadimos a Stripe y a la metadata
         if (couponCode) {
-            // 1. Buscamos los datos en tu base de datos local
             const couponData = await productRepo.getCouponDiscount(connection, couponCode);
 
-            if (couponData) {
-                let stripeCouponId;
+            if (!couponData) {
+                logger.warn(`El cupón ${couponCode} no existe en la base de datos.`);
+                // Opcional: lanzar error si quieres que el proceso se detenga por cupón inválido
+            } else {
+                // Validación de expiración
+                if (couponData.expiry_date) {
+                    const expiryTimestamp = Math.floor(new Date(couponData.expiry_date).getTime() / 1000);
+                    const nowTimestamp = Math.floor(Date.now() / 1000);
 
-                const expiryTimestamp = couponData.expiry_date
-                    ? Math.floor(new Date(couponData.expiry_date).getTime() / 1000)
-                    : null;
+                    if (expiryTimestamp < nowTimestamp) {
+                        logger.warn(`El cupón ${couponCode} ha expirado.`);
+                        const error = new Error('El cupón ha expirado');
+                        error.statusCode = 400;
+                        throw error; // Este throw es correcto porque lo capturará el controlador que llamó a esta función
+                    }
+                }
 
                 if (couponData.is_percentage) {
-                    // 2. Creamos o recuperamos un cupón en Stripe que coincida con tu porcentaje
-                    stripeCouponId = `pct_${couponCode.trim()}`;
+                    const stripeCouponId = `pct_${couponCode.trim()}`;
 
+                    // Intentamos recuperar o crear el cupón en Stripe
+                    // Usamos un pequeño truco: no hace falta el try/catch si confías en que
+                    // si falla el retrieve, el error subirá al catch principal.
+                    // Pero para ser robustos con el "crear si no existe":
                     try {
-                        // Intentamos ver si ya existe en Stripe
                         await stripe.coupons.retrieve(stripeCouponId);
                     } catch (err) {
-                        // Si no existe (error 404), lo creamos en Stripe al vuelo
-                        await stripe.coupons.create({
-                            id: stripeCouponId,
-                            percent_off: couponData.discount, // Aquí aplicas el porcentaje de tu DB
-                            duration: 'forever', // U 'once' si solo es para el primer mes
-                            redeem_by: expiryTimestamp,
-                        });
+                        if (err.code === 'resource_missing') {
+                            await stripe.coupons.create({
+                                id: stripeCouponId,
+                                percent_off: couponData.discount,
+                                duration: 'forever',
+                                redeem_by: couponData.expiry_date ?
+                                    Math.floor(new Date(couponData.expiry_date).getTime() / 1000) : null,
+                            });
+                        } else {
+                            throw err; // Re-lanzamos si es un error distinto a "no encontrado"
+                        }
                     }
 
-                    // 3. Lo aplicamos a la suscripción
                     subscriptionParams.discounts = [{ coupon: stripeCouponId }];
-
-                    // Guardamos el código original en metadata para tu lógica interna
                     subscriptionParams.metadata.coupon_code = couponCode;
                 }
-            } else {
-                logger.warn(`El cupón ${couponCode} no existe en la base de datos.`);
             }
         }
 
-        // 3. Crear suscripción en Stripe
         const subscription = await stripe.subscriptions.create(subscriptionParams);
 
         return {
@@ -295,10 +300,12 @@ export async function createSubscription(dbPool, data) {
             customer_id: customerId
         };
     } catch (error) {
+        // Al relanzar el error aquí después del log, el controlador recibirá
+        // el mensaje "El cupón ha expirado" correctamente.
         logger.error({ error }, 'Error en createSubscription:');
         throw error;
     } finally {
-        if (connection) connection.release(); // ¡Importante liberar la conexión!
+        if (connection) connection.release();
     }
 }
 
