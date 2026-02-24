@@ -72,7 +72,6 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
   let centroFinal = centro || product.centro || 'general';
   let couponId = null;
   let discount = 0;
-  let percentageDiscount = 0;
 
   logger.info({ coupon_code }, "DEBUG: Cupón recibido en assignProduct");
 
@@ -86,8 +85,6 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
       discount = coupon.is_percentage
           ? price * (coupon.discount / 100)
           : coupon.discount;
-
-      percentageDiscount = coupon.discount;
 
       logger.info({ couponId, discount }, "✅ Cupón aplicado correctamente");
     } else {
@@ -123,7 +120,7 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
     userId: user_id,
     productId: product_id,
     price,
-    percentageDiscount,
+    discount,
     totalAmount,
     paymentMethod: payment_method,
     validDays,
