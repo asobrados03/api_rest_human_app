@@ -301,7 +301,11 @@ export async function createSubscription(dbPool, data) {
     } catch (error) {
         // Al relanzar el error aquí después del log, el controlador recibirá
         // el mensaje "El cupón ha expirado" correctamente.
-        logger.error({ error }, 'Error en createSubscription:');
+        logger.error({
+            message: error.message,
+            stack: error.stack,
+            details: error
+        }, 'Error en createSubscription:');
         throw error;
     } finally {
         if (connection) connection.release();
