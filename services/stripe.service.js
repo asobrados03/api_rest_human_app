@@ -278,8 +278,6 @@ export async function createSubscription(dbPool, data) {
                                 id: stripeCouponId,
                                 percent_off: couponData.discount,
                                 duration: 'forever',
-                                redeem_by: couponData.expiry_date ?
-                                    Math.floor(new Date(couponData.expiry_date).getTime() / 1000) : null,
                             });
                         } else {
                             throw err; // Re-lanzamos si es un error distinto a "no encontrado"
