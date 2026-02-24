@@ -470,8 +470,8 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
     logger.info({ paymentIntentId: paymentIntent.id }, 'Procesando Payment Intent (Tienda):');
 
     // Protección contra undefined
-    const userId = parseInt(paymentIntent.metadata.user_id);
-    const productId = parseInt(paymentIntent.metadata.product_id);
+    const userId = parseInt(paymentIntent.metadata.userId);
+    const productId = parseInt(paymentIntent.metadata.productId);
 
     if (!userId || !productId) {
         logger.warn({ paymentIntentId: paymentIntent.id }, '⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
