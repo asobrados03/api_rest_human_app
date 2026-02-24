@@ -706,7 +706,11 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         logger.info({ userId: user_id, productId }, `✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
 
     } catch (error) {
-        logger.error({ error }, '❌ Error en handleInvoicePaymentSucceeded:');
+        logger.error({
+            message: error.message,
+            stack: error.stack,
+            details: error
+        }, '❌ Error en handleInvoicePaymentSucceeded:');
     } finally {
         connection.release();
     }
