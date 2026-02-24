@@ -230,6 +230,8 @@ export async function createSubscription(dbPool, data) {
         const { userId, priceId, productId, couponCode } = data;
         const { customerId } = await createOrGetCustomer(dbPool, userId);
 
+        logger.info({ userId, priceId, productId, couponCode }, 'Iniciando creación de suscripción en Stripe');
+
         const subscriptionParams = {
             customer: customerId,
             items: [{ price: priceId }],
@@ -239,7 +241,7 @@ export async function createSubscription(dbPool, data) {
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString(),
-                coupon_code: couponCode.toString(),
+                coupon_code: couponCode || null,
                 type: 'subscription'
             }
         };
