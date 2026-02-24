@@ -239,6 +239,7 @@ export async function createSubscription(dbPool, data) {
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString(),
+                coupon_code: couponCode.toString(),
                 type: 'subscription'
             }
         };
