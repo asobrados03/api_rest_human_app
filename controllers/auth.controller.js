@@ -22,7 +22,7 @@ export async function registerUser(req, res) {
 
         return res.status(201).json({ message: 'Se ha creado el registro correctamente' });
     } catch (err) {
-        logger.error('Error en registerUser:', err);
+        logger.error({ err }, 'Error en registerUser:');
         const status = err.status || 500;
         const message = err.message || 'Error interno al crear el usuario';
         return res.status(status).json({ error: message });
@@ -37,7 +37,7 @@ export async function loginUser(req, res) {
         await logActivity(req, {
             subject: `Inicio de sesión: ${result.user?.email || 'usuario desconocido'}`,
             userId: result.user?.id || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (loginUser):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (loginUser):'));
 
         return res.status(200).json({
             ...result.user,
@@ -45,7 +45,7 @@ export async function loginUser(req, res) {
             refreshToken: result.refreshToken
         });
     } catch (err) {
-        logger.error('Error en loginUser:', err);
+        logger.error({ err }, 'Error en loginUser:');
         const status = err.status || 500;
         const message = err.message || 'Error interno al iniciar sesión';
         return res.status(status).json({ error: message });
@@ -65,13 +65,13 @@ export async function refreshTokenController(req, res) {
         await logActivity(req, {
             subject: 'Refresh token generado',
             userId: req.user_payload?.id || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (refreshTokenController):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (refreshTokenController):'));
 
         logger.info('Refresh token generado exitosamente', { userId: req.user_payload?.id || null });
 
         return res.status(200).json(tokens);
     } catch (err) {
-        logger.error('Error en refreshTokenController:', err);
+        logger.error({ err }, 'Error en refreshTokenController:');
         const status = err.status || 500;
         return res.status(status).json({ error: err.message });
     }
@@ -88,9 +88,10 @@ export async function updateUserPayInfo(req, res) {
 
         return res.json({ message: 'Datos actualizados correctamente' });
     } catch (err) {
-        logger.error('Error en updateUserPayInfo:', err);
+        logger.error({ err }, 'Error en updateUserPayInfo:');
         const status = err.status || 500;
-        return res.status(status).json({ error: err.message || 'Error interno' });
+        const message = err.message || 'Error interno';
+        res.status(status).json({ error: message, details: err.message });
     }
 }
 
@@ -113,7 +114,7 @@ export async function changePassword(req, res) {
 
         return res.status(200).json({ message: 'Has cambiado la contraseña exitosamente' });
     } catch (err) {
-        logger.error('Error changePassword:', err);
+        logger.error({ err }, 'Error changePassword:');
         const status = err.status || 500;
         return res.status(status).json({ error: err.message });
     }
@@ -131,7 +132,7 @@ export async function resetPassword(req, res) {
 
         return res.json({ message: 'Contraseña restablecida. Revisa tu correo.' });
     } catch (err) {
-        logger.error('resetPassword error:', err);
+        logger.error({ err }, 'resetPassword error:');
         const status = err.status || 500;
         return res.status(status).json({ error: err.message || 'Error al restablecer' });
     }

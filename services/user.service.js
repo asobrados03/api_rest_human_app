@@ -153,7 +153,7 @@ export async function updateUserService(dbPool, { rawUserJson, file, tokenPayloa
         // Borrar fichero antiguo
         if (file && oldImageName) {
             const oldPath = path.join(UPLOAD_PATH, oldImageName);
-            await unlinkAsync(oldPath).catch(err => logger.warn(`No se pudo eliminar imagen antigua:`, err));
+            await unlinkAsync(oldPath).catch(err => logger.warn({ err, filename: oldPath }, 'No se pudo eliminar imagen antigua'));
         }
 
         // Formatear para retorno
@@ -294,7 +294,7 @@ export async function deleteProfilePicService(dbPool, { queryEmail, queryPicName
         await connection.commit();
 
         const filePath = join(UPLOAD_PATH, oldImageName);
-        await unlinkAsync(filePath).catch(err => logger.warn(`Error borrando archivo ${oldImageName}`, err));
+        await unlinkAsync(filePath).catch(err => logger.warn({ err, filename: filePath }, `Error borrando archivo ${oldImageName}`));
 
         return { userId: tokenPayload.id, email: queryEmail };
     } catch (err) {

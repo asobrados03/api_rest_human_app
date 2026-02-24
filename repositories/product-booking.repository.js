@@ -456,7 +456,7 @@ export async function countWeeklyBookings(
     activeProductId,
     targetDate
 ) {
-    logger.info('Counting weekly bookings for user:', userId, 'product:', activeProductId, 'date:', targetDate);
+    logger.info({ userId, activeProductId, targetDate }, 'Counting weekly bookings for user');
     const [rows] = await connection.execute(`
     SELECT COUNT(*) AS used
     FROM bookings

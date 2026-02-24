@@ -8,7 +8,7 @@ export const UPLOAD_PATH = process.env.NODE_ENV === 'production'
     ? '/var/uploads/human-app/profile_pic'
     : path.join(process.cwd(), 'pictures', 'profile_pic');
 
-logger.info('📁 UPLOAD_PATH configurado:', UPLOAD_PATH);
+logger.info({ uploadPath: UPLOAD_PATH }, '📁 UPLOAD_PATH configurado:');
 
 // Configuración del almacenamiento SIN renombrar el archivo
 const storage = multer.diskStorage({
@@ -95,7 +95,7 @@ export const compressImageIfNeeded = async (req, res, next) => {
         next();
 
     } catch (err) {
-        logger.error('❌ Error al comprimir imagen:', err);
+        logger.error({ err }, '❌ Error al comprimir imagen:');
         return res.status(500).json({ error: 'Error al comprimir imagen' });
     }
 };

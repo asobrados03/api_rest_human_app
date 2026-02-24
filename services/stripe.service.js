@@ -56,7 +56,7 @@ export async function createOrGetCustomer(dbPool, userId) {
             isNew: true
         };
     } catch (error) {
-        logger.error('Error en createOrGetCustomer:', error);
+        logger.error({ error }, 'Error en createOrGetCustomer:');
         throw error;
     }
 }
@@ -68,7 +68,7 @@ export async function getCustomer(stripeCustomerId) {
     try {
         return await stripe.customers.retrieve(stripeCustomerId);
     } catch (error) {
-        logger.error('Error en getCustomer:', error);
+        logger.error({ error }, 'Error en getCustomer:');
         throw error;
     }
 }
@@ -93,7 +93,7 @@ export async function attachPaymentMethod(paymentMethodId, customerId) {
 
         return paymentMethod;
     } catch (error) {
-        logger.error('Error en attachPaymentMethod:', error);
+        logger.error({ error }, 'Error en attachPaymentMethod:');
         throw error;
     }
 }
@@ -109,7 +109,7 @@ export async function listPaymentMethods(customerId) {
         });
         return paymentMethods.data;
     } catch (error) {
-        logger.error('Error en listPaymentMethods:', error);
+        logger.error({ error }, 'Error en listPaymentMethods:');
         throw error;
     }
 }
@@ -121,7 +121,7 @@ export async function detachPaymentMethod(paymentMethodId) {
     try {
         return await stripe.paymentMethods.detach(paymentMethodId);
     } catch (error) {
-        logger.error('Error en detachPaymentMethod:', error);
+        logger.error({ error }, 'Error en detachPaymentMethod:');
         throw error;
     }
 }
@@ -153,7 +153,7 @@ export async function createPaymentIntent(data) {
 
         return await stripe.paymentIntents.create(paymentIntentData);
     } catch (error) {
-        logger.error('Error en createPaymentIntent:', error);
+        logger.error({ error }, 'Error en createPaymentIntent:');
         throw error;
     }
 }
@@ -167,7 +167,7 @@ export async function confirmPaymentIntent(paymentIntentId, paymentMethodId) {
             payment_method: paymentMethodId,
         });
     } catch (error) {
-        logger.error('Error en confirmPaymentIntent:', error);
+        logger.error({ error }, 'Error en confirmPaymentIntent:');
         throw error;
     }
 }
@@ -179,7 +179,7 @@ export async function getPaymentIntent(paymentIntentId) {
     try {
         return await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
-        logger.error('Error en getPaymentIntent:', error);
+        logger.error({ error }, 'Error en getPaymentIntent:');
         throw error;
     }
 }
@@ -191,7 +191,7 @@ export async function cancelPaymentIntent(paymentIntentId) {
     try {
         return await stripe.paymentIntents.cancel(paymentIntentId);
     } catch (error) {
-        logger.error('Error en cancelPaymentIntent:', error);
+        logger.error({ error }, 'Error en cancelPaymentIntent:');
         throw error;
     }
 }
@@ -214,7 +214,7 @@ export async function createRefund(paymentIntentId, amount = null) {
 
         return await stripe.refunds.create(refundData);
     } catch (error) {
-        logger.error('Error en createRefund:', error);
+        logger.error({ error }, 'Error en createRefund:');
         throw error;
     }
 }
@@ -253,7 +253,7 @@ export async function createSubscription(dbPool, data) {
             customer_id: customerId
         };
     } catch (error) {
-        logger.error('Error en createSubscription:', error);
+        logger.error({ error }, 'Error en createSubscription:');
         throw error;
     } finally {
         if (connection) connection.release(); // ¡Importante liberar la conexión!
@@ -338,7 +338,7 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
             return { id: subscriptionId, status: 'canceled' };
         }
 
-        logger.error('❌ Error cancelando suscripción:', error);
+        logger.error({ error, subscriptionId }, '❌ Error cancelando suscripción:');
         throw error;
     } finally {
         connection.release();
@@ -352,7 +352,7 @@ export async function getSubscription(subscriptionId) {
     try {
         return await stripe.subscriptions.retrieve(subscriptionId);
     } catch (error) {
-        logger.error('Error en getSubscription:', error);
+        logger.error({ error }, 'Error en getSubscription:');
         throw error;
     }
 }
@@ -410,7 +410,7 @@ export async function handleWebhook(dbPool, event) {
 
         return { received: true };
     } catch (error) {
-        logger.error('Error en handleWebhook:', error);
+        logger.error({ error }, 'Error en handleWebhook:');
         throw error;
     }
 }
@@ -418,14 +418,14 @@ export async function handleWebhook(dbPool, event) {
 // Handlers específicos para cada tipo de evento
 
 export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
-    logger.info('Procesando Payment Intent (Tienda):', paymentIntent.id);
+    logger.info({ paymentIntentId: paymentIntent.id }, 'Procesando Payment Intent (Tienda):');
 
     // Protección contra undefined
     const userId = paymentIntent.metadata?.user_id;
     const productId = paymentIntent.metadata?.product_id;
 
     if (!userId || !productId) {
-        logger.warn('⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
+        logger.warn({ paymentIntentId: paymentIntent.id }, '⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
         return; // Salimos sin llamar a la BD, evitando el error de MySQL
     }
 
@@ -443,19 +443,19 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
         await stripeRepository.saveStripeTransaction(userId, productId, paymentIntent, connection);
 
     } catch (error) {
-        logger.error('Error en handlePaymentIntentSucceeded:', error);
+        logger.error({ error, paymentIntentId: paymentIntent.id }, 'Error en handlePaymentIntentSucceeded:');
     } finally {
         connection.release();
     }
 }
 
 export async function handlePaymentIntentFailed(paymentIntent) {
-    logger.info('Payment Intent failed:', paymentIntent.id);
+    logger.info({ paymentIntentId: paymentIntent.id }, 'Payment Intent failed:');
     // Notificar al usuario del fallo
 }
 
 export async function handleSubscriptionCreated(dbPool, subscription) {
-    logger.info('Subscription created:', subscription.id);
+    logger.info({ subscriptionId: subscription.id }, 'Subscription created:');
 
     const connection = await dbPool.getConnection();
     try {
@@ -464,7 +464,7 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
         const productId = subscription.metadata?.product_id;
 
         if (!userId || !productId) {
-            logger.warn('⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
+            logger.warn({ subscriptionId: subscription.id }, '⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
             return;
         }
 
@@ -484,7 +484,7 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
             }
         });
     } catch (error) {
-        logger.error('Error en handleSubscriptionCreated:', error);
+        logger.error({ error, subscriptionId: subscription.id }, 'Error en handleSubscriptionCreated:');
     } finally {
         connection.release();
     }
@@ -497,7 +497,7 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
         return;
     }
 
-    logger.info('Webhook: Subscription updated:', subscription.id);
+    logger.info({ subscriptionId: subscription.id }, 'Webhook: Subscription updated:');
 
     const connection = await dbPool.getConnection();
     try {
@@ -509,14 +509,14 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
         });
 
     } catch (error) {
-        logger.error('Error en handleSubscriptionUpdated:', error);
+        logger.error({ error, subscriptionId: subscription.id }, 'Error en handleSubscriptionUpdated:');
     } finally {
         connection.release();
     }
 }
 
 export async function handleSubscriptionDeleted(dbPool, subscription) {
-    logger.info('Subscription deleted:', subscription.id);
+    logger.info({ subscriptionId: subscription.id }, 'Subscription deleted:');
 
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -546,7 +546,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         );
 
         if (rows.length === 0) {
-            logger.info('⚠️ No se encontró suscripción pendiente para este cliente.');
+            logger.info({ customer: invoice.customer }, '⚠️ No se encontró suscripción pendiente para este cliente.');
             return;
         }
 
@@ -562,7 +562,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         }
 
         if (!productId || !user_id) {
-            logger.error('❌ Faltan datos críticos en la BD local para activar.');
+            logger.error({ subscription_id, user_id }, '❌ Faltan datos críticos en la BD local para activar.');
             return;
         }
 
@@ -583,17 +583,17 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             centro: invoice.metadata?.centro || null
         });
 
-        logger.info(`✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
+        logger.info({ userId: user_id, productId }, `✅ ¡LISTO! Usuario ${user_id} activado con producto ${productId}`);
 
     } catch (error) {
-        logger.error('❌ Error:', error);
+        logger.error({ error }, '❌ Error en handleInvoicePaymentSucceeded:');
     } finally {
         connection.release();
     }
 }
 
 export async function handleInvoicePaymentFailed(invoice) {
-    logger.info('Invoice payment failed:', invoice.id);
+    logger.info({ invoiceId: invoice.id }, 'Invoice payment failed:');
     // Notificar al usuario
 }
 
@@ -605,7 +605,7 @@ export function verifyWebhookSignature(payload, signature) {
             process.env.STRIPE_WEBHOOK_SECRET
         );
     } catch (error) {
-        logger.error('Error verificando webhook signature:', error);
+        logger.error({ error }, 'Error verificando webhook signature:');
         throw error;
     }
 }

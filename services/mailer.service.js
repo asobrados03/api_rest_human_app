@@ -23,10 +23,10 @@ Equipo de Human Perform App
     try {
         // Esto ahora viaja por HTTPS (Puerto 443)
         const info = await gmailTransporter.sendMail(mailOptions);
-        logger.info('📧 Email enviado vía Gmail API (HTTPS) exitosamente:', info.data.id);
+        logger.info({ messageId: info.data?.id }, '📧 Email enviado vía Gmail API (HTTPS) exitosamente:');
         return info;
     } catch (error) {
-        logger.error('❌ Error enviando email vía API:', error.message);
+        logger.error({ error }, '❌ Error enviando email vía API:');
         throw error;
     }
 }

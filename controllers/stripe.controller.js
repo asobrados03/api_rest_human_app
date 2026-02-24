@@ -29,9 +29,9 @@ export async function createCustomer(req, res) {
                 ? `Stripe: cliente creado para usuario ${userId}`
                 : `Stripe: cliente reutilizado para usuario ${userId}`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (createCustomer):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createCustomer)'));
     } catch (error) {
-        logger.error('Error en createCustomer:', error);
+        logger.error({ error }, 'Error en createCustomer');
         res.status(500).json({
             success: false,
             message: 'Error al crear/obtener cliente',
@@ -55,7 +55,7 @@ export async function getCustomer(req, res) {
             data: customer
         });
     } catch (error) {
-        logger.error('Error en getCustomer:', error);
+        logger.error({ error }, 'Error en getCustomer');
         res.status(500).json({
             success: false,
             message: 'Error al obtener cliente',
@@ -93,9 +93,9 @@ export async function attachPaymentMethod(req, res) {
         await logActivity(req, {
             subject: `Stripe: método de pago ${paymentMethodId} adjuntado a cliente ${customerId}`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (attachPaymentMethod):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (attachPaymentMethod)'));
     } catch (error) {
-        logger.error('Error en attachPaymentMethod:', error);
+        logger.error({ error }, 'Error en attachPaymentMethod');
         res.status(500).json({
             success: false,
             message: 'Error al adjuntar método de pago',
@@ -119,7 +119,7 @@ export async function listPaymentMethods(req, res) {
             data: paymentMethods
         });
     } catch (error) {
-        logger.error('Error en listPaymentMethods:', error);
+        logger.error({ error }, 'Error en listPaymentMethods');
         res.status(500).json({
             success: false,
             message: 'Error al listar métodos de pago',
@@ -148,9 +148,9 @@ export async function detachPaymentMethod(req, res) {
         await logActivity(req, {
             subject: `Stripe: método de pago ${paymentMethodId} eliminado`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (detachPaymentMethod):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (detachPaymentMethod):'));
     } catch (error) {
-        logger.error('Error en detachPaymentMethod:', error);
+        logger.error({ error }, 'Error en detachPaymentMethod:');
         res.status(500).json({
             success: false,
             message: 'Error al eliminar método de pago',
@@ -193,9 +193,9 @@ export async function createPaymentIntent(req, res) {
         await logActivity(req, {
             subject: `Stripe: payment intent creado (${paymentIntent.id}) para cliente ${customerId}`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (createPaymentIntent):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createPaymentIntent)'));
     } catch (error) {
-        logger.error('Error en createPaymentIntent:', error);
+        logger.error({ error }, 'Error en createPaymentIntent');
         res.status(500).json({
             success: false,
             message: 'Error al crear Payment Intent',
@@ -231,9 +231,9 @@ export async function confirmPaymentIntent(req, res) {
         await logActivity(req, {
             subject: `Stripe: payment intent confirmado (${paymentIntentId})`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (confirmPaymentIntent):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (confirmPaymentIntent):'));
     } catch (error) {
-        logger.error('Error en confirmPaymentIntent:', error);
+        logger.error({ error }, 'Error en confirmPaymentIntent:');
         res.status(500).json({
             success: false,
             message: 'Error al confirmar Payment Intent',
@@ -257,7 +257,7 @@ export async function getPaymentIntent(req, res) {
             data: paymentIntent
         });
     } catch (error) {
-        logger.error('Error en getPaymentIntent:', error);
+        logger.error({ error }, 'Error en getPaymentIntent:');
         res.status(500).json({
             success: false,
             message: 'Error al obtener Payment Intent',
@@ -286,9 +286,9 @@ export async function cancelPaymentIntent(req, res) {
         await logActivity(req, {
             subject: `Stripe: payment intent cancelado (${paymentIntentId})`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (cancelPaymentIntent):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (cancelPaymentIntent):'));
     } catch (error) {
-        logger.error('Error en cancelPaymentIntent:', error);
+        logger.error({ error }, 'Error en cancelPaymentIntent:');
         res.status(500).json({
             success: false,
             message: 'Error al cancelar Payment Intent',
@@ -326,9 +326,9 @@ export async function createRefund(req, res) {
         await logActivity(req, {
             subject: `Stripe: reembolso creado para payment intent ${paymentIntentId}`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (createRefund):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createRefund):'));
     } catch (error) {
-        logger.error('Error en createRefund:', error);
+        logger.error({ error }, 'Error en createRefund:');
         res.status(500).json({
             success: false,
             message: 'Error al crear reembolso',
@@ -366,9 +366,9 @@ export async function createSubscription(req, res) {
         await logActivity(req, {
             subject: `Stripe: suscripción creada para usuario ${userId} (producto ${productId})`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (createSubscription):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createSubscription):'));
     } catch (error) {
-        logger.error('Error en createSubscription:', error);
+        logger.error({ error }, 'Error en createSubscription:');
         res.status(500).json({
             success: false,
             message: 'Error al crear suscripción',
@@ -399,7 +399,7 @@ export async function cancelSubscription(req, res) {
         await logActivity(req, {
             subject: `Stripe: suscripción cancelada (${subscriptionId}) para usuario ${userId}`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (cancelSubscription):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (cancelSubscription):'));
     } catch (error) {
         logger.error({ error }, "❌ Error cancelando suscripción"); // El objeto va primero
         logger.error("Error en cancelSubscription: " + error.message);
@@ -436,9 +436,9 @@ export const createEphemeralKey = async (req, res) => {
         await logActivity(req, {
             subject: `Stripe: ephemeral key creada para cliente ${customer_id}`,
             userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (createEphemeralKey):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createEphemeralKey):'));
     } catch (error) {
-        logger.error('Error en createEphemeralKey:', error);
+        logger.error({ error }, 'Error en createEphemeralKey:');
         res.status(500).json({
             success: false,
             message: 'Error al crear ephemeral key',
@@ -462,7 +462,7 @@ export async function getSubscription(req, res) {
             data: subscription
         });
     } catch (error) {
-        logger.error('Error en getSubscription:', error);
+        logger.error({ error }, 'Error en getSubscription:');
         res.status(500).json({
             success: false,
             message: 'Error al obtener suscripción',
@@ -495,7 +495,7 @@ export async function getUserTransactions(req, res) {
             data: transactions
         });
     } catch (error) {
-        logger.error('Error en getUserTransactions:', error);
+        logger.error({ error }, 'Error en getUserTransactions:');
         res.status(500).json({
             success: false,
             message: 'Error al obtener transacciones',
@@ -522,7 +522,7 @@ export async function handleWebhook(req, res) {
 
         res.status(200).json({ received: true });
     } catch (error) {
-        logger.error('Error en handleWebhook:', error);
+        logger.error({ error }, 'Error en handleWebhook:');
         res.status(400).json({
             success: false,
             message: 'Error al procesar webhook',
@@ -561,9 +561,9 @@ export async function saveCard(req, res) {
         await logActivity(req, {
             subject: `Stripe: tarjeta guardada para usuario ${userId}`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (saveCard):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (saveCard):'));
     } catch (error) {
-        logger.error('Error en saveCard:', error);
+        logger.error({ error }, 'Error en saveCard:');
         res.status(500).json({
             success: false,
             message: 'Error al guardar tarjeta',
@@ -590,7 +590,7 @@ export async function getUserCards(req, res) {
             data: cards
         });
     } catch (error) {
-        logger.error('Error en getUserCards:', error);
+        logger.error({ error }, 'Error en getUserCards:');
         res.status(500).json({
             success: false,
             message: 'Error al obtener tarjetas',
@@ -622,9 +622,9 @@ export async function deleteCard(req, res) {
         await logActivity(req, {
             subject: `Stripe: tarjeta ${cardId} eliminada para usuario ${userId}`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (deleteCard):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (deleteCard):'));
     } catch (error) {
-        logger.error('Error en deleteCard:', error);
+        logger.error({ error }, 'Error en deleteCard:');
         res.status(500).json({
             success: false,
             message: 'Error al eliminar tarjeta',
@@ -656,9 +656,9 @@ export async function setDefaultCard(req, res) {
         await logActivity(req, {
             subject: `Stripe: tarjeta ${cardId} establecida por defecto para usuario ${userId}`,
             userId: userId || null
-        }).catch((logErr) => logger.error('⚠️ Logging error (setDefaultCard):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (setDefaultCard):'));
     } catch (error) {
-        logger.error('Error en setDefaultCard:', error);
+        logger.error({ error }, 'Error en setDefaultCard:');
         res.status(500).json({
             success: false,
             message: 'Error al establecer tarjeta predeterminada',
@@ -686,7 +686,7 @@ export async function getPublishableKey(req, res) {
         res.status(200).json({ publishableKey })
 
     } catch (error) {
-        logger.error('Error en getPublishableKey:', error);
+        logger.error({ error }, 'Error en getPublishableKey:');
         res.status(500).json({
             success: false,
             message: 'Error al obtener la clave publishable',

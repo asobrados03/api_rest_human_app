@@ -27,6 +27,6 @@ export async function logActivity(req, { subject, userId = null }) {
         // Pasamos el objeto 'err' primero para que capture el stack trace completo
         logger.error({ err, subject, userId }, "⚠️ Failed to write log activity");
 
-        logger.error(err, `❌ Failed to write log activity for subject: ${subject}`);
+        logger.error({ err, subject, userId }, `❌ Failed to write log activity for subject: ${subject}`);
     }
 }

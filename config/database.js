@@ -16,12 +16,12 @@ const pool = mysql.createPool({
 
 pool.on('connection', (conn) => {
     conn.on('error', (err) => {
-        logger.error('MySQL connection error:', err);
+        logger.error({ err }, 'MySQL connection error');
     });
 });
 
 pool.on('error', (err) => {
-    logger.error('MySQL pool error:', err);
+    logger.error({ err }, 'MySQL pool error');
 });
 
 export default pool;

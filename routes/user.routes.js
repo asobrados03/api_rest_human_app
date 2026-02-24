@@ -65,12 +65,12 @@ router.get('/user/document/:filename', verifyToken, async (req, res) => {
 
         return res.download(filePath, (err) => {
             if (err) {
-                logger.error('Error al descargar archivo:', err)
+                logger.error({ err }, 'Error al descargar archivo:')
                 return res.status(404).json({ error: 'Error al descargar el documento' })
             }
         })
     } catch (err) {
-        logger.error('Error al acceder al documento:', err)
+        logger.error({ err }, 'Error al acceder al documento:')
         return res.status(404).json({ error: 'Documento no encontrado' })
     }
 })

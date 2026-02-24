@@ -26,7 +26,7 @@ app.get('/api/health', async (req, res) => {
         conn.release();
         res.status(200).json({ ok: true });
     } catch (err) {
-        logger.error('❌ Error en /api/health:', err.message);
+        logger.error({ errMessage: err.message }, '❌ Error en /api/health:');
         res.status(500).json({ ok: false, error: 'DB not responding' });
     }
 });

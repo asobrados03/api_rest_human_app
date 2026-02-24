@@ -21,7 +21,7 @@ export function verifyToken(req, res, next) {
         req.user_payload = jwt.verify(token, process.env.SECRET_JWT_KEY)
         next()
     } catch (err) {
-        logger.error('🔒 verifyToken failed:', err.message)
+        logger.error({ errMessage: err.message }, '🔒 verifyToken failed');
         return res
             .status(401)
             .set(

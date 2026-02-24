@@ -264,14 +264,14 @@ export async function updateSubscriptionStatus(connection, subscription_id, data
         const [result] = await connection.execute(query, values);
 
         if (result.affectedRows === 0) {
-            logger.warn(`⚠️ No se encontró ninguna suscripción local para el ID: ${subscription_id}`);
+            logger.warn({ subscription_id }, '⚠️ No se encontró ninguna suscripción local para el ID');
         } else {
-            logger.info(`✅ Suscripción ${subscription_id} actualizada a estado: ${status}`);
+            logger.info({ subscription_id, status }, `✅ Suscripción ${subscription_id} actualizada a estado: ${status}`);
         }
 
         return result;
     } catch (error) {
-        logger.error("❌ Error en updateSubscriptionStatus Repository:", error);
+        logger.error({ error, subscription_id }, '❌ Error en updateSubscriptionStatus Repository:');
         throw error;
     }
 }

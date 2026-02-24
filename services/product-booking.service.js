@@ -83,10 +83,12 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
         }
 
         // Añade esto justo antes del "/* ---------- Response ---------- */"
-        logger.info("DEBUG: Product ID recibido:", productId);
-        logger.info("DEBUG: Coaches encontrados:", coaches.length);
-        logger.info("DEBUG: Alias del día calculado:", dayAlias);
-        logger.info("DEBUG: Disponibilidad cargada para:", Object.keys(availabilityMap));
+        logger.debug({ productId }, 'DEBUG: Product ID recibido');
+        logger.debug({ coachesCount: coaches.length }, 'DEBUG: Coaches encontrados');
+        logger.debug({ dayAlias }, 'DEBUG: Alias del día calculado');
+        logger.debug({ availabilityKeys: Object.keys(availabilityMap) }, 'DEBUG: Disponibilidad cargada para');
+
+
 
         /* ---------- Response ---------- */
         const response = [];
@@ -95,7 +97,7 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
             const formattedSlot = slot.timeslot;
 
             if (coaches.length > 0 && response.length === 0) {
-                logger.info("DEBUG: Revisando slot:", timeslotRows[0]?.timeslot);
+                logger.debug({ slot: timeslotRows[0]?.timeslot }, 'DEBUG: Revisando slot');
             }
 
             for (const coach of coaches) {
@@ -137,7 +139,7 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
         }
 
         // AHORA SÍ PUEDES HACER LOG DE RESPONSE
-        logger.info(`[DEBUG] Final Response: ${response.length} slots encontrados`);
+        logger.debug(`[DEBUG] Final Response: ${response.length} slots encontrados`);
         return response;
 
     } catch (error) {

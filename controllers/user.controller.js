@@ -3,7 +3,7 @@ import { logActivity } from "../utils/logger.js";
 
 import logger from '../utils/pino.js';
 function handleError(res, err, context) {
-    logger.error(err, `❌ Error en ${context}`);
+    logger.error({ err }, `❌ Error en ${context}`);
     const status = err.status || 500;
     const message = err.message || "Error interno del servidor";
     return res.status(status).json({ error: message });
@@ -52,7 +52,7 @@ export async function updateUser(req, res) {
         await logActivity(req, {
             subject: `El usuario ${resultUser.email} (ID: ${resultUser.id}) actualizó su perfil`,
             userId: resultUser.id
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(200).json(resultUser);
     } catch (err) {
@@ -70,7 +70,7 @@ export async function deleteUser(req, res) {
         await logActivity(req, {
             subject: `El usuario con email ${result.email} fue eliminado (via Mobile)`,
             userId: result.userId,
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(200).json({ message: `Usuario '${result.email}' eliminado correctamente` });
     } catch (err) {
@@ -95,7 +95,7 @@ export async function assignPreferredCoach(req, res) {
         await logActivity(req, {
             subject: `El usuario ${req.body.customer_id} marcó como favorito al coach ${req.body.coach_id}`,
             userId: req.user_payload.id || 0
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(result.status).json({ message: result.message + ' correctamente.' });
     } catch (err) {
@@ -110,7 +110,7 @@ export async function getPreferredCoach(req, res) {
         await logActivity(req, {
             subject: `El usuario ${req.query.customer_id} consultó su coach preferido`,
             userId: req.user_payload.id || 0
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(200).json(result);
     } catch (err) {
@@ -125,7 +125,7 @@ export async function getPreferredCoachWithService(req, res) {
         await logActivity(req, {
             subject: `El usuario ${req.query.customer_id} consultó su coach preferido con servicio`,
             userId: req.user_payload?.id || 0
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(200).json(result);
     } catch (err) {
@@ -144,7 +144,7 @@ export async function deleteProfilePic(req, res) {
         await logActivity(req, {
             subject: `La foto de perfil del usuario ${result.email} fue eliminada`,
             userId: result.userId
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.status(200).json({ message: 'Foto de perfil eliminada correctamente' });
     } catch (err) {
@@ -159,7 +159,7 @@ export async function getUserStats(req, res) {
         await logActivity(req, {
             subject: `Consulta de estadísticas del usuario ${req.query.user_id}`,
             userId: Number(req.query.user_id) || req.user_payload?.id || 0
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         // Enviamos 'stats' directamente, sin el envoltorio { byService: ... }
         return res.status(200).json(stats);
@@ -180,7 +180,7 @@ export async function addCouponToUser(req, res) {
         await logActivity(req, {
             subject: `Cupón ${req.body.coupon_code} añadido al usuario ${req.params.userId}`,
             userId: Number(req.params.userId)
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.sendStatus(204);
     } catch (err) {
@@ -199,7 +199,7 @@ export async function removeCouponToUser(req, res) {
         await logActivity(req, {
             subject: `Cupón ${req.body.coupon_code} eliminado del usuario ${req.params.userId}`,
             userId: Number(req.params.userId)
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         return res.sendStatus(204);
     } catch (err) {
@@ -243,7 +243,7 @@ export async function uploadUserDocument(req, res) {
         await logActivity(req, {
             subject: `Documento subido por usuario ${req.user_payload.id}: ${req.file?.filename || 'archivo'}`,
             userId: req.user_payload.id
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         res.status(201).json(result);
     } catch (err) { handleError(res, err, 'uploadUserDocument'); }
@@ -259,7 +259,7 @@ export async function deleteUserDocument(req, res) {
         await logActivity(req, {
             subject: `Documento eliminado por usuario ${req.user_payload.id}: ${req.params.filename}`,
             userId: req.user_payload.id
-        }).catch(e => logger.error("Log error:", e));
+        }).catch(e => logger.error({ e }, 'Log error:'));
 
         res.status(200).json(result);
     } catch (err) { handleError(res, err, 'deleteUserDocument'); }

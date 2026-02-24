@@ -37,7 +37,7 @@ export async function getServiceProducts(req, res) {
         });
         res.json(data);
     } catch (err) {
-        logger.error('[ERROR] GET /service-products →', err);
+        logger.error({ err }, '[ERROR] GET /service-products →');
         res.status(500).json({ error: 'Error al obtener productos', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -101,7 +101,7 @@ export async function unassignProductFromUser(req, res) {
         await logActivity(req, {
             subject: `Producto ${product_id} desasignado del usuario ${user_id}`,
             userId: Number(user_id)
-        }).catch((logErr) => logger.error('⚠️ Logging error (unassignProductFromUser):', logErr));
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (unassignProductFromUser):'));
 
         res.json({ success: true, ...result });
     } catch (err) {
