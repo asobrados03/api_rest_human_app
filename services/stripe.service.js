@@ -528,7 +528,7 @@ export async function handleSubscriptionCreated(dbPool, subscription) {
             status: subscription.status,
             subscription_id: subscription.id,
             metadata: {
-                product_id: productId,
+                product_id: productId
             }
         });
     } catch (error) {
@@ -593,14 +593,15 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
 
         const { subscription_id, user_id, metadata } = subRow;
         let productId = null;
-        let couponCode = null;
+
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+        const couponCode = subscription.metadata?.coupon_code;
 
         // 2. EXTRAER PRODUCTID DE TU METADATA
         if (metadata) {
             try {
                 const meta = JSON.parse(metadata);
                 productId = meta.product_id;
-                couponCode = meta.coupon_code || null;
             } catch (e) { logger.error("Error parseando metadata local"); }
         }
 
