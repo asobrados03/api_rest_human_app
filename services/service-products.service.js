@@ -73,11 +73,22 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
   let couponId = null;
   let discount = 0;
 
-  if (coupon_code) {
-    const coupon = await productRepo.getCouponByCode(connection, coupon_code);
+  logger.info({ coupon_code }, "DEBUG: Cupón recibido en assignProduct");
+
+  if (coupon_code && coupon_code.trim() !== "") {
+    // .trim() para evitar errores por espacios en blanco
+    const coupon = await productRepo.getCouponByCode(connection, coupon_code.trim());
+
     if (coupon) {
       couponId = coupon.coupon_id;
-      discount = coupon.is_percentage ? price * (coupon.discount / 100) : coupon.discount;
+      // Cálculo del descuento basado en los datos de la DB
+      discount = coupon.is_percentage
+          ? price * (coupon.discount / 100)
+          : coupon.discount;
+
+      logger.info({ couponId, discount }, "✅ Cupón aplicado correctamente");
+    } else {
+      logger.warn({ coupon_code }, "⚠️ El código de cupón no se encontró en la base de datos");
     }
   }
 
