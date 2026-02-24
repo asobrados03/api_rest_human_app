@@ -123,12 +123,28 @@ export const createSubscription = async (connection, { userId, totalAmount, subs
   `, [userId, Math.round(totalAmount * 100), subscription_id]);
 };
 
-export const cancelActiveProduct = async (connection, { userId, productId, lastDay }) => {
-    await connection.execute(`
-    UPDATE active_products
-    SET expiry_date = ?, updated_at = NOW(), active_product_status = 'canceled'
-    WHERE customer_id = ? AND product_id = ? AND deleted_at IS NULL
-  `, [lastDay, userId, productId]);
+export const cancelActiveProduct = async (
+    connection,
+    { userId, productId, lastDay }
+) => {
+
+    const [result] = await connection.execute(`
+        UPDATE active_products
+        SET expiry_date = ?,
+            updated_at = NOW(),
+            active_product_status = 'canceled'
+        WHERE customer_id = ?
+          AND product_id = ?
+          AND deleted_at IS NULL
+          AND active_product_status != 'canceled'
+    `, [lastDay, userId, productId]);
+
+    if (result.affectedRows === 0) {
+        // No había nada activo o ya estaba cancelado
+        return { alreadyCanceled: true };
+    }
+
+    return { canceled: true };
 };
 
 export const cancelSubscription = async (connection, { userId, subscription_id }) => {
