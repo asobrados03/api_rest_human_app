@@ -73,6 +73,13 @@ export const getCouponByCode = async (connection, code) => {
     return rows[0];
 };
 
+export const getCouponDiscount = async (connection, couponCode) => {
+    const [rows] = await connection.execute(`
+    SELECT discount, is_percentage, expiry_date FROM coupons WHERE coupon_code = ? AND deleted_at IS NULL
+  `, [couponCode]);
+    return rows[0];
+};
+
 export const countInvoicesByPrefix = async (connection, prefix) => {
     const [[{ count }]] = await connection.execute(`
     SELECT COUNT(*) AS count FROM active_products WHERE invoice_number LIKE ?

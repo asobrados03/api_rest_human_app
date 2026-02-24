@@ -345,8 +345,8 @@ export async function createRefund(req, res) {
  */
 export async function createSubscription(req, res) {
     try {
-        const { priceId, userId, productId } = req.body;
-        logger.info('[STRIPE] createSubscription iniciado', { userId, productId, priceId });
+        const { priceId, userId, productId, couponCode } = req.body;
+        logger.info({ userId, productId, priceId, couponCode }, '[STRIPE] createSubscription iniciado');
 
         if (!priceId || !userId || !productId) {
             return res.status(400).json({
@@ -358,7 +358,8 @@ export async function createSubscription(req, res) {
         const subscription = await stripeService.createSubscription(req.db, {
             userId,
             priceId,
-            productId
+            productId,
+            couponCode
         });
 
         res.status(200).json(subscription);
@@ -386,7 +387,7 @@ export async function cancelSubscription(req, res) {
         const { subscriptionId } = req.params;
         const userId = req.query.user_id || req.user?.id;
         const productId = req.query.product_id;
-        logger.info('[STRIPE] cancelSubscription iniciado', { subscriptionId, userId, productId });
+        logger.info({ subscriptionId, userId, productId }, '[STRIPE] cancelSubscription iniciado');
 
         const subscription = await stripeService.cancelSubscription(req.db, subscriptionId, userId, productId);
 
@@ -414,7 +415,7 @@ export async function cancelSubscription(req, res) {
 export const createEphemeralKey = async (req, res) => {
     try {
         const { customer_id } = req.body;
-        logger.info('[STRIPE] createEphemeralKey iniciado', { customer_id });
+        logger.info({ customer_id }, '[STRIPE] createEphemeralKey iniciado');
 
         if (!customer_id) {
             return res.status(400).json({
@@ -541,7 +542,7 @@ export async function saveCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const cardData = req.body;
-        logger.info('[STRIPE] saveCard iniciado', { userId });
+        logger.info({ userId }, '[STRIPE] saveCard iniciado');
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
@@ -607,7 +608,7 @@ export async function deleteCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const { cardId } = req.params;
-        logger.info('[STRIPE] deleteCard iniciado', { userId, cardId });
+        logger.info({ userId, cardId }, '[STRIPE] deleteCard iniciado');
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();
@@ -641,7 +642,7 @@ export async function setDefaultCard(req, res) {
     try {
         const userId = req.user?.id || req.body.userId;
         const { cardId } = req.params;
-        logger.info('[STRIPE] setDefaultCard iniciado', { userId, cardId });
+        logger.info({ userId, cardId }, '[STRIPE] setDefaultCard iniciado');
 
         const dbPool = req.db;
         const connection = await dbPool.getConnection();

@@ -8,7 +8,6 @@ import {
 import logger from '../utils/pino.js';
 import * as productService from "./service-products.service.js";
 import * as productRepo from "../repositories/service-products.repository.js";
-
 // ==================== CLIENTES ====================
 
 /**
@@ -228,24 +227,67 @@ export async function createSubscription(dbPool, data) {
     const connection = await dbPool.getConnection();
 
     try {
-        const { userId, priceId, productId } = data;
+        const { userId, priceId, productId, couponCode } = data;
 
         // 1. Obtener el cliente (Llamada directa, sin 'this')
         const { customerId } = await createOrGetCustomer(dbPool, userId);
 
-        // 2. Crear suscripción en Stripe
-        const subscription = await stripe.subscriptions.create({
+        // 2. Preparar los parámetros de la suscripción
+        const subscriptionParams = {
             customer: customerId,
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.confirmation_secret'], // Solicitamos la expansión
+            expand: ['latest_invoice.confirmation_secret'],
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString(),
-                type: 'subscription' // Marca para diferenciar
+                type: 'subscription'
             }
-        });
+        };
+
+        // Si viene un cupón, lo añadimos a Stripe y a la metadata
+        if (couponCode) {
+            // 1. Buscamos los datos en tu base de datos local
+            const couponData = await productRepo.getCouponDiscount(connection, couponCode);
+
+            if (couponData) {
+                let stripeCouponId;
+
+                const expiryTimestamp = couponData.expiry_date
+                    ? Math.floor(new Date(couponData.expiry_date).getTime() / 1000)
+                    : null;
+
+                if (couponData.is_percentage) {
+                    // 2. Creamos o recuperamos un cupón en Stripe que coincida con tu porcentaje
+                    stripeCouponId = `pct_${couponCode.trim()}`;
+
+                    try {
+                        // Intentamos ver si ya existe en Stripe
+                        await stripe.coupons.retrieve(stripeCouponId);
+                    } catch (err) {
+                        // Si no existe (error 404), lo creamos en Stripe al vuelo
+                        await stripe.coupons.create({
+                            id: stripeCouponId,
+                            percent_off: couponData.discount, // Aquí aplicas el porcentaje de tu DB
+                            duration: 'forever', // U 'once' si solo es para el primer mes
+                            redeem_by: expiryTimestamp,
+                        });
+                    }
+
+                    // 3. Lo aplicamos a la suscripción
+                    subscriptionParams.discounts = [{ coupon: stripeCouponId }];
+
+                    // Guardamos el código original en metadata para tu lógica interna
+                    subscriptionParams.metadata.coupon_code = couponCode;
+                }
+            } else {
+                logger.warn(`El cupón ${couponCode} no existe en la base de datos.`);
+            }
+        }
+
+        // 3. Crear suscripción en Stripe
+        const subscription = await stripe.subscriptions.create(subscriptionParams);
 
         return {
             subscription_id: subscription.id,
@@ -431,13 +473,13 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
 
     const connection = await dbPool.getConnection();
     try {
-        const coupon_code = paymentIntent.metadata.coupon_code;
+        const couponCode = paymentIntent.metadata.coupon_code;
 
         await productService.assignProduct(connection, {
             user_id: userId,
             product_id: productId,
             payment_method: "card",
-            coupon_code
+            coupon_code: couponCode
         });
 
         await stripeRepository.saveStripeTransaction(userId, productId, paymentIntent, connection);
@@ -537,27 +579,22 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     try {
         // 1. BUSCAR EN BD USANDO EL CLIENTE (payer_ref)
         // Sacamos el subscription_id, user_id y el productId (que está en metadata)
-        const [rows] = await connection.execute(
-            `SELECT subscription_id, user_id, metadata 
-             FROM subscriptions 
-             WHERE payer_ref = ? AND status = 'incomplete' 
-             ORDER BY created_at DESC LIMIT 1`,
-            [invoice.customer]
-        );
-
-        if (rows.length === 0) {
+        const subRow = await stripeRepository.findIncompleteSubscriptionByPayerRef(connection, invoice.customer);
+        if (!subRow) {
             logger.info({ customer: invoice.customer }, '⚠️ No se encontró suscripción pendiente para este cliente.');
             return;
         }
 
-        const { subscription_id, user_id, metadata } = rows[0];
+        const { subscription_id, user_id, metadata } = subRow;
         let productId = null;
+        let couponCode = null;
 
         // 2. EXTRAER PRODUCTID DE TU METADATA
         if (metadata) {
             try {
                 const meta = JSON.parse(metadata);
                 productId = meta.product_id;
+                couponCode = meta.coupon_code || null;
             } catch (e) { logger.error("Error parseando metadata local"); }
         }
 
@@ -579,6 +616,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
             user_id: user_id,
             product_id: productId,
             payment_method: "card",
+            coupon_code: couponCode,
             subscription_id: subscription_id,
             centro: invoice.metadata?.centro || null
         });
