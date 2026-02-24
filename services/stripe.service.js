@@ -470,8 +470,8 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
     logger.info({ paymentIntentId: paymentIntent.id }, 'Procesando Payment Intent (Tienda):');
 
     // Protección contra undefined
-    const userId = parseInt(paymentIntent.metadata.userId);
-    const productId = parseInt(paymentIntent.metadata.productId);
+    const userId = parseInt(paymentIntent.metadata.user_id);
+    const productId = parseInt(paymentIntent.metadata.product_id);
 
     if (!userId || !productId) {
         logger.warn({ paymentIntentId: paymentIntent.id }, '⚠️ PaymentIntent ignorado: Faltan metadatos (user_id o product_id). Probablemente es un pago de suscripción o sistema.');
@@ -489,7 +489,7 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
             coupon_code: couponCode
         });
 
-        await stripeRepository.saveStripeTransaction(userId, productId, paymentIntent, connection);
+        await stripeRepository.saveStripeTransaction(productId, userId, paymentIntent, connection);
 
     } catch (error) {
         logger.error({ error, paymentIntentId: paymentIntent.id }, 'Error en handlePaymentIntentSucceeded:');
