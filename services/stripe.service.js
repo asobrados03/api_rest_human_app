@@ -648,6 +648,13 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     logger.info('--- [WEBHOOK] Procesando Pago ---');
 
+    logger.info({
+        invoiceId: invoice.id,
+        customer: invoice.customer,
+        subscription: invoice.subscription,
+        lines: invoice.lines?.data?.length
+    }, "DEBUG INVOICE");
+
     const connection = await dbPool.getConnection();
 
     try {
