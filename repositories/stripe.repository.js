@@ -286,13 +286,13 @@ export async function saveStripeTransaction(productId, userId, paymentIntent, co
     return result[0].insertId;
 }
 
-export async function findIncompleteSubscriptionByPayerRef(connection, payer_ref) {
+export async function findSubscriptionById(connection, subscription_id) {
     const [rows] = await connection.execute(
         `SELECT subscription_id, user_id, metadata
          FROM subscriptions
-         WHERE payer_ref = ? AND status = 'incomplete'
-         ORDER BY created_at DESC LIMIT 1`,
-        [payer_ref]
+         WHERE subscription_id = ?
+         LIMIT 1`,
+        [subscription_id]
     );
     return rows.length ? rows[0] : null;
 }

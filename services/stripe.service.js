@@ -237,7 +237,7 @@ export async function createSubscription(dbPool, data) {
             items: [{ price: priceId }],
             payment_behavior: 'default_incomplete',
             payment_settings: { save_default_payment_method: 'on_subscription' },
-            expand: ['latest_invoice.confirmation_secret'],
+            expand: ['latest_invoice.payment_intent', 'latest_invoice.confirmation_secret'],
             metadata: {
                 user_id: userId.toString(),
                 product_id: productId.toString(),
@@ -295,9 +295,17 @@ export async function createSubscription(dbPool, data) {
 
         const subscription = await stripe.subscriptions.create(subscriptionParams);
 
+        const clientSecret = subscription.latest_invoice?.payment_intent?.client_secret
+            || subscription.latest_invoice?.confirmation_secret?.client_secret
+            || null;
+
+        if (!clientSecret) {
+            logger.warn({ subscriptionId: subscription.id }, '⚠️ Stripe no devolvió client_secret al crear la suscripción.');
+        }
+
         return {
             subscription_id: subscription.id,
-            client_secret: subscription.latest_invoice?.confirmation_secret?.client_secret,
+            client_secret: clientSecret,
             customer_id: customerId
         };
     } catch (error) {
@@ -665,11 +673,11 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     const connection = await dbPool.getConnection();
 
     try {
-        // 1. BUSCAR EN BD USANDO EL CLIENTE (payer_ref)
+        // 1. BUSCAR EN BD USANDO EL ID EXACTO DE SUSCRIPCIÓN DE STRIPE
         // Sacamos el subscription_id, user_id y el productId (que está en metadata)
-        const subRow = await stripeRepository.findIncompleteSubscriptionByPayerRef(connection, invoice.customer);
+        const subRow = await stripeRepository.findSubscriptionById(connection, invoice.subscription);
         if (!subRow) {
-            logger.info({ customer: invoice.customer }, '⚠️ No se encontró suscripción pendiente para este cliente.');
+            logger.info({ subscription: invoice.subscription }, '⚠️ No se encontró suscripción local para esta suscripción de Stripe.');
             return;
         }
 
