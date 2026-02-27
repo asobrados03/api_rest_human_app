@@ -690,41 +690,26 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    logger.info('--- [WEBHOOK] Procesando Pago ---');
+    logger.info({ invoiceId: invoice.id }, '--- [WEBHOOK] Procesando Factura de Pago ---');
 
     logger.info({
         invoiceId: invoice.id,
         customer: invoice.customer,
         subscription: invoice.subscription,
         lines: invoice.lines?.data?.length
-    }, "DEBUG INVOICE");
+    }, 'DEBUG INVOICE');
 
     const connection = await dbPool.getConnection();
 
+    return;
+
     try {
-        const stripeSubscriptionId = invoice?.subscription;
-        if (!stripeSubscriptionId) {
-            logger.warn({
-                invoiceId: invoice?.id,
-                eventType: 'invoice.payment_succeeded'
-            }, '⚠️ Invoice sin subscription asociada. Se ignora para evitar errores en DB.');
-            return;
-        }
-
-        // 1. BUSCAR EN BD USANDO EL ID EXACTO DE SUSCRIPCIÓN DE STRIPE
+        // 1. BUSCAR EN BD USANDO EL CLIENTE (payer_ref)
         // Sacamos el subscription_id, user_id y el productId (que está en metadata)
-        let subRow = await stripeRepository.findSubscriptionById(connection, stripeSubscriptionId);
+        const subRow = await stripeRepository.findIncompleteSubscriptionByPayerRef(connection, invoice.customer);
         if (!subRow) {
-            logger.warn({ subscription: stripeSubscriptionId }, '⚠️ Suscripción no encontrada en DB local. Intentando sincronizar desde Stripe.');
-
-            const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-            await ensureLocalSubscription(connection, stripeSubscription);
-
-            subRow = await stripeRepository.findSubscriptionById(connection, stripeSubscriptionId);
-            if (!subRow) {
-                logger.info({ subscription: stripeSubscriptionId }, '⚠️ No se pudo sincronizar la suscripción localmente.');
-                return;
-            }
+            logger.info({ customer: invoice.customer }, '⚠️ No se encontró suscripción pendiente para este cliente.');
+            return;
         }
 
         const { subscription_id, user_id, metadata } = subRow;

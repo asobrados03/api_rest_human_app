@@ -301,3 +301,19 @@ export async function findSubscriptionById(connection, subscription_id) {
     );
     return rows.length ? rows[0] : null;
 }
+
+export async function findIncompleteSubscriptionByPayerRef(connection, payer_ref) {
+    if (!payer_ref) {
+        logger.warn({ payer_ref }, '⚠️ findSubscriptionByCustomer llamado sin payer_ref válido.');
+        return null;
+    }
+
+    const [rows] = await connection.execute(
+        `SELECT subscription_id, user_id, metadata
+         FROM subscriptions
+         WHERE payer_ref = ? AND status = 'incomplete'
+         ORDER BY created_at DESC LIMIT 1`,
+        [payer_ref]
+    );
+    return rows.length ? rows[0] : null;
+}

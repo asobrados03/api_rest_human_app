@@ -14,7 +14,7 @@ export async function createCustomer(req, res) {
     try {
         const userId = req.user_payload?.id || req.body.userId; // Asume que el userId viene del JWT o body
 
-        logger.info('[STRIPE] createCustomer iniciado', { userId });
+        logger.info({ userId }, '[STRIPE] createCustomer iniciado');
 
         const result = await stripeService.createOrGetCustomer(req.db, userId);
 
@@ -73,7 +73,7 @@ export async function getCustomer(req, res) {
 export async function attachPaymentMethod(req, res) {
     try {
         const { paymentMethodId, customerId } = req.body;
-        logger.info('[STRIPE] attachPaymentMethod iniciado', { customerId, paymentMethodId });
+        logger.info({ customerId, paymentMethodId }, '[STRIPE] attachPaymentMethod iniciado');
 
         if (!paymentMethodId || !customerId) {
             return res.status(400).json({

@@ -11,10 +11,10 @@ export async function getAllServices(req, res) {
     try {
         connection = await req.db.getConnection();
         const data = await service.listAllServices(connection);
-        logger.info('[SERVICE_PRODUCTS] getAllServices completado', { total: data?.length || 0 });
+        logger.info({ total: data?.length || 0 }, '[SERVICE_PRODUCTS] getAllServices completado');
         res.json(data);
     } catch (err) {
-        logger.error('[ERROR] GET /services →', err);
+        logger.error({ err }, '[ERROR] GET /services');
         res.status(500).json({ error: 'Error al obtener los servicios', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -31,13 +31,10 @@ export async function getServiceProducts(req, res) {
     try {
         connection = await req.db.getConnection();
         const data = await service.listServiceProducts(connection, primary_service_id);
-        logger.info('[SERVICE_PRODUCTS] getServiceProducts completado', {
-            primary_service_id,
-            total: data?.length || 0
-        });
+        logger.info({ primary_service_id, total: data?.length || 0 }, '[SERVICE_PRODUCTS] getServiceProducts completado');
         res.json(data);
     } catch (err) {
-        logger.error({ err }, '[ERROR] GET /service-products →');
+        logger.error({ err }, '[ERROR] GET /service-products');
         res.status(500).json({ error: 'Error al obtener productos', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -54,10 +51,10 @@ export async function getUserProducts(req, res) {
     try {
         connection = await req.db.getConnection();
         const data = await service.listUserProducts(connection, user_id);
-        logger.info('[SERVICE_PRODUCTS] getUserProducts completado', { user_id, total: data?.length || 0 });
+        logger.info({ user_id, total: data?.length || 0 }, '[SERVICE_PRODUCTS] getUserProducts completado');
         res.json(data);
     } catch (err) {
-        logger.error('[ERROR] GET /user-products →', err);
+        logger.error({ err }, '[ERROR] GET /user-products');
         res.status(500).json({ error: 'Error al obtener productos del usuario', details: err.message });
     } finally {
         if (connection) connection.release();
@@ -81,7 +78,7 @@ export async function assignProductToUser(req, res) {
 
         res.json({ success: true, ...result });
     } catch (err) {
-        logger.error('[ERROR] POST /assign-product →', err);
+        logger.error({ err }, '[ERROR] POST /assign-product');
         const status = err.status || 500;
         const message = err.message || 'Error al asignar producto';
         res.status(status).json({ error: message, details: err.message });
@@ -119,7 +116,7 @@ export async function getActiveProductDetail(req, res) {
     try {
         connection = await req.db.getConnection();
         const data = await service.getActiveProductDetail(connection, user_id, product_id);
-        logger.info('[SERVICE_PRODUCTS] getActiveProductDetail completado', { user_id, product_id });
+        logger.info({ user_id, product_id }, '[SERVICE_PRODUCTS] getActiveProductDetail completado');
         res.json(data);
     } catch (err) {
         const status = err.status || 500;
@@ -135,7 +132,7 @@ export async function searchProducts(req, res) {
     try {
         connection = await req.db.getConnection();
         const data = await service.searchProducts(connection, query);
-        logger.info('[SERVICE_PRODUCTS] searchProducts completado', { query, total: data?.length || 0 });
+        logger.info({ query, total: data?.length || 0 }, '[SERVICE_PRODUCTS] searchProducts completado');
         res.json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -153,11 +150,11 @@ export async function getProductDetailForHireProduct(req, res) {
 
         const product = await service.getProductDetail(req.db, productId);
 
-        logger.info('[SERVICE_PRODUCTS] getProductDetailForHireProduct completado', { productId });
+        logger.info({ productId }, '[SERVICE_PRODUCTS] getProductDetailForHireProduct completado');
 
         res.status(200).json(product);  // ← Sin el wrapper { product: ... }
     } catch (error) {
-        logger.error('[ERROR] GET /api/products/:id →', error);
+        logger.error({ error }, '[ERROR] GET /api/products/:id');
         const status = error.status || 500;
         res.status(status).json({
             success: false,

@@ -8,7 +8,7 @@ export const UPLOAD_PATH = process.env.NODE_ENV === 'production'
     ? '/var/uploads/human-app/profile_pic'
     : path.join(process.cwd(), 'pictures', 'profile_pic');
 
-logger.info({ uploadPath: UPLOAD_PATH }, '📁 UPLOAD_PATH configurado:');
+logger.info({ uploadPath: UPLOAD_PATH }, '📁 UPLOAD_PATH configurado');
 
 // Configuración del almacenamiento SIN renombrar el archivo
 const storage = multer.diskStorage({
@@ -39,10 +39,10 @@ const upload = multer({
 // Middleware adicional para comprimir si supera 1MB
 export default upload;
 export const compressImageIfNeeded = async (req, res, next) => {
-    logger.info("🧩 Entrando al middleware de compresión");
-    logger.info("📂 Ruta de subida:", UPLOAD_PATH);
+    logger.info({ stage: 'compress_middleware' }, '🧩 Entrando al middleware de compresión');
+    logger.info({ uploadPath: UPLOAD_PATH }, '📂 Ruta de subida');
     if (!req.file) {
-        logger.info("❌ No se recibió ningún archivo en req.file");
+        logger.info({ hasFile: false }, '❌ No se recibió ningún archivo en req.file');
         return next();
     }
 
@@ -53,11 +53,11 @@ export const compressImageIfNeeded = async (req, res, next) => {
         const originalStats = await fs.stat(filePath);
         const originalSizeMB = (originalStats.size / (1024 * 1024)).toFixed(2);
 
-        logger.info(`📸 Imagen recibida: ${req.file.originalname}`);
-        logger.info(`📦 Tamaño original: ${originalStats.size} bytes (${originalSizeMB} MB)`);
+        logger.info({ filename: req.file.originalname }, `📸 Imagen recibida`);
+        logger.info({ sizeBytes: originalStats.size, sizeMB: originalSizeMB }, `📦 Tamaño original`);
 
         if (originalStats.size <= 1024 * 1024) {
-            logger.info('🟢 No se necesita compresión (tamaño ≤ 1MB)');
+            logger.info({ needsCompression: false }, '🟢 No se necesita compresión (tamaño ≤ 1MB)');
             return next();
         }
 
@@ -88,8 +88,8 @@ export const compressImageIfNeeded = async (req, res, next) => {
             const compressedStats = await fs.stat(filePath);
             const compressedSizeMB = (compressedStats.size / (1024 * 1024)).toFixed(2);
 
-            logger.info(`✅ Imagen comprimida exitosamente`);
-            logger.info(`🔻 Tamaño después: ${compressedStats.size} bytes (${compressedSizeMB} MB)`);
+            logger.info({ compressedBytes: compressedStats.size, compressedMB: compressedSizeMB }, '✅ Imagen comprimida exitosamente');
+            logger.info({ compressedBytes: compressedStats.size }, '🔻 Tamaño después');
         }
 
         next();
@@ -107,7 +107,7 @@ export function handleProfilePicUpload(req, res, next) {
                 .status(413)
                 .json({ error: "El archivo es demasiado grande. Máximo 10 MB." });
         } else if (err) {
-            logger.error("❌ Error al subir imagen:", err);
+            logger.error({ err }, '❌ Error al subir imagen');
             return res.status(400).json({ error: "Error al subir la imagen" });
         }
         next();
