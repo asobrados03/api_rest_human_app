@@ -303,6 +303,15 @@ export async function createSubscription(dbPool, data) {
             logger.warn({ subscriptionId: subscription.id }, '⚠️ Stripe no devolvió client_secret al crear la suscripción.');
         }
 
+        try {
+            await ensureLocalSubscription(connection, subscription);
+        } catch (localPersistError) {
+            logger.error({
+                subscriptionId: subscription.id,
+                error: localPersistError
+            }, '❌ Error guardando suscripción local al crearla. Se continuará con fallback de webhooks.');
+        }
+
         return {
             subscription_id: subscription.id,
             client_secret: clientSecret,
@@ -537,36 +546,56 @@ export async function handlePaymentIntentFailed(paymentIntent) {
     // Notificar al usuario del fallo
 }
 
+async function ensureLocalSubscription(connection, subscription) {
+    if (!subscription?.id) {
+        return null;
+    }
+
+    const userId = subscription.metadata?.user_id;
+    const productId = subscription.metadata?.product_id;
+
+    if (!userId || !productId) {
+        logger.warn({ subscriptionId: subscription.id }, '⚠️ Suscripción sin user_id o product_id en metadata. No se puede persistir localmente.');
+        return null;
+    }
+
+    const existing = await stripeRepository.findSubscriptionById(connection, subscription.id);
+
+    if (existing) {
+        await stripeRepository.updateSubscriptionStatus(connection, subscription.id, {
+            status: subscription.status,
+            payment_method: null,
+            next_charge_at: new Date(subscription.current_period_end * 1000)
+        });
+        return existing;
+    }
+
+    await stripeRepository.createSubscription(connection, {
+        user_id: userId,
+        payer_ref: subscription.customer,
+        payment_method: null,
+        amount_minor: subscription.items?.data?.[0]?.price?.unit_amount || 0,
+        currency: subscription.currency?.toUpperCase() || 'EUR',
+        interval_months: subscription.items?.data?.[0]?.price?.recurring?.interval === 'month' ? 1 : 12,
+        start_date: new Date(subscription.start_date * 1000),
+        next_charge_at: new Date(subscription.current_period_end * 1000),
+        status: subscription.status,
+        subscription_id: subscription.id,
+        metadata: {
+            product_id: productId,
+            coupon_code: subscription.metadata?.coupon_code || null
+        }
+    });
+
+    return { subscription_id: subscription.id, user_id: userId, metadata: JSON.stringify({ product_id: productId, coupon_code: subscription.metadata?.coupon_code || null }) };
+}
+
 export async function handleSubscriptionCreated(dbPool, subscription) {
     logger.info({ subscriptionId: subscription.id }, 'Subscription created:');
 
     const connection = await dbPool.getConnection();
     try {
-        const customerId = subscription.customer;
-        const userId = subscription.metadata?.user_id;
-        const productId = subscription.metadata?.product_id;
-
-        if (!userId || !productId) {
-            logger.warn({ subscriptionId: subscription.id }, '⚠️ Suscripción creada sin user_id o product_id en metadata. No se guardará en DB local.');
-            return;
-        }
-
-        await stripeRepository.createSubscription(connection, {
-            user_id: userId,
-            payer_ref: customerId,
-            payment_method: null,
-            amount_minor: subscription.items.data[0].price.unit_amount,
-            currency: subscription.currency.toUpperCase(),
-            interval_months: subscription.items.data[0].price.recurring.interval === 'month' ? 1 : 12,
-            start_date: new Date(subscription.start_date * 1000),
-            next_charge_at: new Date(subscription.current_period_end * 1000),
-            status: subscription.status,
-            subscription_id: subscription.id,
-            metadata: {
-                product_id: productId,
-                coupon_code: subscription.metadata?.coupon_code || null
-            }
-        });
+        await ensureLocalSubscription(connection, subscription);
     } catch (error) {
         logger.error({ error, subscriptionId: subscription.id }, 'Error en handleSubscriptionCreated:');
     } finally {
@@ -673,12 +702,29 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     const connection = await dbPool.getConnection();
 
     try {
+        const stripeSubscriptionId = invoice?.subscription;
+        if (!stripeSubscriptionId) {
+            logger.warn({
+                invoiceId: invoice?.id,
+                eventType: 'invoice.payment_succeeded'
+            }, '⚠️ Invoice sin subscription asociada. Se ignora para evitar errores en DB.');
+            return;
+        }
+
         // 1. BUSCAR EN BD USANDO EL ID EXACTO DE SUSCRIPCIÓN DE STRIPE
         // Sacamos el subscription_id, user_id y el productId (que está en metadata)
-        const subRow = await stripeRepository.findSubscriptionById(connection, invoice.subscription);
+        let subRow = await stripeRepository.findSubscriptionById(connection, stripeSubscriptionId);
         if (!subRow) {
-            logger.info({ subscription: invoice.subscription }, '⚠️ No se encontró suscripción local para esta suscripción de Stripe.');
-            return;
+            logger.warn({ subscription: stripeSubscriptionId }, '⚠️ Suscripción no encontrada en DB local. Intentando sincronizar desde Stripe.');
+
+            const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+            await ensureLocalSubscription(connection, stripeSubscription);
+
+            subRow = await stripeRepository.findSubscriptionById(connection, stripeSubscriptionId);
+            if (!subRow) {
+                logger.info({ subscription: stripeSubscriptionId }, '⚠️ No se pudo sincronizar la suscripción localmente.');
+                return;
+            }
         }
 
         const { subscription_id, user_id, metadata } = subRow;

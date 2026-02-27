@@ -287,6 +287,11 @@ export async function saveStripeTransaction(productId, userId, paymentIntent, co
 }
 
 export async function findSubscriptionById(connection, subscription_id) {
+    if (!subscription_id) {
+        logger.warn({ subscription_id }, '⚠️ findSubscriptionById llamado sin subscription_id válido.');
+        return null;
+    }
+
     const [rows] = await connection.execute(
         `SELECT subscription_id, user_id, metadata
          FROM subscriptions
