@@ -699,6 +699,18 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
         lines: invoice.lines?.data?.length
     }, 'DEBUG INVOICE');
 
+    const subscriptionId =
+        invoice.subscription ||                             // 1. El sitio obvio
+        invoice.lines?.data[0]?.subscription ||             // 2. El detalle de la línea
+        invoice.subscription_details?.subscription ||       // 3. Metadatos de suscripción (API nuevas)
+        null;
+
+    logger.info({
+        invoiceId: invoice.id,
+        extractedSubId: subscriptionId,
+        billingReason: invoice.billing_reason // Debería decir 'subscription_create'
+    }, 'DEBUG EXTRACCIÓN');
+
     const connection = await dbPool.getConnection();
 
     return;
