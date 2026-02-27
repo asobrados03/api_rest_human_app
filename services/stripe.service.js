@@ -695,7 +695,7 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
     logger.info({
         invoiceId: invoice.id,
         customer: invoice.customer,
-        subscription: invoice.subscription,
+        subscription: invoice.subscription || invoice.lines?.data[0]?.subscription,
         lines: invoice.lines?.data?.length
     }, 'DEBUG INVOICE');
 
