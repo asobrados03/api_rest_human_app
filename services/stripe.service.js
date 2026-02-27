@@ -690,40 +690,36 @@ export async function handleSubscriptionDeleted(dbPool, subscription) {
 }
 
 export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
-    logger.info({ invoiceId: invoice.id }, '--- [WEBHOOK] Procesando Factura de Pago ---');
+    const customerId = invoice.customer;
+    const invoiceId = invoice.id;
 
-    logger.info({
-        invoiceId: invoice.id,
-        customer: invoice.customer,
-        subscription: invoice.subscription || invoice.lines?.data[0]?.subscription,
-        lines: invoice.lines?.data?.length
-    }, 'DEBUG INVOICE');
-
-    const subscriptionId =
-        invoice.subscription ||                             // 1. El sitio obvio
-        invoice.lines?.data[0]?.subscription ||             // 2. El detalle de la línea
-        invoice.subscription_details?.subscription ||       // 3. Metadatos de suscripción (API nuevas)
-        null;
-
-    logger.info({
-        invoiceId: invoice.id,
-        extractedSubId: subscriptionId,
-        billingReason: invoice.billing_reason // Debería decir 'subscription_create'
-    }, 'DEBUG EXTRACCIÓN');
+    logger.info({ invoiceId, customerId }, '--- [WEBHOOK] Procesando Factura de Pago ---');
 
     const connection = await dbPool.getConnection();
 
-    return;
-
     try {
-        // 1. BUSCAR EN BD USANDO EL CLIENTE (payer_ref)
-        // Sacamos el subscription_id, user_id y el productId (que está en metadata)
-        const subRow = await stripeRepository.findIncompleteSubscriptionByPayerRef(connection, invoice.customer);
+        // 1. Intentamos buscar por el ID de suscripción (por si acaso viniera)
+        let subId = invoice.subscription || invoice.lines?.data[0]?.subscription;
+        let subRow = null;
+
+        if (subId) {
+            subRow = await stripeRepository.findSubscriptionById(connection, subId);
+        }
+
+        // 2. EL SALVAVIDAS: Si no hay ID en la factura, buscamos por el Customer de Stripe
         if (!subRow) {
-            logger.info({ customer: invoice.customer }, '⚠️ No se encontró suscripción pendiente para este cliente.');
+            logger.warn({ customerId }, '⚠️ Factura sin ID de sub. Buscando última sub "incomplete" del cliente...');
+
+            // Esta función debe buscar en tu tabla 'subscriptions' el registro de este customer
+            subRow = await stripeRepository.findIncompleteSubscriptionByPayerRef(connection, customerId);
+        }
+
+        if (!subRow) {
+            logger.error({ customerId, invoiceId }, '❌ ERROR CRÍTICO: No existe suscripción pendiente en BD para este cliente.');
             return;
         }
 
+        // 3. Ya tenemos los datos de nuestra base de datos (user_id, product_id, etc.)
         const { subscription_id, user_id, metadata } = subRow;
         let productId = null;
         let couponCode = null;

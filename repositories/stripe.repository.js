@@ -312,7 +312,8 @@ export async function findIncompleteSubscriptionByPayerRef(connection, payer_ref
         `SELECT subscription_id, user_id, metadata
          FROM subscriptions
          WHERE payer_ref = ? AND status = 'incomplete'
-         ORDER BY created_at DESC LIMIT 1`,
+         ORDER BY created_at DESC 
+         LIMIT 1`,
         [payer_ref]
     );
     return rows.length ? rows[0] : null;
