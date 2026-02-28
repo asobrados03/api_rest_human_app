@@ -75,6 +75,7 @@ export async function attachPaymentMethod(req, res) {
         const { paymentMethodId, customerId } = req.body;
         logger.info({ customerId, paymentMethodId }, '[STRIPE] attachPaymentMethod iniciado');
 
+        // Validación simple: ahora solo necesitamos estos dos IDs
         if (!paymentMethodId || !customerId) {
             return res.status(400).json({
                 success: false,
@@ -86,19 +87,21 @@ export async function attachPaymentMethod(req, res) {
 
         res.status(200).json({
             success: true,
-            message: 'Método de pago adjuntado exitosamente',
+            message: 'Método de pago vinculado correctamente',
             data: paymentMethod
         });
 
+        // Log de actividad actualizado
         await logActivity(req, {
-            subject: `Stripe: método de pago ${paymentMethodId} adjuntado a cliente ${customerId}`,
+            subject: `Stripe: método de pago ${paymentMethod.id} adjuntado a cliente ${customerId}`,
             userId: req.user_payload?.id || req.body.userId || null
         }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (attachPaymentMethod)'));
+
     } catch (error) {
-        logger.error({ error }, 'Error en attachPaymentMethod');
+        logger.error({ error: error.message }, 'Error en controlador attachPaymentMethod');
         res.status(500).json({
             success: false,
-            message: 'Error al adjuntar método de pago',
+            message: 'Error al vincular el método de pago',
             error: error.message
         });
     }
@@ -154,6 +157,39 @@ export async function detachPaymentMethod(req, res) {
         res.status(500).json({
             success: false,
             message: 'Error al eliminar método de pago',
+            error: error.message
+        });
+    }
+}
+
+export async function setDefaultPaymentMethod(req, res) {
+    try {
+        const { paymentMethodId } = req.body.paymentMethodId || null;
+        const userId = req.user_payload?.id || req.body.userId;
+        logger.info({ userId, paymentMethodId }, '[STRIPE] setDefaultPaymentMethod iniciado');
+        if (!paymentMethodId || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'paymentMethodId y userId son requeridos'
+            });
+        }
+
+        await stripeService.setDefaultPaymentMethod(req.db, paymentMethodId, userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Método de pago establecido como predeterminado'
+        });
+
+        await logActivity(req, {
+            subject: `Stripe: método de pago ${paymentMethodId} establecido como predeterminado para usuario ${userId}`,
+            userId: userId || null
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (setDefaultPaymentMethod):'));
+    } catch (error) {
+        logger.error({ error }, 'Error en setDefaultPaymentMethod:');
+        res.status(500).json({
+            success: false,
+            message: 'Error al establecer método de pago predeterminado',
             error: error.message
         });
     }

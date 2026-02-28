@@ -61,6 +61,13 @@ router.get('/payment-methods/:customerId', verifyToken, stripeController.listPay
  */
 router.delete('/payment-method/:paymentMethodId', verifyToken, stripeController.detachPaymentMethod);
 
+/**
+ * @route   PUT /api/stripe/payment-method/default
+ * @desc    Establecer método de pago como predeterminado
+ * @access  Private
+ */
+router.put('/payment-method/default', verifyToken, stripeController.setDefaultPaymentMethod);
+
 // ==================== PAYMENT INTENTS ====================
 
 /**
