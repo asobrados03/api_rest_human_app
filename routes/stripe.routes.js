@@ -139,36 +139,6 @@ router.get('/subscription/:subscriptionId', verifyToken, stripeController.getSub
  */
 router.get('/transactions', verifyToken, stripeController.getUserTransactions);
 
-// ==================== TARJETAS ====================
-
-/**
- * @route   POST /api/stripe/cards
- * @desc    Guardar tarjeta
- * @access  Private
- */
-router.post('/cards', verifyToken, stripeController.saveCard);
-
-/**
- * @route   GET /api/stripe/cards
- * @desc    Obtener tarjetas del usuario
- * @access  Private
- */
-router.get('/cards', verifyToken, stripeController.getUserCards);
-
-/**
- * @route   DELETE /api/stripe/cards/:cardId
- * @desc    Eliminar tarjeta
- * @access  Private
- */
-router.delete('/cards/:cardId', verifyToken, stripeController.deleteCard);
-
-/**
- * @route   PUT /api/stripe/cards/:cardId/default
- * @desc    Establecer tarjeta como predeterminada
- * @access  Private
- */
-router.put('/cards/:cardId/default', verifyToken, stripeController.setDefaultCard);
-
 /**
  * @route   GET /api/stripe/publishable-key
  * @desc    Devolver la STRIPE_PUBLISHABLE_KEY (pública)
