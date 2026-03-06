@@ -464,6 +464,51 @@ export async function getSubscription(subscriptionId) {
     }
 }
 
+
+export async function createSetupConfig(dbPool, userId) {
+    const connection = await dbPool.getConnection();
+
+    try {
+        const user = await stripeRepository.getUserById(connection, userId);
+
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+
+        if (!user.stripe_customer_id) {
+            const error = new Error('El usuario no tiene stripe_customer_id asociado');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const ephemeralKey = await stripe.ephemeralKeys.create(
+            { customer: user.stripe_customer_id },
+            { apiVersion: '2026-01-28.clover' }
+        );
+
+        const setupIntent = await stripe.setupIntents.create({
+            customer: user.stripe_customer_id,
+            usage: 'off_session',
+            payment_method_types: ['card'],
+            metadata: {
+                user_id: String(user.user_id)
+            }
+        });
+
+        return {
+            customer_id: user.stripe_customer_id,
+            ephemeral_key: ephemeralKey.secret,
+            setup_intent_client_secret: setupIntent.client_secret,
+            setup_intent_id: setupIntent.id
+        };
+    } catch (error) {
+        logger.error({ error, userId }, 'Error en createSetupConfig:');
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
 // ==================== WEBHOOKS ====================
 
 /**
@@ -509,6 +554,10 @@ export async function handleWebhook(dbPool, event) {
 
             case 'invoice.payment_failed':
                 await this.handleInvoicePaymentFailed(object);
+                break;
+
+            case 'setup_intent.succeeded':
+                await this.handleSetupIntentSucceeded(dbPool, object);
                 break;
 
             default:
@@ -559,6 +608,40 @@ export async function handlePaymentIntentSucceeded(dbPool, paymentIntent) {
 export async function handlePaymentIntentFailed(paymentIntent) {
     logger.info({ paymentIntentId: paymentIntent.id }, 'Payment Intent failed:');
     // Notificar al usuario del fallo
+}
+
+export async function handleSetupIntentSucceeded(dbPool, setupIntent) {
+    const connection = await dbPool.getConnection();
+
+    try {
+        const customerId = setupIntent.customer;
+        const paymentMethodId = setupIntent.payment_method;
+
+        if (!customerId || !paymentMethodId) {
+            logger.warn({ setupIntentId: setupIntent.id }, 'setup_intent.succeeded sin customer o payment_method');
+            return;
+        }
+
+        const user = await stripeRepository.getUserByStripeCustomerId(connection, customerId);
+
+        if (!user) {
+            logger.warn({ setupIntentId: setupIntent.id, customerId }, 'No se encontró usuario para stripe_customer_id en setup_intent.succeeded');
+            return;
+        }
+
+        await stripeRepository.updateSubscriptionsPaymentMethodByUserId(
+            connection,
+            user.user_id,
+            paymentMethodId
+        );
+
+        logger.info({ setupIntentId: setupIntent.id, userId: user.user_id }, 'Método de pago de suscripciones actualizado tras setup_intent.succeeded');
+    } catch (error) {
+        logger.error({ error, setupIntentId: setupIntent?.id }, 'Error en handleSetupIntentSucceeded:');
+        throw error;
+    } finally {
+        connection.release();
+    }
 }
 
 async function ensureLocalSubscription(connection, subscription) {

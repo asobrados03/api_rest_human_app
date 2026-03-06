@@ -25,6 +25,19 @@ export async function getUserById(connection, userId) {
     return rows[0];
 }
 
+/**
+ * Obtener usuario por stripe_customer_id
+ */
+export async function getUserByStripeCustomerId(connection, stripeCustomerId) {
+    const query = `
+  SELECT user_id, user_name, email, phone, stripe_customer_id 
+  FROM users 
+  WHERE stripe_customer_id = ? AND deleted_at IS NULL
+`;
+    const [rows] = await connection.execute(query, [stripeCustomerId]);
+    return rows[0];
+}
+
 // ==================== TRANSACCIONES ====================
 /**
  * Obtener transacciones por usuario
@@ -187,4 +200,19 @@ export async function findIncompleteSubscriptionByPayerRef(connection, payer_ref
         [payer_ref]
     );
     return rows.length ? rows[0] : null;
+}
+
+/**
+ * Actualiza el método de pago de las suscripciones vigentes de un usuario
+ */
+export async function updateSubscriptionsPaymentMethodByUserId(connection, userId, paymentMethodId) {
+    const query = `
+        UPDATE subscriptions
+        SET payment_method = ?, updated_at = NOW()
+        WHERE user_id = ?
+          AND status <> 'canceled'
+    `;
+
+    const [result] = await connection.execute(query, [paymentMethodId, userId]);
+    return result;
 }

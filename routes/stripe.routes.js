@@ -148,4 +148,12 @@ router.get('/publishable-key', stripeController.getPublishableKey);
 
 router.post('/ephemeral-keys', verifyToken, stripeController.createEphemeralKey);
 
+
+/**
+ * @route   POST /api/stripe/payments/setup-config
+ * @desc    Crear configuración para guardar método de pago (Ephemeral Key + SetupIntent)
+ * @access  Private
+ */
+router.post('/payments/setup-config', verifyToken, stripeController.createSetupConfig);
+
 export default router;
