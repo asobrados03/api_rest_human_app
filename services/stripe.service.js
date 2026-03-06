@@ -1,13 +1,10 @@
 import stripe from '../config/stripe.config.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import {
-    createStripeMetadata,
-    DEFAULT_CURRENCY,
-    toCents
-} from '../utils/stripe.utils.js';
+import {createStripeMetadata, DEFAULT_CURRENCY, toCents} from '../utils/stripe.utils.js';
 import logger from '../utils/pino.js';
 import * as productService from "./service-products.service.js";
 import * as productRepo from "../repositories/service-products.repository.js";
+
 // ==================== CLIENTES ====================
 
 /**
@@ -78,16 +75,19 @@ export async function getCustomer(stripeCustomerId) {
  * Listar métodos de pago de un cliente
  */
 export async function listPaymentMethods(customerId) {
-    try {
-        const paymentMethods = await stripe.paymentMethods.list({
-            customer: customerId,
-            type: 'card',
-        });
-        return paymentMethods.data;
-    } catch (error) {
-        logger.error({ error }, 'Error en listPaymentMethods:');
-        throw error;
-    }
+    // Lanzamos ambas peticiones en paralelo
+    const [customer, paymentMethods] = await Promise.all([
+        stripe.customers.retrieve(customerId),
+        stripe.paymentMethods.list({ customer: customerId, type: 'card' })
+    ]);
+
+    // ID del método de pago por defecto
+    const defaultId = customer.invoice_settings?.default_payment_method || customer.default_source;
+
+    return {
+        methods: paymentMethods.data,
+        defaultPaymentMethodId: defaultId
+    };
 }
 
 /**
@@ -425,6 +425,13 @@ export async function cancelSubscription(dbPool, subscriptionId, userId, product
     } finally {
         connection.release();
     }
+}
+
+export async function createEphemeralKey(customerId) {
+    return await stripe.ephemeralKeys.create(
+        {customer: customerId},
+        {apiVersion: "2026-01-28.clover"}
+    );
 }
 
 /**

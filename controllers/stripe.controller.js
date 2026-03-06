@@ -1,6 +1,5 @@
 import * as stripeService from '../services/stripe.service.js';
 import * as stripeRepository from '../repositories/stripe.repository.js';
-import stripe from '../config/stripe.config.js';
 import { logActivity } from '../utils/logger.js';
 
 import logger from '../utils/pino.js';
@@ -73,24 +72,17 @@ export async function listPaymentMethods(req, res) {
     try {
         const { customerId } = req.params;
 
-        // 1. Lanzamos ambas peticiones en paralelo para ganar velocidad
-        const [customer, paymentMethods] = await Promise.all([
-            stripe.customers.retrieve(customerId),
-            stripe.paymentMethods.list({ customer: customerId, type: 'card' })
-        ]);
-
-        // 2. Extraemos el ID predeterminado (priorizando invoice_settings)
-        const defaultId = customer.invoice_settings?.default_payment_method || customer.default_source;
+        const data = await stripeService.listPaymentMethods(customerId);
 
         res.status(200).json({
             success: true,
-            data: {
-                methods: paymentMethods.data,
-                defaultPaymentMethodId: defaultId // Enriquecemos la respuesta
-            }
+            data
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
 }
 
@@ -413,7 +405,7 @@ export async function cancelSubscription(req, res) {
     }
 }
 
-export const createEphemeralKey = async (req, res) => {
+export async function createEphemeralKey(req, res) {
     try {
         const { customer_id } = req.body;
         logger.info({ customer_id }, '[STRIPE] createEphemeralKey iniciado');
@@ -425,10 +417,7 @@ export const createEphemeralKey = async (req, res) => {
             });
         }
 
-        const key = await stripe.ephemeralKeys.create(
-            { customer: customer_id },
-            { apiVersion: "2026-01-28.clover" }
-        );
+        const key = await stripeService.createEphemeralKey(customer_id);
 
         res.status(200).json({
             success: true,
@@ -447,7 +436,7 @@ export const createEphemeralKey = async (req, res) => {
             error: error.message
         });
     }
-};
+}
 
 /**
  * Obtener suscripción
