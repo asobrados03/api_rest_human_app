@@ -115,19 +115,24 @@ export async function listPaymentMethods(req, res) {
     try {
         const { customerId } = req.params;
 
-        const paymentMethods = await stripeService.listPaymentMethods(customerId);
+        // 1. Lanzamos ambas peticiones en paralelo para ganar velocidad
+        const [customer, paymentMethods] = await Promise.all([
+            stripe.customers.retrieve(customerId),
+            stripe.paymentMethods.list({ customer: customerId, type: 'card' })
+        ]);
+
+        // 2. Extraemos el ID predeterminado (priorizando invoice_settings)
+        const defaultId = customer.invoice_settings?.default_payment_method || customer.default_source;
 
         res.status(200).json({
             success: true,
-            data: paymentMethods
+            data: {
+                methods: paymentMethods.data,
+                defaultPaymentMethodId: defaultId // Enriquecemos la respuesta
+            }
         });
     } catch (error) {
-        logger.error({ error }, 'Error en listPaymentMethods');
-        res.status(500).json({
-            success: false,
-            message: 'Error al listar métodos de pago',
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 }
 
