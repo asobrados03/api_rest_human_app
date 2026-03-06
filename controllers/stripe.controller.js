@@ -170,16 +170,18 @@ export async function detachPaymentMethod(req, res) {
 export async function setDefaultPaymentMethod(req, res) {
     try {
         const paymentMethodId = req.body.paymentMethodId || null;
-        const userId = req.body.userId;
-        logger.info({ userId, paymentMethodId }, '[STRIPE] setDefaultPaymentMethod iniciado');
-        if (!paymentMethodId || !userId) {
+        const customerId = req.body.customerId;
+        const userId = req.user_payload?.id
+
+        logger.info({userId , paymentMethodId }, '[STRIPE] setDefaultPaymentMethod iniciado');
+        if (!paymentMethodId || !customerId) {
             return res.status(400).json({
                 success: false,
                 message: 'paymentMethodId y userId son requeridos'
             });
         }
 
-        await stripeService.setDefaultPaymentMethod(req.db, paymentMethodId, userId);
+        await stripeService.setDefaultPaymentMethod(customerId, paymentMethodId);
 
         res.status(200).json({
             success: true,
