@@ -41,13 +41,6 @@ router.get('/customer/:customerId', verifyToken, stripeController.getCustomer);
 // ==================== PAYMENT METHODS ====================
 
 /**
- * @route   POST /api/stripe/payment-method/attach
- * @desc    Adjuntar método de pago a un cliente
- * @access  Private
- */
-router.post('/payment-method/attach', verifyToken, stripeController.attachPaymentMethod);
-
-/**
  * @route   GET /api/stripe/payment-methods/:customerId
  * @desc    Listar métodos de pago de un cliente
  * @access  Private

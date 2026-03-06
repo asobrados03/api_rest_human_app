@@ -65,48 +65,6 @@ export async function getCustomer(req, res) {
 }
 
 // ==================== PAYMENT METHODS ====================
-
-/**
- * Adjuntar método de pago
- * POST /api/stripe/payment-method/attach
- */
-export async function attachPaymentMethod(req, res) {
-    try {
-        const { paymentMethodId, customerId } = req.body;
-        logger.info({ customerId, paymentMethodId }, '[STRIPE] attachPaymentMethod iniciado');
-
-        // Validación simple: ahora solo necesitamos estos dos IDs
-        if (!paymentMethodId || !customerId) {
-            return res.status(400).json({
-                success: false,
-                message: 'paymentMethodId y customerId son requeridos'
-            });
-        }
-
-        const paymentMethod = await stripeService.attachPaymentMethod(paymentMethodId, customerId);
-
-        res.status(200).json({
-            success: true,
-            message: 'Método de pago vinculado correctamente',
-            data: paymentMethod
-        });
-
-        // Log de actividad actualizado
-        await logActivity(req, {
-            subject: `Stripe: método de pago ${paymentMethod.id} adjuntado a cliente ${customerId}`,
-            userId: req.user_payload?.id || req.body.userId || null
-        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (attachPaymentMethod)'));
-
-    } catch (error) {
-        logger.error({ error: error.message }, 'Error en controlador attachPaymentMethod');
-        res.status(500).json({
-            success: false,
-            message: 'Error al vincular el método de pago',
-            error: error.message
-        });
-    }
-}
-
 /**
  * Listar métodos de pago
  * GET /api/stripe/payment-methods/:customerId

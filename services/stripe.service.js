@@ -75,31 +75,6 @@ export async function getCustomer(stripeCustomerId) {
 // ==================== PAYMENT METHODS ====================
 
 /**
- * Adjunta un PaymentMethod ya creado (vía Elements) a un cliente
- */
-export async function attachPaymentMethod(paymentMethodId, customerId) {
-    try {
-        // 1. Adjuntar el método al cliente
-        const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
-            customer: customerId,
-        });
-
-        // 2. IMPORTANTE: Establecerlo como método por defecto para sus futuras facturas
-        // Si no haces esto, las suscripciones podrían fallar al intentar cobrar.
-        await stripe.customers.update(customerId, {
-            invoice_settings: {
-                default_payment_method: paymentMethod.id,
-            },
-        });
-
-        return paymentMethod;
-    } catch (error) {
-        logger.error({ error: error.message, paymentMethodId, customerId }, 'Error en servicio attachPaymentMethod:');
-        throw error;
-    }
-}
-
-/**
  * Listar métodos de pago de un cliente
  */
 export async function listPaymentMethods(customerId) {
