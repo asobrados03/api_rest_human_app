@@ -170,7 +170,7 @@ export async function detachPaymentMethod(req, res) {
 export async function setDefaultPaymentMethod(req, res) {
     try {
         const paymentMethodId = req.body.paymentMethodId || null;
-        const userId = req.user_payload?.id || req.body.userId;
+        const userId = req.body.userId;
         logger.info({ userId, paymentMethodId }, '[STRIPE] setDefaultPaymentMethod iniciado');
         if (!paymentMethodId || !userId) {
             return res.status(400).json({
