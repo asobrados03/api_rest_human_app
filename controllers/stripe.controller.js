@@ -541,6 +541,42 @@ export async function getUserTransactions(req, res) {
     }
 }
 
+
+export async function createSetupConfig(req, res) {
+    try {
+        const userId = req.user_payload?.id;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Usuario no autenticado'
+            });
+        }
+
+        const setupConfig = await stripeService.createSetupConfig(req.db, userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Configuración de SetupIntent creada exitosamente',
+            data: setupConfig
+        });
+
+        await logActivity(req, {
+            subject: `Stripe: setup config creada para usuario ${userId}`,
+            userId
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createSetupConfig):'));
+    } catch (error) {
+        logger.error({ error }, 'Error en createSetupConfig:');
+
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            message: 'Error al crear configuración de método de pago',
+            error: error.message
+        });
+    }
+}
+
 // ==================== WEBHOOKS ====================
 
 /**
