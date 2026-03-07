@@ -2,6 +2,51 @@ import * as productBookingRepo from '../repositories/product-booking.repository.
 import * as dateUtils from '../utils/date-handler.js';
 
 import logger from '../utils/pino.js';
+
+async function ensureProductHasRemainingSessions({
+    connection,
+    customer_id,
+    activeProduct
+}) {
+    const weeklyLimit = Number(activeProduct.service_session_override ?? activeProduct.total_session ?? 0);
+    const totalLimit = Number(activeProduct.total_session ?? activeProduct.service_session_override ?? 0);
+
+    if (activeProduct.type_of_product === 'recurrent') {
+        if (!weeklyLimit || weeklyLimit < 0) return;
+
+        const usedWeekly = await productBookingRepo.countWeeklyBookings(
+            connection,
+            customer_id,
+            activeProduct.active_product_id,
+            new Date().toISOString().slice(0, 10)
+        );
+
+        if (usedWeekly >= weeklyLimit) {
+            throw {
+                status: 409,
+                message: `Has alcanzado el máximo semanal de reservas (${weeklyLimit}) para esta suscripción`
+            }
+        }
+
+        return;
+    }
+
+    if (!totalLimit || totalLimit < 0) return;
+
+    const usedTotal = await productBookingRepo.countTotalBookings(
+        connection,
+        customer_id,
+        activeProduct.active_product_id
+    );
+
+    if (usedTotal >= totalLimit) {
+        throw {
+            status: 409,
+            message: `Has alcanzado el máximo de reservas (${totalLimit}) para este producto`
+        }
+    }
+}
+
 export async function getDailyAvailabilityService({ productId, date, db }) {
     const targetProductId = Number(productId);
     const formattedDate = new Date(date).toISOString().slice(0, 10);
@@ -189,6 +234,12 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
             payment_method,
             payment_status
         } = productoActivo
+
+        await ensureProductHasRemainingSessions({
+            connection,
+            customer_id,
+            activeProduct: productoActivo
+        });
 
         /* ---------- Insert booking ---------- */
         const bookingId = await productBookingRepo.insertBooking(connection, {
@@ -434,6 +485,12 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
             payment_method,
             payment_status
         } = activeProduct
+
+        await ensureProductHasRemainingSessions({
+            connection,
+            customer_id,
+            activeProduct
+        });
 
         return await productBookingRepo.insertRecoveredBooking(connection, {
             active_product_id,

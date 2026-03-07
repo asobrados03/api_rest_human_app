@@ -93,13 +93,23 @@ export async function findActiveProduct(
     productId
 ) {
     const [[row]] = await connection.execute(`
-    SELECT active_product_id, payment_method, payment_status
-    FROM active_products
+    SELECT
+      ap.active_product_id,
+      ap.payment_method,
+      ap.payment_status,
+      ap.created_at AS active_product_created_at,
+      p.type_of_product,
+      p.total_session,
+      ps.session AS service_session_override
+    FROM active_products ap
+    JOIN products p ON ap.product_id = p.product_id
+    LEFT JOIN product_services ps ON ap.product_id = ps.product_id
     WHERE customer_id = ?
-      AND product_id = ?
-      AND deleted_at IS NULL
-      AND active_product_status = 'booked'
-    ORDER BY created_at DESC
+      AND ap.product_id = ?
+      AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())
+      AND ap.deleted_at IS NULL
+      AND LOWER(ap.active_product_status) IN ('booked', 'active', 'paid')
+    ORDER BY ap.created_at DESC
     LIMIT 1
   `, [customerId, productId])
 
@@ -462,6 +472,7 @@ export async function countWeeklyBookings(
     WHERE customer_id = ?
       AND active_product_id = ?
       AND status = 'active'
+      AND deleted_at IS NULL
       AND YEARWEEK(start_date, 1) = YEARWEEK(?, 1)
   `, [userId, activeProductId, targetDate])
 
@@ -479,6 +490,7 @@ export async function countTotalBookings(
     WHERE customer_id = ?
       AND active_product_id = ?
       AND status = 'active'
+      AND deleted_at IS NULL
   `, [userId, activeProductId])
 
     return rows[0]?.used || 0
