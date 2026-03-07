@@ -433,7 +433,6 @@ export async function findActiveProducts(connection, userId) {
       AND ap.active_product_status = 'booked'
       AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())
       AND (ap.deleted_at IS NULL OR ap.deleted_at > NOW())
-      AND ap.is_canceled_subscription = 0
   `, [userId])
 
     return rows
