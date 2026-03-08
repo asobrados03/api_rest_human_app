@@ -90,7 +90,8 @@ export async function findExistingBooking(
 export async function findActiveProduct(
     connection,
     customerId,
-    productId
+    productId,
+    { forUpdate = false } = {}
 ) {
     const [[row]] = await connection.execute(`
     SELECT
@@ -111,6 +112,7 @@ export async function findActiveProduct(
       AND LOWER(ap.active_product_status) IN ('booked', 'active', 'paid')
     ORDER BY ap.created_at DESC
     LIMIT 1
+    ${forUpdate ? 'FOR UPDATE' : ''}
   `, [customerId, productId])
 
     return row || null
