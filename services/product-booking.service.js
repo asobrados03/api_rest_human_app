@@ -209,8 +209,12 @@ export async function getDailyAvailabilityService({ productId, date, db }) {
 export async function reserveSessionService({ customer_id, coach_id, session_timeslot_id, service_id, product_id,
                                                 start_date, status, db }) {
     const connection = await db.getConnection()
+    let inTransaction = false
 
     try {
+        await connection.beginTransaction()
+        inTransaction = true
+
         /* ---------- Validación duplicados ---------- */
         const existing = await productBookingRepo.findExistingBooking(
             connection,
@@ -230,7 +234,8 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
         const productoActivo = await productBookingRepo.findActiveProduct(
             connection,
             customer_id,
-            product_id
+            product_id,
+            { forUpdate: true }
         )
 
         if (!productoActivo) {
@@ -267,8 +272,16 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
             payment_method
         })
 
+        await connection.commit()
+        inTransaction = false
+
         return { booking_id: bookingId }
     } catch (err) {
+        if (inTransaction) {
+            await connection.rollback()
+            inTransaction = false
+        }
+
         if (err.status) {
             const e = new Error(err.message)
             e.status = err.status
@@ -478,12 +491,17 @@ export async function cancelBookingService({ bookingId, db}) {
 export async function recoverSessionService({ customer_id, coach_id, session_timeslot_id, service_id, product_id,
                                                 start_date, db }) {
     const connection = await db.getConnection()
+    let inTransaction = false
 
     try {
+        await connection.beginTransaction()
+        inTransaction = true
+
         const activeProduct = await productBookingRepo.findActiveProduct(
             connection,
             customer_id,
-            product_id
+            product_id,
+            { forUpdate: true }
         )
 
         if (!activeProduct) {
@@ -505,7 +523,7 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
             targetDate: start_date
         });
 
-        return await productBookingRepo.insertRecoveredBooking(connection, {
+        const bookingId = await productBookingRepo.insertRecoveredBooking(connection, {
             active_product_id,
             customer_id,
             coach_id,
@@ -516,6 +534,18 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
             payment_status,
             payment_method
         })
+
+        await connection.commit()
+        inTransaction = false
+
+        return bookingId
+    } catch (err) {
+        if (inTransaction) {
+            await connection.rollback()
+            inTransaction = false
+        }
+
+        throw err
     } finally {
         connection.release()
     }
