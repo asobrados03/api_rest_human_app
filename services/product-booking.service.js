@@ -6,7 +6,8 @@ import logger from '../utils/pino.js';
 async function ensureProductHasRemainingSessions({
     connection,
     customer_id,
-    activeProduct
+    activeProduct,
+    targetDate
 }) {
     const weeklyLimit = Number(activeProduct.service_session_override ?? activeProduct.total_session ?? 0);
     const totalLimit = Number(activeProduct.total_session ?? activeProduct.service_session_override ?? 0);
@@ -14,12 +15,22 @@ async function ensureProductHasRemainingSessions({
     if (activeProduct.type_of_product === 'recurrent') {
         if (!weeklyLimit || weeklyLimit < 0) return;
 
+        const normalizedTargetDate = new Date(targetDate).toISOString().slice(0, 10);
+
         const usedWeekly = await productBookingRepo.countWeeklyBookings(
             connection,
             customer_id,
             activeProduct.active_product_id,
-            new Date().toISOString().slice(0, 10)
+            normalizedTargetDate
         );
+
+        logger.info({
+            active_product_id: activeProduct.active_product_id,
+            start_date: normalizedTargetDate,
+            usedWeekly,
+            weeklyLimit,
+            usage: `${usedWeekly}/${weeklyLimit}`
+        }, 'Weekly booking usage check');
 
         if (usedWeekly >= weeklyLimit) {
             throw {
@@ -238,7 +249,8 @@ export async function reserveSessionService({ customer_id, coach_id, session_tim
         await ensureProductHasRemainingSessions({
             connection,
             customer_id,
-            activeProduct: productoActivo
+            activeProduct: productoActivo,
+            targetDate: start_date
         });
 
         /* ---------- Insert booking ---------- */
@@ -489,7 +501,8 @@ export async function recoverSessionService({ customer_id, coach_id, session_tim
         await ensureProductHasRemainingSessions({
             connection,
             customer_id,
-            activeProduct
+            activeProduct,
+            targetDate: start_date
         });
 
         return await productBookingRepo.insertRecoveredBooking(connection, {
