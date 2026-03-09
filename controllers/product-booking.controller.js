@@ -74,10 +74,20 @@ export async function reserveSession(req, res) {
             booking_id: result.booking_id
         })
     } catch (err) {
-        logger.error({ err }, '[ERROR] POST /api/mobile/reserve →')
+        const statusCode = Number(err?.status) || 500
+        const errorMessage = err?.message || 'Error al insertar la reserva'
+
+        logger.error({ err, statusCode }, '[ERROR] POST /api/mobile/reserve →')
+
+        if (statusCode >= 400 && statusCode < 500) {
+            return res.status(statusCode).json({
+                error: errorMessage
+            })
+        }
+
         res.status(500).json({
             error: 'Error al insertar la reserva',
-            details: err.message
+            details: errorMessage
         })
     }
 }
