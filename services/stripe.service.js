@@ -446,7 +446,6 @@ export async function getSubscription(subscriptionId) {
     }
 }
 
-
 export async function createSetupConfig(dbPool, userId) {
     const connection = await dbPool.getConnection();
 

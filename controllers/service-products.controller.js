@@ -125,22 +125,6 @@ export async function getActiveProductDetail(req, res) {
         if (connection) connection.release();
     }
 }
-
-export async function searchProducts(req, res) {
-    const { query } = req.query;
-    let connection;
-    try {
-        connection = await req.db.getConnection();
-        const data = await service.searchProducts(connection, query);
-        logger.info({ query, total: data?.length || 0 }, '[SERVICE_PRODUCTS] searchProducts completado');
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    } finally {
-        if (connection) connection.release();
-    }
-}
-
 /**
  * GET /api/products/:id
  */

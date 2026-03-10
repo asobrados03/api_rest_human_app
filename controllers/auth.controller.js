@@ -77,24 +77,6 @@ export async function refreshTokenController(req, res) {
     }
 }
 
-export async function updateUserPayInfo(req, res) {
-    try {
-        const result = await authService.updatePayInfoService(req.db, req.body || {});
-
-        await logActivity(req, {
-            subject: `Updated user info (dni/direccionPostal) for user ${result.user_id}`,
-            userId: result.user_id
-        });
-
-        return res.json({ message: 'Datos actualizados correctamente' });
-    } catch (err) {
-        logger.error({ err }, 'Error en updateUserPayInfo:');
-        const status = err.status || 500;
-        const message = err.message || 'Error interno';
-        res.status(status).json({ error: message, details: err.message });
-    }
-}
-
 export async function changePassword(req, res) {
     try {
         const { currentPassword, newPassword, userId } = req.body || {};

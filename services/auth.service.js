@@ -164,32 +164,6 @@ export function refreshTokensService(oldRefresh) {
 
     return { accessToken: newAccess, refreshToken: newRefresh };
 }
-
-/**
- * Actualizar datos de pago
- */
-export async function updatePayInfoService(dbPool, { user_id, dni, direccionPostal }) {
-    if (!user_id) throw { status: 400, message: 'Falta user_id' };
-    if (!dni && !direccionPostal) throw { status: 400, message: 'Debe enviar al menos un campo' };
-
-    let connection;
-    try {
-        connection = await dbPool.getConnection();
-        const updates = [];
-        const values = [];
-
-        if (dni) { updates.push('dni = ?'); values.push(dni.trim()); }
-        if (direccionPostal) { updates.push('address = ?'); values.push(direccionPostal.trim()); }
-
-        await authRepo.updateUserPayInfo(connection, user_id, updates, values);
-        return { user_id };
-    } catch (err) {
-        throw err;
-    } finally {
-        if (connection) connection.release();
-    }
-}
-
 /**
  * Cambiar contraseña
  */

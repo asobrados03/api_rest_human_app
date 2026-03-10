@@ -198,14 +198,6 @@ export const getProductServices = async (connection, productId) => {
     return services;
 };
 
-export const searchProductsByName = async (connection, query) => {
-    const [rows] = await connection.execute(`
-    SELECT product_id AS id, product_name_es AS name, sell_price AS price, product_image AS image
-    FROM products WHERE deleted_at IS NULL AND product_name_es LIKE ? LIMIT 20
-  `, [`%${query}%`]);
-    return rows;
-};
-
 export const updateActiveProductExpiry = async (connection, id, newDueDate) => {
     const query = "UPDATE active_products SET due_date = ?, status = 'active' WHERE id = ?";
     return await connection.execute(query, [newDueDate, id]);

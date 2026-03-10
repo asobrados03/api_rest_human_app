@@ -49,19 +49,6 @@ export async function createUser(connection, data) {
     );
     return result.insertId;
 }
-
-/**
- * Actualiza datos básicos del usuario (DNI, Dirección).
- */
-export async function updateUserPayInfo(connection, userId, updates, values) {
-    // updates es un array tipo ['dni = ?', 'address = ?']
-    // values son los valores correspondientes
-    await connection.execute(
-        `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`,
-        [...values, userId]
-    );
-}
-
 /**
  * Actualiza la contraseña de un usuario.
  */

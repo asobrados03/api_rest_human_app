@@ -165,10 +165,6 @@ export const getActiveProductDetail = async (connection, userId, productId) => {
   return { ...product, services };
 };
 
-export const searchProducts = async (connection, query) => {
-  return await productRepo.searchProductsByName(connection, query);
-};
-
 export async function getProductDetail(dbPool, productId) {
   if (!Number.isInteger(productId) || productId <= 0) {
     const error = new Error('Invalid product id');
