@@ -76,10 +76,10 @@ router.get('/user/document/:filename', verifyToken, async (req, res) => {
 })
 
 // --- E-Wallet & Suscripciones ---
-router.get('/user/e-wallet-balance', getEwalletBalance)
-router.get('/user/transactions', getEwalletTransactions)
-router.get('/user/saved-payment-method', checkSavedPaymentMethod)
-router.get('/user/subscriptions', getUserSubscriptions)
-router.get('/user/subscriptions/history', getSubscriptionsHistory)
+router.get('/user/e-wallet-balance', verifyToken, getEwalletBalance)
+router.get('/user/transactions', verifyToken, getEwalletTransactions)
+router.get('/user/saved-payment-method', verifyToken, checkSavedPaymentMethod)
+router.get('/user/subscriptions', verifyToken, getUserSubscriptions)
+router.get('/user/subscriptions/history', verifyToken, getSubscriptionsHistory)
 
 export default router
