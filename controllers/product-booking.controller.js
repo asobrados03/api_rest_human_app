@@ -92,60 +92,6 @@ export async function reserveSession(req, res) {
     }
 }
 
-export async function getUserTrainingBookings(req, res) {
-    try {
-        const { user_id } = req.query
-
-        if (!user_id) {
-            return res.status(400).json({ error: 'user_id is required' })
-        }
-
-        const result = await productBookingService.getUserTrainingBookingsService({
-            userId: Number(user_id),
-            db: req.db
-        })
-
-        res.json(result) // { count }
-    } catch (err) {
-        logger.error({ err }, '[ERROR] GET /user-training-bookings →')
-        res.status(500).json({
-            error: 'Error retrieving training bookings'
-        })
-    }
-}
-
-export async function getTrainerReservationSlots(req, res) {
-    try {
-        const { date, shift } = req.query || {}
-        const coachId = req?.user_payload?.id
-
-        if (!date || !shift || !['morning', 'afternoon'].includes(shift)) {
-            return res.status(400).json({
-                error: 'Parámetros requeridos: date=YYYY-MM-DD & shift=morning|afternoon'
-            })
-        }
-
-        if (!coachId) {
-            return res.status(401).json({ error: 'No autorizado' })
-        }
-
-        const result = await productBookingService.getTrainerReservationSlotsService({
-            date,
-            shift,
-            coachId,
-            db: req.db
-        })
-
-        res.json(result)
-    } catch (err) {
-        logger.error({ err }, '[ERROR] /api/mobile/trainer/reservations/slots →')
-        res.status(500).json({
-            error: 'Error interno',
-            details: err?.message
-        })
-    }
-}
-
 export async function updateBooking(req, res) {
     try {
         const {
@@ -267,65 +213,6 @@ export async function cancelBooking(req, res) {
     }
 }
 
-export async function recoverSession(req, res) {
-    const {
-        customer_id,
-        coach_id,
-        session_timeslot_id,
-        service_id,
-        product_id,
-        start_date
-    } = req.body || {}
-
-    if (
-        !customer_id ||
-        !coach_id ||
-        !session_timeslot_id ||
-        !service_id ||
-        !product_id ||
-        !start_date
-    ) {
-        return res.status(400).json({ error: 'Faltan campos obligatorios' })
-    }
-
-    try {
-        const bookingId = await productBookingService.recoverSessionService({
-            customer_id,
-            coach_id,
-            session_timeslot_id,
-            service_id,
-            product_id,
-            start_date,
-            db: req.db
-        })
-
-        try {
-            await logActivity(req, {
-                subject: `Usuario ${customer_id} recuperó sesión con coach ${coach_id} el ${start_date}, active_product_id: ${active_product_id}`,
-                userId: customer_id
-            })
-        } catch (logErr) {
-            logger.error({ logErr }, '⚠️ Logging error (recoverSession):')
-        }
-
-        res.status(201).json({
-            message: '✅ Sesión recuperada con éxito',
-            booking_id: bookingId
-        })
-    } catch (err) {
-        logger.error({ err }, '[ERROR] POST /api/mobile/recover-session →', err)
-
-        if (err.status) {
-            return res.status(err.status).json({ error: err.message })
-        }
-
-        res.status(500).json({
-            error: 'Error al recuperar la sesión',
-            details: err.message
-        })
-    }
-}
-
 export async function getUserProduct(req, res) {
     const userId = parseInt(req.query.user_id, 10)
 
@@ -351,29 +238,6 @@ export async function getUserProduct(req, res) {
 
         res.status(500).json({
             error: 'Error al consultar el producto del usuario',
-            details: err.message
-        })
-    }
-}
-
-export async function getUserServices(req, res) {
-    const { user_id } = req.query
-
-    if (!user_id) {
-        return res.status(400).json({ error: 'Falta user_id' })
-    }
-
-    try {
-        const services = await productBookingService.getUserServicesService({
-            userId: user_id,
-            db: req.db
-        })
-
-        res.json(services)
-    } catch (err) {
-        logger.error({ err }, '[ERROR] /mobile/user-services', err)
-        res.status(500).json({
-            error: 'Error al consultar servicios del usuario',
             details: err.message
         })
     }
@@ -406,30 +270,6 @@ export async function getTimeslotId(req, res) {
     }
 }
 
-export async function getPreferredCoach(req, res) {
-    const { customer_id, service_id } = req.query || {}
-
-    if (!customer_id || !service_id) {
-        return res.status(400).json({ error: 'Faltan parámetros obligatorios' })
-    }
-
-    try {
-        const coachId = await productBookingService.getPreferredCoachService({
-            customerId: customer_id,
-            serviceId: service_id,
-            db: req.db
-        })
-
-        res.json({ coach_id: coachId })
-    } catch (err) {
-        logger.error({ err }, '[ERROR] GET /mobile/preferred-coach →', err)
-        res.status(500).json({
-            error: 'Error al consultar el entrenador preferido',
-            details: err.message
-        })
-    }
-}
-
 export async function getServiceIdForProduct(req, res) {
     try {
         const { productId } = req.params;
@@ -451,30 +291,6 @@ export async function getServiceIdForProduct(req, res) {
             error: 'Error interno al obtener el mapeo del producto',
             details: error.message
         });
-    }
-}
-
-export async function getUserWeeklyLimit(req, res) {
-    const { user_id, target_date } = req.query
-
-    if (!user_id) {
-        return res.status(400).json({ error: 'Falta user_id' })
-    }
-
-    try {
-        const weeklyLimits = await productBookingService.getUserWeeklyLimitService({
-            userId: user_id,
-            targetDate: target_date,
-            db: req.db
-        })
-
-        res.json({ weekly_limits: weeklyLimits })
-    } catch (err) {
-        logger.error({ err }, '[ERROR] GET /user-weekly-limit:', err)
-        res.status(500).json({
-            error: 'Error al calcular límite semanal',
-            details: err.message
-        })
     }
 }
 

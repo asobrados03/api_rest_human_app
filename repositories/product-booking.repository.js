@@ -152,115 +152,6 @@ export async function insertBooking(connection, data) {
     return result.insertId
 }
 
-export async function hasTrainingBookings(
-    connection,
-    userId,
-    productId
-) {
-    const [rows] = await connection.execute(
-        `
-    SELECT 1
-    FROM bookings
-    WHERE customer_id = ?
-      AND product_id = ?
-      AND deleted_at IS NULL
-    LIMIT 1
-    `,
-        [userId, productId]
-    )
-
-    return rows.length > 0
-}
-
-export async function fetchCoachAvailability(connection, coachId, date) {
-    const [rows] = await connection.execute(
-        `
-    SELECT 
-      days,
-      TIME_FORMAT(morning_start_time, '%H:%i:%s')   AS morning_start_time,
-      TIME_FORMAT(morning_end_time, '%H:%i:%s')     AS morning_end_time,
-      TIME_FORMAT(afternoon_start_time, '%H:%i:%s') AS afternoon_start_time,
-      TIME_FORMAT(afternoon_end_time, '%H:%i:%s')   AS afternoon_end_time,
-      product_id_morning,
-      product_id_afternoon
-    FROM coach_availability
-    WHERE coach_id = ?
-      AND (activacion IS NULL OR activacion <= ?)
-      AND (desactivacion IS NULL OR desactivacion > ?)
-    `,
-        [coachId, date, date]
-    )
-
-    return rows
-}
-
-export async function fetchServiceName(connection, serviceId) {
-    const [[row]] = await connection.execute(
-        `
-    SELECT service_name
-    FROM services
-    WHERE service_id = ?
-    LIMIT 1
-    `,
-        [serviceId]
-    )
-
-    return row?.service_name?.toLowerCase() ?? ''
-}
-
-export async function fetchServiceTimeslots(connection, serviceId, dayOfWeek) {
-    const [rows] = await connection.execute(
-        `
-            SELECT DISTINCT TIME_FORMAT(timeslot, '%H:%i:%s') AS timeslot
-            FROM session_timeslots
-            WHERE service_id = ? AND day_of_week = ?
-            ORDER BY timeslot
-        `,
-        [serviceId, dayOfWeek]
-    )
-
-    return rows.map(r => r.timeslot)
-}
-
-export async function fetchCoachBookingsForRange(
-    connection,
-    coachId,
-    date,
-    rangeStart,
-    rangeEnd,
-    serviceId
-) {
-    const [rows] = await connection.execute(
-        `
-    SELECT 
-      TIME_FORMAT(st.timeslot, '%H:%i:%s') AS time,
-      COUNT(b.booking_id) AS total,
-      MIN(s.service_name) AS service_name,
-      GROUP_CONCAT(
-        CONCAT(c.user_id, ':', c.user_name, ':', b.booking_id)
-        ORDER BY c.user_name SEPARATOR '||'
-      ) AS clients_raw
-    FROM session_timeslots st
-    LEFT JOIN bookings b
-      ON b.session_timeslot_id = st.session_timeslot_id
-     AND b.coach_id = ?
-     AND DATE(b.start_date) = ?
-     AND b.status = 'active'
-     AND b.deleted_at IS NULL
-    LEFT JOIN users c ON c.user_id = b.customer_id
-    LEFT JOIN services s ON s.service_id = b.service_id
-    WHERE st.timeslot >= ?
-      AND st.timeslot < ?
-      AND st.service_id = ?
-    GROUP BY time
-    ORDER BY time
-    `,
-        [coachId, date, rangeStart, rangeEnd, serviceId]
-    )
-
-    return rows
-}
-
 export async function bookingExists(connection, bookingId) {
     const [rows] = await connection.execute(
         `
@@ -340,43 +231,6 @@ export async function cancelBookingRow(connection, bookingId) {
     return result.affectedRows
 }
 
-export async function insertRecoveredBooking(connection, data) {
-    const [result] = await connection.execute(
-        `
-    INSERT INTO bookings (
-      active_product_id,
-      customer_id,
-      coach_id,
-      session_timeslot_id,
-      service_id,
-      product_id,
-      start_date,
-      status,
-      payment_status,
-      payment_method,
-      is_recovered,
-      created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-        [
-            data.active_product_id,
-            data.customer_id,
-            data.coach_id,
-            data.session_timeslot_id,
-            data.service_id,
-            data.product_id,
-            data.start_date,
-            'active',
-            data.payment_status,
-            data.payment_method,
-            1,
-            new Date()
-        ]
-    )
-
-    return result.insertId
-}
-
 export async function findLatestUserProduct(connection, userId) {
     const [rows] = await connection.execute(
         `
@@ -392,19 +246,6 @@ export async function findLatestUserProduct(connection, userId) {
     return rows.length ? rows[0] : null
 }
 
-export async function findUserServices(connection, userId) {
-    const [rows] = await connection.execute(`
-    SELECT DISTINCT(ps.service_id), s.service_name 
-    FROM product_services ps
-    JOIN active_products ap ON ps.product_id = ap.product_id
-    JOIN services s ON ps.service_id = s.service_id
-    JOIN products p ON p.product_id = ps.product_id AND p.deleted_at IS NULL
-    WHERE ap.customer_id = ? AND ap.deleted_at IS NULL
-  `, [userId])
-
-    return rows
-}
-
 export async function findTimeslotByHour(connection, formattedHour, serviceId, dayOfWeek) {
     const [rows] = await connection.execute(`
         SELECT session_timeslot_id
@@ -413,50 +254,6 @@ export async function findTimeslotByHour(connection, formattedHour, serviceId, d
           AND service_id = ?
           AND day_of_week = ?
     `, [formattedHour, serviceId, dayOfWeek])
-
-    return rows.length ? rows[0] : null
-}
-
-export async function findPreferredCoach(connection, customerId, serviceId) {
-    const [rows] = await connection.execute(`
-    SELECT coach_id
-    FROM preferred_coach
-    WHERE customer_id = ? AND service_id = ?
-    ORDER BY updated_at DESC
-    LIMIT 1
-  `, [customerId, serviceId])
-
-    return rows.length ? rows[0] : null
-}
-
-export async function findActiveProducts(connection, userId) {
-    const [rows] = await connection.execute(`
-    SELECT 
-      ap.active_product_id,
-      ap.product_id,
-      ap.created_at AS ap_created_at,
-      ap.expiry_date,
-      p.type_of_product,
-      p.total_session,
-      p.valid_due
-    FROM active_products ap
-    JOIN products p ON ap.product_id = p.product_id
-    WHERE ap.customer_id = ?
-      AND ap.active_product_status = 'booked'
-      AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())
-      AND (ap.deleted_at IS NULL OR ap.deleted_at > NOW())
-  `, [userId])
-
-    return rows
-}
-
-export async function findProductServiceOverride(connection, productId) {
-    const [rows] = await connection.execute(`
-    SELECT session
-    FROM product_services
-    WHERE product_id = ?
-    LIMIT 1
-  `, [productId])
 
     return rows.length ? rows[0] : null
 }
