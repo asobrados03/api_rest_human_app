@@ -12,7 +12,6 @@ router.use((req, res, next) => {
 router.get('/', productBookingController.testMobileRoute)
 router.get('/daily', verifyToken, productBookingController.getDailyAvailability)
 router.post('/bookings', verifyToken, productBookingController.reserveSession)
-router.get('/user-product', verifyToken, productBookingController.getUserProduct)
 router.get('/timeslot-id', verifyToken, productBookingController.getTimeslotId)
 router.get('/product/:productId/service-info', verifyToken, productBookingController.getServiceIdForProduct)
 router.get('/user-bookings', verifyToken, productBookingController.getUserBookings)
