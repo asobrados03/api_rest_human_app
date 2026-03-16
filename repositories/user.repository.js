@@ -114,7 +114,9 @@ export async function findPreferredCoachRelation(connection, customerId, service
     const [rows] = await connection.query(
         `SELECT preferred_coach_id, coach_id
          FROM preferred_coach
-         WHERE customer_id = ? AND service_id = ?`,
+         WHERE customer_id = ? AND service_id = ?
+         ORDER BY updated_at DESC, preferred_coach_id DESC
+         LIMIT 1`,
         [customerId, serviceId]
     );
     return rows[0];
@@ -136,7 +138,11 @@ export async function createPreferredCoach(connection, serviceId, customerId, co
 
 export async function findPreferredCoachByCustomer(connection, customerId) {
     const [rows] = await connection.query(
-        `SELECT coach_id FROM preferred_coach WHERE customer_id = ? LIMIT 1`,
+        `SELECT coach_id
+         FROM preferred_coach
+         WHERE customer_id = ?
+         ORDER BY updated_at DESC, preferred_coach_id DESC
+         LIMIT 1`,
         [customerId]
     );
     return rows[0];
