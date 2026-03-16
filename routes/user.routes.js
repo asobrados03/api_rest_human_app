@@ -1,27 +1,6 @@
 import { Router } from 'express'
 import { verifyToken } from '../middlewares/verifyToken.js'
-import {
-    getUser,
-    updateUser,
-    deleteUser,
-    getCoaches,
-    assignPreferredCoach,
-    getPreferredCoach,
-    getPreferredCoachWithService,
-    getUserStats,
-    deleteProfilePic,
-    addCouponToUser,
-    getUserCoupon,
-    uploadUserDocument,
-    deleteUserDocument,
-    getUserDocuments,
-    getEwalletBalance,
-    getEwalletTransactions,
-    checkSavedPaymentMethod,
-    removeCouponToUser,
-    getUserSubscriptions,
-    getSubscriptionsHistory
-} from '../controllers/user.controller.js'
+import * as controller from '../controllers/user.controller.js'
 import logger from '../utils/pino.js';
 import { compressImageIfNeeded, handleProfilePicUpload } from "../middlewares/uploadProfile_Pic.js"
 import uploadMobileDocument from '../middlewares/uploadDocument.js'
@@ -30,35 +9,30 @@ import fs from 'fs'
 
 const router = Router()
 
-const resolveUserContextFromPath = (req, _res, next) => {
-    req.query.user_id = req.params.userId
-    next()
-}
-
 router.use((req, res, next) => {
     req.db = req.app.get('db')
     next()
 })
 
-router.get('/user', verifyToken, getUser)
-router.put('/user', verifyToken, handleProfilePicUpload, compressImageIfNeeded, updateUser)
-router.delete('/user', verifyToken, deleteUser)
-router.delete('/user/photo', verifyToken, deleteProfilePic)
+router.get('/user', verifyToken, controller.getUser)
+router.put('/user', verifyToken, handleProfilePicUpload, compressImageIfNeeded, controller.updateUser)
+router.delete('/user', verifyToken, controller.deleteUser)
+router.delete('/user/photo', verifyToken, controller.deleteProfilePic)
 
-router.get('/users/:userId/stats', verifyToken, resolveUserContextFromPath, getUserStats)
+router.get('/users/:userId/stats', verifyToken, controller.getUserStats)
 
-router.get('/coaches', verifyToken, getCoaches)
-router.post('/user/preferred-coach', verifyToken, assignPreferredCoach)
-router.get('/user/preferred-coach', verifyToken, getPreferredCoach)
-router.get('/user/preferred-coach-with-service', verifyToken, getPreferredCoachWithService)
+router.get('/coaches', verifyToken, controller.getCoaches)
+router.post('/user/preferred-coach', verifyToken, controller.assignPreferredCoach)
+router.get('/user/preferred-coach', verifyToken, controller.getPreferredCoach)
+router.get('/user/preferred-coach-with-service', verifyToken, controller.getPreferredCoachWithService)
 
-router.post('/users/:userId/coupons', verifyToken, addCouponToUser)
-router.delete('/users/:userId/coupons/:couponCode', verifyToken, removeCouponToUser)
-router.get('/users/:userId/coupons', verifyToken, getUserCoupon)
+router.post('/users/:userId/coupons', verifyToken, controller.addCouponToUser)
+router.delete('/users/:userId/coupons/:couponCode', verifyToken, controller.removeCouponToUser)
+router.get('/users/:userId/coupons', verifyToken, controller.getUserCoupon)
 
 router.post('/users/:userId/documents', verifyToken, uploadMobileDocument.single('file'), uploadUserDocument)
-router.get('/users/:userId/documents', verifyToken, getUserDocuments)
-router.delete('/users/:userId/documents/:filename', verifyToken, deleteUserDocument)
+router.get('/users/:userId/documents', verifyToken, controller.getUserDocuments)
+router.delete('/users/:userId/documents/:filename', verifyToken, controller.deleteUserDocument)
 router.get('/users/:userId/documents/:filename', verifyToken, async (req, res) => {
     try {
         const userId = req.user_payload.id
@@ -80,10 +54,10 @@ router.get('/users/:userId/documents/:filename', verifyToken, async (req, res) =
 })
 
 // --- E-Wallet & Suscripciones ---
-router.get('/user/e-wallet-balance', verifyToken, getEwalletBalance)
-router.get('/user/transactions', verifyToken, getEwalletTransactions)
-router.get('/user/saved-payment-method', verifyToken, checkSavedPaymentMethod)
-router.get('/user/subscriptions', verifyToken, getUserSubscriptions)
-router.get('/user/subscriptions/history', verifyToken, getSubscriptionsHistory)
+router.get('/user/e-wallet-balance', verifyToken, controller.getEwalletBalance)
+router.get('/user/transactions', verifyToken, controller.getEwalletTransactions)
+router.get('/user/saved-payment-method', verifyToken, controller.checkSavedPaymentMethod)
+router.get('/user/subscriptions', verifyToken, controller.getUserSubscriptions)
+router.get('/user/subscriptions/history', verifyToken, controller.getSubscriptionsHistory)
 
 export default router

@@ -42,7 +42,7 @@ export async function getServiceProducts(req, res) {
 }
 
 export async function getUserProducts(req, res) {
-    const { user_id } = req.query;
+    const { user_id } = req.params.userId;
     if (isNaN(user_id)) {
         return res.status(400).json({ error: 'Parámetro user_id inválido o ausente' });
     }

@@ -153,12 +153,14 @@ export async function deleteProfilePic(req, res) {
 }
 
 export async function getUserStats(req, res) {
+    const { user_id } = req.params.userId || req.user_payload?.id || 0;
+
     try {
-        const stats = await userService.getUserStatsService(req.db, req.query.user_id);
+        const stats = await userService.getUserStatsService(req.db, user_id);
 
         await logActivity(req, {
             subject: `Consulta de estadísticas del usuario ${req.query.user_id}`,
-            userId: Number(req.query.user_id) || req.user_payload?.id || 0
+            userId: Number(user_id)
         }).catch(e => logger.error({ e }, 'Log error:'));
 
         // Enviamos 'stats' directamente, sin el envoltorio { byService: ... }

@@ -12,10 +12,7 @@ router.use((req, res, next) => {
 router.get('/', controller.testMobileRoute)
 router.get('/services', verifyToken, controller.getAllServices)
 router.get('/service-products', verifyToken, controller.getServiceProducts)
-router.get('/users/:userId/products', verifyToken, (req, _res, next) => {
-    req.query.user_id = req.params.userId
-    next()
-}, controller.getUserProducts)
+router.get('/users/:userId/products', verifyToken, controller.getUserProducts)
 router.post('/users/:userId/products', verifyToken, controller.assignProductToUser)
 router.delete('/users/:userId/products/:productId', verifyToken, controller.unassignProductFromUser)
 router.get('/active-product-detail', verifyToken, controller.getActiveProductDetail)
