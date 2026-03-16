@@ -200,7 +200,14 @@ export const getProductServices = async (connection, productId) => {
     return services;
 };
 
-export const updateActiveProductExpiry = async (connection, id, newDueDate) => {
-    const query = "UPDATE active_products SET due_date = ?, status = 'active' WHERE id = ?";
-    return await connection.execute(query, [newDueDate, id]);
+export const updateActiveProductExpiry = async (connection, activeProductId, newExpiryDate) => {
+    const query = `
+        UPDATE active_products
+        SET expiry_date = ?,
+            updated_at = NOW()
+        WHERE active_product_id = ?
+          AND deleted_at IS NULL
+    `;
+
+    return await connection.execute(query, [newExpiryDate, activeProductId]);
 };

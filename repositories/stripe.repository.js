@@ -111,7 +111,7 @@ export async function cancelSubscription(connection, subscriptionId) {
  * Actualiza el estado y metadatos de una suscripción basada en el ID de Stripe
  */
 export async function updateSubscriptionStatus(connection, subscription_id, data) {
-    const { status, payment_method, next_charge_at } = data;
+    const { status, payment_method, start_date, next_charge_at } = data;
 
     // Construimos la query dinámicamente para actualizar solo lo que venga en 'data'
     const updates = [];
@@ -127,6 +127,11 @@ export async function updateSubscriptionStatus(connection, subscription_id, data
         values.push(payment_method);
     }
 
+    if (start_date) {
+        updates.push("start_date = ?");
+        values.push(start_date);
+    }
+
     if (next_charge_at) {
         updates.push("next_charge_at = ?");
         values.push(next_charge_at);
@@ -139,7 +144,7 @@ export async function updateSubscriptionStatus(connection, subscription_id, data
 
     const query = `
         UPDATE subscriptions 
-        SET ${updates.join(", ")} 
+        SET ${updates.join(", ")}, updated_at = NOW()
         WHERE subscription_id = ?
     `;
 
