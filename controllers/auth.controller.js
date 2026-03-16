@@ -77,6 +77,22 @@ export async function refreshTokenController(req, res) {
     }
 }
 
+
+export async function logoutCurrentSession(req, res) {
+    try {
+        await logActivity(req, {
+            subject: `Cierre de sesión: ${req.user_payload?.email || 'usuario desconocido'}` ,
+            userId: req.user_payload?.id || null
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (logoutCurrentSession):'));
+
+        return res.status(204).send();
+    } catch (err) {
+        logger.error({ err }, 'Error en logoutCurrentSession:');
+        const status = err.status || 500;
+        return res.status(status).json({ error: err.message || 'Error interno al cerrar sesión' });
+    }
+}
+
 export async function changePassword(req, res) {
     try {
         const { currentPassword, newPassword, userId } = req.body || {};

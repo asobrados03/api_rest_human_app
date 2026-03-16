@@ -11,10 +11,11 @@ router.use((req, res, next) => {
     next()
 })
 
-// Rutas (apuntan a las funciones del controller que te pasé antes)
-router.post('/register', upload.single('profile_pic'), compressImageIfNeeded, authController.registerUser)
-router.post('/login', authController.loginUser)
-router.post('/refresh', authController.refreshTokenController)
+// Rutas de autenticación modeladas como recursos
+router.post('/users', upload.single('profile_pic'), compressImageIfNeeded, authController.registerUser)
+router.post('/sessions', authController.loginUser)
+router.delete('/sessions/current', verifyToken, authController.logoutCurrentSession)
+router.post('/tokens/refresh', authController.refreshTokenController)
 router.put('/change-password', verifyToken, authController.changePassword)
 router.put('/reset-password', authController.resetPassword)
 

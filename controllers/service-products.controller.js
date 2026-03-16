@@ -62,7 +62,9 @@ export async function getUserProducts(req, res) {
 }
 
 export async function assignProductToUser(req, res) {
-    const { user_id, product_id, payment_method } = req.body;
+    const { userId } = req.params;
+    const { product_id, payment_method } = req.body;
+    const user_id = Number(userId);
 
     if (!user_id || !product_id || !payment_method) {
         return res.status(400).json({ error: 'Faltan parámetros obligatorios' });
@@ -71,7 +73,7 @@ export async function assignProductToUser(req, res) {
     let connection;
     try {
         connection = await req.db.getConnection();
-        const result = await service.assignProduct(connection, req.body);
+        const result = await service.assignProduct(connection, { ...req.body, user_id });
 
         // Logging se mantiene en controller porque requiere 'req'
         await logActivity(req, { subject: `Producto ${product_id} asignado a ${user_id}`, userId: user_id });
@@ -88,7 +90,10 @@ export async function assignProductToUser(req, res) {
 }
 
 export async function unassignProductFromUser(req, res) {
-    const { user_id, product_id } = req.query;
+    const { userId, productId } = req.params;
+    const user_id = Number(userId);
+    const product_id = Number(productId);
+
     if (!user_id || !product_id) return res.status(400).json({ error: 'Faltan parámetros' });
 
     let connection;
