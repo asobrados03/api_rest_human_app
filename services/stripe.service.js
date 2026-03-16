@@ -644,6 +644,7 @@ async function ensureLocalSubscription(connection, subscription) {
         await stripeRepository.updateSubscriptionStatus(connection, subscription.id, {
             status: subscription.status,
             payment_method: null,
+            start_date: new Date(subscription.current_period_start * 1000),
             next_charge_at: new Date(subscription.current_period_end * 1000)
         });
         return existing;
@@ -696,6 +697,7 @@ export async function handleSubscriptionUpdated(dbPool, subscription) {
         // 2. Solo actualizamos datos relevantes
         await stripeRepository.updateSubscriptionStatus(connection, subscription.id, {
             status: subscription.status,
+            start_date: new Date(subscription.current_period_start * 1000),
             // Actualizamos la fecha de cobro si ha cambiado
             next_charge_at: new Date(subscription.current_period_end * 1000)
         });
@@ -819,10 +821,12 @@ export async function handleInvoicePaymentSucceeded(dbPool, invoice) {
 
         // 3. ACTUALIZAR Y ACTIVAR
         // Marcamos como activa en tu tabla
+        const linePeriod = invoice.lines?.data?.[0]?.period || {};
         await stripeRepository.updateSubscriptionStatus(connection, subscription_id, {
             status: 'active',
             payment_method: "card",
-            next_charge_at: new Date(invoice.lines?.data[0]?.period?.end * 1000)
+            start_date: linePeriod.start ? new Date(linePeriod.start * 1000) : null,
+            next_charge_at: linePeriod.end ? new Date(linePeriod.end * 1000) : null
         });
 
         // Activamos el producto en tu lógica de negocio

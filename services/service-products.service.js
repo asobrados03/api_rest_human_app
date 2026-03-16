@@ -52,13 +52,13 @@ export const assignProduct = async (connection, { user_id, product_id, payment_m
 
     // Calculamos la nueva fecha: Si ya está vencido, sumamos desde hoy.
     // Si aún es válido, sumamos desde la fecha de vencimiento actual.
-    const currentExpiry = new Date(existing.due_date);
+    const currentExpiry = existing.expiry_date ? new Date(existing.expiry_date) : null;
     const baseDate = currentExpiry > new Date() ? currentExpiry : new Date();
     const newDueDate = new Date(baseDate.getTime() + (product.valid_due * 24 * 60 * 60 * 1000));
 
-    await productRepo.updateActiveProductExpiry(connection, existing.id, newDueDate);
+    await productRepo.updateActiveProductExpiry(connection, existing.active_product_id, newDueDate);
 
-    return { assigned_id: existing.id, action: 'renewed' };
+    return { assigned_id: existing.active_product_id, action: 'renewed' };
   }
 
   // 4. LÓGICA DE PRIMERA ASIGNACIÓN (Lo que ya tenías)
