@@ -210,33 +210,44 @@ export async function getCoachesService(dbPool) {
 }
 
 export async function assignPreferredCoachService(dbPool, { service_name, customer_id, coach_id }) {
-    if (!service_name || !customer_id || !coach_id) throw { status: 400, message: 'Faltan campos obligatorios' };
+    // Validación estricta: permitimos el número 0 pero no null/undefined/vacío
+    if (!service_name || customer_id === undefined || coach_id === undefined) {
+        throw { status: 400, message: 'Faltan campos obligatorios' };
+    }
 
     let connection;
     try {
         connection = await dbPool.getConnection();
         await connection.beginTransaction();
 
+        // 1. Buscar el servicio
         const service = await userRepo.findServiceByName(connection, service_name);
         if (!service) {
-            await connection.rollback();
+            // Lanzamos error y el catch se encarga del rollback
             throw { status: 400, message: `No existe servicio: "${service_name}"` };
         }
 
+        // 2. Verificar si ya existe la relación
         const existing = await userRepo.findPreferredCoachRelation(connection, customer_id, service.service_id);
 
         if (existing) {
+            // Actualizar
             await userRepo.updatePreferredCoach(connection, existing.preferred_coach_id, coach_id);
             await connection.commit();
             return { message: 'Actualizado', status: 200 };
         } else {
+            // Crear nuevo
             await userRepo.createPreferredCoach(connection, service.service_id, customer_id, coach_id);
             await connection.commit();
             return { message: 'Asignado', status: 201 };
         }
+
     } catch (err) {
-        if (connection) await connection.rollback();
-        throw err;
+        // Rollback ÚNICO y centralizado
+        if (connection) {
+            await connection.rollback().catch(rbErr => logger.error('Error en rollback:', rbErr));
+        }
+        throw err; // Re-lanzamos para que el controlador use handleError
     } finally {
         if (connection) connection.release();
     }

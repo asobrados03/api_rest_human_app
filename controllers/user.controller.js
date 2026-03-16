@@ -90,14 +90,25 @@ export async function getCoaches(req, res) {
 
 export async function assignPreferredCoach(req, res) {
     try {
-        const result = await userService.assignPreferredCoachService(req.db, req.body);
+        // Extraemos los datos del body que envía Kotlin
+        const { service_name, customer_id, coach_id } = req.body;
 
+        const result = await userService.assignPreferredCoachService(req.db, {
+            service_name,
+            customer_id,
+            coach_id
+        });
+
+        // Log de actividad corregido
         await logActivity(req, {
-            subject: `El usuario ${req.body.customer_id} marcó como favorito al coach ${req.body.coach_id}`,
-            userId: req.user_payload.id || 0
+            subject: `Usuario ${customer_id} marcó como favorito al coach ${coach_id}`,
+            userId: Number(customer_id) || req.user_payload?.id || 0
         }).catch(e => logger.error({ e }, 'Log error:'));
 
-        return res.status(result.status).json({ message: result.message + ' correctamente.' });
+        return res.status(result.status).json({
+            message: result.message + ' correctamente.'
+        });
+
     } catch (err) {
         return handleError(res, err, 'assignPreferredCoach');
     }
