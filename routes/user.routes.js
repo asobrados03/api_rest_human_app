@@ -30,7 +30,7 @@ router.post('/users/:userId/coupons', verifyToken, controller.addCouponToUser)
 router.delete('/users/:userId/coupons/:couponCode', verifyToken, controller.removeCouponToUser)
 router.get('/users/:userId/coupons', verifyToken, controller.getUserCoupon)
 
-router.post('/users/:userId/documents', verifyToken, uploadMobileDocument.single('file'), uploadUserDocument)
+router.post('/users/:userId/documents', verifyToken, uploadMobileDocument.single('file'), controller.uploadUserDocument)
 router.get('/users/:userId/documents', verifyToken, controller.getUserDocuments)
 router.delete('/users/:userId/documents/:filename', verifyToken, controller.deleteUserDocument)
 router.get('/users/:userId/documents/:filename', verifyToken, async (req, res) => {
