@@ -1,3 +1,4 @@
+import './env.js';
 import mysql from 'mysql2/promise';
 
 import logger from '../utils/pino.js';

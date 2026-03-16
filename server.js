@@ -1,10 +1,9 @@
-import dotenv from 'dotenv';
+import './config/env.js';
 import app from './app.js';
 import { createServer } from 'http';
 
 import logger from './utils/pino.js';
 
-dotenv.config();
 const PORT = process.env.PORT || 8085;
 const HOST = '127.0.0.1';
 
