@@ -46,9 +46,9 @@ router.post('/user/preferred-coach', verifyToken, assignPreferredCoach)
 router.get('/user/preferred-coach', verifyToken, getPreferredCoach)
 router.get('/user/preferred-coach-with-service', verifyToken, getPreferredCoachWithService)
 
-router.post('/user/:userId/coupon', verifyToken, addCouponToUser)
-router.post('/user/:userId/coupon/remove', verifyToken, removeCouponToUser)
-router.get('/user/:userId/coupon', verifyToken, getUserCoupon)
+router.post('/users/:userId/coupon', verifyToken, addCouponToUser)
+router.delete('/users/:userId/coupons/:couponCode', verifyToken, removeCouponToUser)
+router.get('/users/:userId/coupon', verifyToken, getUserCoupon)
 
 router.post('/user/document', verifyToken, uploadMobileDocument.single('file'), uploadUserDocument)
 router.get('/user/documents', verifyToken, getUserDocuments)

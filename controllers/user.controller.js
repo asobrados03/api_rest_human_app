@@ -190,14 +190,18 @@ export async function addCouponToUser(req, res) {
 
 export async function removeCouponToUser(req, res) {
     try {
+        if (!req.params?.couponCode) {
+            return res.status(400).json({ error: 'Falta couponCode en la URI' });
+        }
+
         await userService.removeCouponToUserService(req.db, {
             userId: Number(req.params.userId),
-            coupon_code: req.body.coupon_code,
+            coupon_code: req.params.couponCode,
             tokenPayload: req.user_payload
         });
 
         await logActivity(req, {
-            subject: `Cupón ${req.body.coupon_code} eliminado del usuario ${req.params.userId}`,
+            subject: `Cupón ${req.params.couponCode} eliminado del usuario ${req.params.userId}`,
             userId: Number(req.params.userId)
         }).catch(e => logger.error({ e }, 'Log error:'));
 

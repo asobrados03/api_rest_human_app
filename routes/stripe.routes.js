@@ -77,6 +77,14 @@ router.post('/payment-intents', verifyToken, stripeController.createPaymentInten
  */
 router.patch('/payment-intents/:paymentIntentId', verifyToken, stripeController.updatePaymentIntentStatus);
 
+
+/**
+ * @route   PATCH /api/stripe/payment-intents/:paymentIntentId/state
+ * @desc    Transición de estado de Payment Intent (confirmed|canceled)
+ * @access  Private
+ */
+router.patch('/payment-intents/:paymentIntentId/state', verifyToken, stripeController.updatePaymentIntentStatus);
+
 /**
  * @route   GET /api/stripe/payment-intents/:paymentIntentId
  * @desc    Obtener Payment Intent

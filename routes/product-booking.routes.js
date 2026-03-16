@@ -17,7 +17,7 @@ router.get('/timeslot-id', verifyToken, productBookingController.getTimeslotId)
 router.get('/product/:productId/service-info', verifyToken, productBookingController.getServiceIdForProduct)
 router.get('/user-bookings', verifyToken, productBookingController.getUserBookings)
 router.delete('/bookings/:bookingId',verifyToken, productBookingController.cancelBooking)
-router.patch('/bookings/:bookingId', verifyToken, productBookingController.updateBooking)
+router.patch('/bookings/:id', verifyToken, productBookingController.updateBooking)
 router.get('/holidays', verifyToken, productBookingController.getHolidays)
 
 export default router
