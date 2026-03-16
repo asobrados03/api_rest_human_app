@@ -153,7 +153,7 @@ export async function deleteProfilePic(req, res) {
 }
 
 export async function getUserStats(req, res) {
-    const { user_id } = req.params.userId || req.user_payload?.id || 0;
+    const user_id = req.params.userId || req.user_payload?.id || 0;
 
     try {
         const stats = await userService.getUserStatsService(req.db, user_id);
