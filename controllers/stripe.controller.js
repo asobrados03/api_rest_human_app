@@ -156,7 +156,7 @@ export async function setDefaultPaymentMethod(req, res) {
 
 /**
  * Crear Payment Intent
- * POST /api/stripe/payment-intent
+ * POST /api/stripe/payment-intents
  */
 export async function createPaymentIntent(req, res) {
     try {
@@ -199,7 +199,7 @@ export async function createPaymentIntent(req, res) {
 
 /**
  * Confirmar Payment Intent
- * POST /api/stripe/payment-intent/:paymentIntentId/confirm
+ * POST /api/stripe/payment-intents/:paymentIntentId/confirm
  */
 export async function confirmPaymentIntent(req, res) {
     try {
@@ -235,9 +235,66 @@ export async function confirmPaymentIntent(req, res) {
     }
 }
 
+
+/**
+ * Actualizar estado de Payment Intent
+ * PATCH /api/stripe/payment-intents/:paymentIntentId
+ */
+export async function updatePaymentIntentStatus(req, res) {
+    try {
+        const { paymentIntentId } = req.params;
+        const { status, paymentMethodId } = req.body || {};
+
+        if (!status || !['confirmed', 'canceled'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'status debe ser confirmed o canceled'
+            });
+        }
+
+        if (status === 'confirmed') {
+            if (!paymentMethodId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'paymentMethodId es requerido cuando status=confirmed'
+                });
+            }
+
+            const paymentIntent = await stripeService.confirmPaymentIntent(paymentIntentId, paymentMethodId);
+
+            await logActivity(req, {
+                subject: `Stripe: payment intent confirmado (${paymentIntentId})`,
+                userId: req.user_payload?.id || null
+            }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (updatePaymentIntentStatus/confirm):'));
+
+            return res.status(200).json({ success: true, data: paymentIntent });
+        }
+
+        const paymentIntent = await stripeService.cancelPaymentIntent(paymentIntentId);
+
+        await logActivity(req, {
+            subject: `Stripe: payment intent cancelado (${paymentIntentId})`,
+            userId: req.user_payload?.id || null
+        }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (updatePaymentIntentStatus/cancel):'));
+
+        return res.status(200).json({
+            success: true,
+            message: 'Payment Intent cancelado exitosamente',
+            data: paymentIntent
+        });
+    } catch (error) {
+        logger.error({ error }, 'Error en updatePaymentIntentStatus:');
+        return res.status(500).json({
+            success: false,
+            message: 'Error al actualizar Payment Intent',
+            error: error.message
+        });
+    }
+}
+
 /**
  * Obtener Payment Intent
- * GET /api/stripe/payment-intent/:paymentIntentId
+ * GET /api/stripe/payment-intents/:paymentIntentId
  */
 export async function getPaymentIntent(req, res) {
     try {
@@ -261,7 +318,7 @@ export async function getPaymentIntent(req, res) {
 
 /**
  * Cancelar Payment Intent
- * POST /api/stripe/payment-intent/:paymentIntentId/cancel
+ * POST /api/stripe/payment-intents/:paymentIntentId/cancel
  */
 export async function cancelPaymentIntent(req, res) {
     try {

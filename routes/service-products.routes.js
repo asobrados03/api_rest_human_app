@@ -13,8 +13,8 @@ router.get('/', controller.testMobileRoute)
 router.get('/services', verifyToken, controller.getAllServices)
 router.get('/service-products', verifyToken, controller.getServiceProducts)
 router.get('/user-products', verifyToken, controller.getUserProducts)
-router.post('/assign-product', verifyToken, controller.assignProductToUser)
-router.delete('/unassign-product', verifyToken, controller.unassignProductFromUser)
+router.post('/users/:userId/products', verifyToken, controller.assignProductToUser)
+router.delete('/users/:userId/products/:productId', verifyToken, controller.unassignProductFromUser)
 router.get('/active-product-detail', verifyToken, controller.getActiveProductDetail)
 router.get('/products/:id', verifyToken, controller.getProductDetailForHireProduct);
 

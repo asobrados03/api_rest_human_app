@@ -68,28 +68,22 @@ router.put('/payment-method/default', verifyToken, stripeController.setDefaultPa
  * @desc    Crear Payment Intent
  * @access  Private
  */
-router.post('/payment-intent', verifyToken, stripeController.createPaymentIntent);
+router.post('/payment-intents', verifyToken, stripeController.createPaymentIntent);
 
 /**
- * @route   POST /api/stripe/payment-intent/:paymentIntentId/confirm
- * @desc    Confirmar Payment Intent
+ * @route   PATCH /api/stripe/payment-intents/:paymentIntentId
+ * @desc    Actualizar estado de Payment Intent (confirmed|canceled)
  * @access  Private
  */
-router.post('/payment-intent/:paymentIntentId/confirm', verifyToken, stripeController.confirmPaymentIntent);
+router.patch('/payment-intents/:paymentIntentId', verifyToken, stripeController.updatePaymentIntentStatus);
 
 /**
- * @route   GET /api/stripe/payment-intent/:paymentIntentId
+ * @route   GET /api/stripe/payment-intents/:paymentIntentId
  * @desc    Obtener Payment Intent
  * @access  Private
  */
-router.get('/payment-intent/:paymentIntentId', verifyToken, stripeController.getPaymentIntent);
+router.get('/payment-intents/:paymentIntentId', verifyToken, stripeController.getPaymentIntent);
 
-/**
- * @route   POST /api/stripe/payment-intent/:paymentIntentId/cancel
- * @desc    Cancelar Payment Intent
- * @access  Private
- */
-router.post('/payment-intent/:paymentIntentId/cancel', verifyToken, stripeController.cancelPaymentIntent);
 
 // ==================== REEMBOLSOS ====================
 

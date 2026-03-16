@@ -94,8 +94,8 @@ export async function reserveSession(req, res) {
 
 export async function updateBooking(req, res) {
     try {
+        const { bookingId: booking_id } = req.params || {}
         const {
-            booking_id,
             new_coach_id,
             new_service_id,
             new_product_id,
@@ -136,7 +136,7 @@ export async function updateBooking(req, res) {
 
         res.json({ message: 'Reserva actualizada correctamente' })
     } catch (err) {
-        logger.error({ err }, '[ERROR] PUT /api/mobile/update-booking →', err)
+        logger.error({ err }, '[ERROR] PATCH /api/mobile/bookings/:bookingId →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
@@ -174,7 +174,7 @@ export async function getUserBookings(req, res) {
 
 export async function cancelBooking(req, res) {
     try {
-        const bookingId = req.params.id
+        const { bookingId } = req.params
 
         if (!bookingId) {
             return res.status(400).json({ error: 'Falta el ID de la reserva' })
@@ -200,7 +200,7 @@ export async function cancelBooking(req, res) {
             updated: result.updated
         })
     } catch (err) {
-        logger.error({ err }, '[ERROR] /booking/:id CANCEL →', err)
+        logger.error({ err }, '[ERROR] DELETE /bookings/:bookingId CANCEL →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
