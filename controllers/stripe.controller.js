@@ -199,13 +199,20 @@ export async function createPaymentIntent(req, res) {
 
 /**
  * Confirmar Payment Intent
- * POST /api/stripe/payment-intents/:paymentIntentId/confirm
+ * PATCH /api/stripe/payment-intents/:paymentIntentId/state
  */
 export async function confirmPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
         const { paymentMethodId } = req.body;
         logger.info('[STRIPE] confirmPaymentIntent iniciado', { paymentIntentId, paymentMethodId });
+
+        if (!paymentIntentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'paymentIntentId es requerido en la URI'
+            });
+        }
 
         if (!paymentMethodId) {
             return res.status(400).json({
@@ -242,8 +249,15 @@ export async function confirmPaymentIntent(req, res) {
  */
 export async function updatePaymentIntentStatus(req, res) {
     try {
-        const { paymentIntentId } = req.params;
+        const { paymentIntentId } = req.params || {};
         const { status, paymentMethodId } = req.body || {};
+
+        if (!paymentIntentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'paymentIntentId es requerido en la URI'
+            });
+        }
 
         if (!status || !['confirmed', 'canceled'].includes(status)) {
             return res.status(400).json({
@@ -318,12 +332,19 @@ export async function getPaymentIntent(req, res) {
 
 /**
  * Cancelar Payment Intent
- * POST /api/stripe/payment-intents/:paymentIntentId/cancel
+ * PATCH /api/stripe/payment-intents/:paymentIntentId/state
  */
 export async function cancelPaymentIntent(req, res) {
     try {
         const { paymentIntentId } = req.params;
         logger.info('[STRIPE] cancelPaymentIntent iniciado', { paymentIntentId });
+
+        if (!paymentIntentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'paymentIntentId es requerido en la URI'
+            });
+        }
 
         const paymentIntent = await stripeService.cancelPaymentIntent(paymentIntentId);
 

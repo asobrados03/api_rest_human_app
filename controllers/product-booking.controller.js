@@ -94,7 +94,7 @@ export async function reserveSession(req, res) {
 
 export async function updateBooking(req, res) {
     try {
-        const { bookingId: booking_id } = req.params || {}
+        const { id: booking_id } = req.params || {}
         const {
             new_coach_id,
             new_service_id,
@@ -136,7 +136,7 @@ export async function updateBooking(req, res) {
 
         res.json({ message: 'Reserva actualizada correctamente' })
     } catch (err) {
-        logger.error({ err }, '[ERROR] PATCH /api/mobile/bookings/:bookingId →', err)
+        logger.error({ err }, '[ERROR] PATCH /api/mobile/bookings/:id →', err)
 
         if (err.status) {
             return res.status(err.status).json({ error: err.message })
