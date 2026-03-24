@@ -1,4 +1,8 @@
-import {beforeEach, describe, expect, it, jest} from '@jest/globals';
+/**
+ * Módulo testeado: middlewares/verifyToken.js
+ * Dependencias mockeadas: jsonwebtoken (verificación de firma) y utils/pino.js (logger externo).
+ */
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 const mockVerify = jest.fn();
 const mockLoggerError = jest.fn();
@@ -18,68 +22,82 @@ jest.unstable_mockModule('../../utils/pino.js', () => ({
 const { verifyToken } = await import('../../middlewares/verifyToken.js');
 
 describe('Unit - verifyToken middleware', () => {
-  const createRes = () => {
-    return {
-      status: jest.fn().mockReturnThis(),
-      set: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis()
-    };
-  };
+  const createRes = () => ({
+    status: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis()
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.SECRET_JWT_KEY = 'test-secret';
   });
 
-  it('permite continuar cuando el token es válido', () => {
-    const payload = { id: 1, email: 'unit@test.com' };
-    mockVerify.mockReturnValue(payload);
+  describe('verifyToken', () => {
+    it('permite continuar cuando el token es válido y guarda payload en req', () => {
+      const payload = { id: 1, email: 'unit@test.com' };
+      mockVerify.mockReturnValue(payload);
 
-    const req = { headers: { authorization: 'Bearer valid.token' } };
-    const res = createRes();
-    const next = jest.fn();
+      const req = { headers: { authorization: 'Bearer valid.token' } };
+      const res = createRes();
+      const next = jest.fn();
 
-    verifyToken(req, res, next);
+      verifyToken(req, res, next);
 
-    expect(mockVerify).toHaveBeenCalledWith('valid.token', 'test-secret');
-    expect(req.user_payload).toEqual(payload);
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(res.status).not.toHaveBeenCalled();
-  });
-
-  it('responde 401 cuando falta el token', () => {
-    const req = { headers: {} };
-    const res = createRes();
-    const next = jest.fn();
-
-    verifyToken(req, res, next);
-
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.set).toHaveBeenCalledWith(
-      'WWW-Authenticate',
-      'Bearer realm="HumanPerform", charset="UTF-8"'
-    );
-    expect(res.json).toHaveBeenCalledWith({ error: 'Token not provided' });
-  });
-
-  it('responde 401 y registra error cuando el token no es válido', () => {
-    mockVerify.mockImplementation(() => {
-      throw new Error('jwt malformed');
+      expect(mockVerify).toHaveBeenCalledWith('valid.token', 'test-secret');
+      expect(req.user_payload).toEqual(payload);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
     });
 
-    const req = { headers: { authorization: 'Bearer invalid.token' } };
-    const res = createRes();
-    const next = jest.fn();
+    it('responde 401 cuando falta el encabezado Authorization', () => {
+      const req = { headers: {} };
+      const res = createRes();
+      const next = jest.fn();
 
-    verifyToken(req, res, next);
+      verifyToken(req, res, next);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(mockLoggerError).toHaveBeenCalledWith(
-      { errMessage: 'jwt malformed' },
-      '🔒 verifyToken failed'
-    );
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Token not valid' });
+      expect(next).not.toHaveBeenCalled();
+      expect(mockVerify).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.set).toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        'Bearer realm="HumanPerform", charset="UTF-8"'
+      );
+      expect(res.json).toHaveBeenCalledWith({ error: 'Token not provided' });
+    });
+
+    it('responde 401 cuando Authorization no tiene prefijo Bearer', () => {
+      const req = { headers: { authorization: 'Basic abc123' } };
+      const res = createRes();
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mockVerify).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Token not provided' });
+    });
+
+    it('responde 401 y registra error cuando el token no es válido', () => {
+      mockVerify.mockImplementation(() => {
+        throw new Error('jwt malformed');
+      });
+
+      const req = { headers: { authorization: 'Bearer invalid.token' } };
+      const res = createRes();
+      const next = jest.fn();
+
+      verifyToken(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        { errMessage: 'jwt malformed' },
+        '🔒 verifyToken failed'
+      );
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Token not valid' });
+    });
   });
 });
