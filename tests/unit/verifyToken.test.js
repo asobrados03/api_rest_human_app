@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import {beforeEach, describe, expect, it, jest} from '@jest/globals';
 
 const mockVerify = jest.fn();
 const mockLoggerError = jest.fn();
@@ -19,12 +19,11 @@ const { verifyToken } = await import('../../middlewares/verifyToken.js');
 
 describe('Unit - verifyToken middleware', () => {
   const createRes = () => {
-    const res = {
+    return {
       status: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis()
     };
-    return res;
   };
 
   beforeEach(() => {

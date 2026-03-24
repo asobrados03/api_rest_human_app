@@ -4,6 +4,7 @@ import {
   matchesDayAlias,
   getDayAliasForDate
 } from '../../utils/date-handler.js';
+import {describe, expect, it} from "@jest/globals";
 
 describe('Unit - date handler utils', () => {
   it('normaliza diacríticos correctamente', () => {

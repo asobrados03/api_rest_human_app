@@ -5,6 +5,7 @@ import {
   validateAmount,
   createStripeMetadata
 } from '../../utils/stripe.utils.js';
+import {describe, expect, it} from "@jest/globals";
 
 describe('Unit - stripe utils', () => {
   it('convierte montos entre unidades y centavos', () => {

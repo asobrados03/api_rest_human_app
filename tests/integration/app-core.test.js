@@ -1,4 +1,5 @@
 import request from 'supertest';
+import {describe, expect, it} from "@jest/globals";
 
 const { default: app } = await import('../../app.js');
 
