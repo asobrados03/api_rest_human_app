@@ -3,6 +3,13 @@ import { jest } from '@jest/globals';
 
 const mockListAllServices = jest.fn();
 const mockListServiceProducts = jest.fn();
+const mockGetConnection = jest.fn();
+
+jest.unstable_mockModule('../../config/database.js', () => ({
+  default: {
+    getConnection: mockGetConnection
+  }
+}));
 
 jest.unstable_mockModule('../../middlewares/verifyToken.js', () => ({
   verifyToken: (req, _res, next) => {
@@ -30,6 +37,7 @@ const { default: app } = await import('../../app.js');
 describe('Integración - Service Products API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetConnection.mockResolvedValue({ release: jest.fn() });
   });
 
   it('GET /api/mobile/services -> 200 y lista de servicios', async () => {
