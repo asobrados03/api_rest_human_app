@@ -1,6 +1,7 @@
 import * as productRepo from '../repositories/service-products.repository.js';
 
 import logger from '../utils/pino.js';
+
 export const listAllServices = async (connection) => {
   return await productRepo.getServices(connection);
 };
