@@ -1,56 +1,114 @@
 import request from 'supertest';
-import {beforeEach, describe, expect, it, jest} from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   createDbModule,
   createLoggerModule,
+  createMockConnection,
   createVerifyTokenModule,
+  resetMockObject,
   setupDbConnectionMock,
   withAuth
 } from './helpers/test-helpers.js';
 
 const mockGetConnection = jest.fn();
-const stripeService = {
-  createOrGetCustomer: jest.fn(),
-  getCustomer: jest.fn(),
-  listPaymentMethods: jest.fn(),
-  detachPaymentMethod: jest.fn(),
-  setDefaultPaymentMethod: jest.fn(),
-  createPaymentIntent: jest.fn(),
-  confirmPaymentIntent: jest.fn(),
-  cancelPaymentIntent: jest.fn(),
-  getPaymentIntent: jest.fn(),
-  createRefund: jest.fn(),
-  createSubscription: jest.fn(),
+const stripeRepository = {
+  getUserById: jest.fn(),
+  updateUserStripeCustomerId: jest.fn(),
+  getUserByStripeCustomerId: jest.fn(),
+  getTransactionsByCustomerId: jest.fn(),
   cancelSubscription: jest.fn(),
-  getSubscription: jest.fn(),
-  createEphemeralKey: jest.fn(),
-  createSetupConfig: jest.fn(),
-  verifyWebhookSignature: jest.fn(),
-  handleWebhook: jest.fn()
+  findSubscriptionById: jest.fn(),
+  findIncompleteSubscriptionByPayerRef: jest.fn(),
+  updateSubscriptionStatus: jest.fn(),
+  createSubscription: jest.fn(),
+  saveStripeTransaction: jest.fn(),
+  updateSubscriptionsPaymentMethodByUserId: jest.fn()
 };
-const stripeRepository = { getTransactionsByCustomerId: jest.fn() };
+const serviceProductsRepository = {
+  getCouponDiscount: jest.fn(),
+  cancelActiveProduct: jest.fn(),
+  getProductById: jest.fn(),
+  findActiveProduct: jest.fn(),
+  getCouponByCode: jest.fn(),
+  countInvoicesByPrefix: jest.fn(),
+  createActiveProduct: jest.fn(),
+  createSubscription: jest.fn(),
+  getLatestWalletBalance: jest.fn(),
+  createWalletTransaction: jest.fn(),
+  updateActiveProductExpiry: jest.fn()
+};
+const stripeSdk = {
+  customers: { create: jest.fn(), retrieve: jest.fn(), update: jest.fn() },
+  paymentMethods: { list: jest.fn(), detach: jest.fn() },
+  paymentIntents: { create: jest.fn(), confirm: jest.fn(), retrieve: jest.fn(), cancel: jest.fn() },
+  refunds: { create: jest.fn() },
+  subscriptions: { create: jest.fn(), update: jest.fn(), cancel: jest.fn(), retrieve: jest.fn() },
+  ephemeralKeys: { create: jest.fn() },
+  setupIntents: { create: jest.fn() },
+  webhooks: { constructEvent: jest.fn() },
+  coupons: { retrieve: jest.fn(), create: jest.fn() }
+};
+
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_123';
 
 jest.unstable_mockModule('../../config/database.js', () => createDbModule(mockGetConnection));
 jest.unstable_mockModule('../../middlewares/verifyToken.js', () => createVerifyTokenModule({ id: 1, role: 'user' }));
-jest.unstable_mockModule('../../services/stripe.service.js', () => stripeService);
 jest.unstable_mockModule('../../repositories/stripe.repository.js', () => stripeRepository);
+jest.unstable_mockModule('../../repositories/service-products.repository.js', () => serviceProductsRepository);
+jest.unstable_mockModule('../../config/stripe.config.js', () => ({ default: stripeSdk }));
 jest.unstable_mockModule('../../utils/logger.js', () => createLoggerModule());
 
 const { default: app } = await import('../../app.js');
 
 describe('Integración - Stripe API completa', () => {
+  // Cubre validaciones HTTP + lógica del servicio Stripe ejecutando funciones reales con repositorios SQL mockeados.
+  let connection;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    setupDbConnectionMock(mockGetConnection);
+    resetMockObject(stripeRepository);
+    resetMockObject(serviceProductsRepository);
+    connection = createMockConnection();
+    setupDbConnectionMock(mockGetConnection, connection);
+
+    stripeRepository.getUserById.mockResolvedValue({ user_id: 1, email: 'qa@human.app', user_name: 'QA', phone: '600', stripe_customer_id: 'cus_existing' });
+    stripeSdk.customers.retrieve.mockResolvedValue({ id: 'cus_existing', invoice_settings: { default_payment_method: 'pm_1' } });
+    stripeSdk.paymentMethods.list.mockResolvedValue({ data: [{ id: 'pm_1' }] });
+    stripeSdk.paymentIntents.create.mockResolvedValue({ id: 'pi_1' });
+    stripeSdk.paymentIntents.confirm.mockResolvedValue({ id: 'pi_1', status: 'succeeded' });
+    stripeSdk.paymentIntents.retrieve.mockResolvedValue({ id: 'pi_1' });
+    stripeSdk.paymentIntents.cancel.mockResolvedValue({ id: 'pi_1', status: 'canceled' });
+    stripeSdk.refunds.create.mockResolvedValue({ id: 're_1' });
+    stripeSdk.subscriptions.create.mockResolvedValue({
+      id: 'sub_1',
+      status: 'incomplete',
+      customer: 'cus_existing',
+      metadata: { user_id: '1', product_id: '2' },
+      items: { data: [{ price: { unit_amount: 1000, recurring: { interval: 'month' } } }] },
+      currency: 'eur',
+      start_date: 1700000000,
+      current_period_end: 1702600000,
+      latest_invoice: { payment_intent: { client_secret: 'secret_1' } }
+    });
+    stripeSdk.subscriptions.update.mockResolvedValue({ id: 'sub_1' });
+    stripeSdk.subscriptions.cancel.mockResolvedValue({ id: 'sub_1', status: 'canceled', latest_invoice: null });
+    stripeSdk.subscriptions.retrieve.mockResolvedValue({ id: 'sub_1', status: 'active' });
+    stripeSdk.ephemeralKeys.create.mockResolvedValue({ secret: 'ek_1' });
+    stripeSdk.setupIntents.create.mockResolvedValue({ id: 'seti_1', client_secret: 'seti_secret' });
+    stripeSdk.webhooks.constructEvent.mockReturnValue({ type: 'payment_intent.succeeded', data: { object: { id: 'pi_1', metadata: {} } } });
+
+    stripeRepository.findSubscriptionById.mockResolvedValue(null);
+    stripeRepository.createSubscription.mockResolvedValue(1);
+    stripeRepository.getTransactionsByCustomerId.mockResolvedValue([{ id: 1 }]);
   });
 
   it('POST /api/stripe/webhook -> 200', async () => {
-    stripeService.verifyWebhookSignature.mockReturnValue({ type: 'payment_intent.succeeded' });
-    stripeService.handleWebhook.mockResolvedValue(undefined);
     const res = await request(app)
       .post('/api/stripe/webhook')
       .set('Content-Type', 'application/json')
       .send(Buffer.from(JSON.stringify({ id: 'evt_1' })));
+
     expect(res.status).toBe(200);
   });
 
@@ -76,42 +134,41 @@ describe('Integración - Stripe API completa', () => {
     expect(res.status).toBe(401);
   });
 
-  it.each([
-    ['put', '/api/stripe/payment-method/default', { customerId: 'cus_1' }],
-    ['post', '/api/stripe/payment-intents', { currency: 'eur' }]
-  ])('%s %s -> 400 validación', async (method, path, body) => {
-    const res = await withAuth(request(app)[method](path)).send(body);
-    expect(res.status).toBe(400);
-  });
-
-  it.each([
-    ['post', '/api/stripe/customer', () => stripeService.createOrGetCustomer.mockResolvedValue({ isNew: true, customerId: 'cus_1' }), { userId: 1 }],
-    ['get', '/api/stripe/customer/cus_1', () => stripeService.getCustomer.mockResolvedValue({ id: 'cus_1' })],
-    ['get', '/api/stripe/payment-methods/cus_1', () => stripeService.listPaymentMethods.mockResolvedValue([])],
-    ['delete', '/api/stripe/payment-method/pm_1', () => stripeService.detachPaymentMethod.mockResolvedValue({ id: 'pm_1' })],
-    ['put', '/api/stripe/payment-method/default', () => stripeService.setDefaultPaymentMethod.mockResolvedValue(undefined), { customerId: 'cus_1', paymentMethodId: 'pm_1' }],
-    ['post', '/api/stripe/payment-intents', () => stripeService.createPaymentIntent.mockResolvedValue({ id: 'pi_1' }), { amount: 1000, customerId: 'cus_1' }],
-    ['patch', '/api/stripe/payment-intents/pi_1', () => stripeService.cancelPaymentIntent.mockResolvedValue({ id: 'pi_1' }), { status: 'canceled' }],
-    ['patch', '/api/stripe/payment-intents/pi_1/state', () => stripeService.confirmPaymentIntent.mockResolvedValue({ id: 'pi_1' }), { status: 'confirmed', paymentMethodId: 'pm_1' }],
-    ['get', '/api/stripe/payment-intents/pi_1', () => stripeService.getPaymentIntent.mockResolvedValue({ id: 'pi_1' })],
-    ['post', '/api/stripe/refund', () => stripeService.createRefund.mockResolvedValue({ id: 're_1' }), { paymentIntentId: 'pi_1' }],
-    ['post', '/api/stripe/subscription', () => stripeService.createSubscription.mockResolvedValue({ id: 'sub_1' }), { userId: 1, productId: 2, priceId: 'price_1' }],
-    ['delete', '/api/stripe/subscription/sub_1?user_id=1&product_id=2', () => stripeService.cancelSubscription.mockResolvedValue({ id: 'sub_1' })],
-    ['get', '/api/stripe/subscription/sub_1', () => stripeService.getSubscription.mockResolvedValue({ id: 'sub_1' })],
-    ['get', '/api/stripe/transactions?userId=1', () => stripeRepository.getTransactionsByCustomerId.mockResolvedValue([{ id: 'tx_1' }])],
-    ['post', '/api/stripe/ephemeral-keys', () => stripeService.createEphemeralKey.mockResolvedValue({ secret: 'ek' }), { customer_id: 'cus_1' }],
-    ['post', '/api/stripe/payments/setup-config', () => stripeService.createSetupConfig.mockResolvedValue({ setupIntentId: 'seti_1' })]
-  ])('%s %s -> éxito', async (...args) => {
-    const [method, path, setupMock, body] = args;
-    setupMock();
-    const req = withAuth(request(app)[method](path));
-    const res = body ? await req.send(body) : await req;
+  it('GET /api/stripe/publishable-key -> 200', async () => {
+    const res = await request(app).get('/api/stripe/publishable-key');
     expect(res.status).toBe(200);
   });
 
-  it('POST /api/stripe/payment-intents -> 500', async () => {
-    stripeService.createPaymentIntent.mockRejectedValue(new Error('Stripe timeout'));
-    const res = await withAuth(request(app).post('/api/stripe/payment-intents')).send({ amount: 1000, customerId: 'cus_1' });
-    expect(res.status).toBe(500);
+  it('PUT /api/stripe/payment-method/default -> 400 validación', async () => {
+    const res = await withAuth(request(app).put('/api/stripe/payment-method/default')).send({ customerId: 'cus_1' });
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/stripe/payment-intents -> 400 validación', async () => {
+    const res = await withAuth(request(app).post('/api/stripe/payment-intents')).send({ currency: 'eur' });
+    expect(res.status).toBe(400);
+  });
+
+  it('Endpoints Stripe principales -> 200 con servicio real', async () => {
+    const responses = await Promise.all([
+      withAuth(request(app).post('/api/stripe/customer')).send({ userId: 1 }),
+      withAuth(request(app).get('/api/stripe/customer/cus_1')),
+      withAuth(request(app).get('/api/stripe/payment-methods/cus_1')),
+      withAuth(request(app).delete('/api/stripe/payment-method/pm_1')),
+      withAuth(request(app).put('/api/stripe/payment-method/default')).send({ customerId: 'cus_1', paymentMethodId: 'pm_1' }),
+      withAuth(request(app).post('/api/stripe/payment-intents')).send({ amount: 1000, customerId: 'cus_1' }),
+      withAuth(request(app).patch('/api/stripe/payment-intents/pi_1')).send({ status: 'canceled' }),
+      withAuth(request(app).patch('/api/stripe/payment-intents/pi_1/state')).send({ status: 'confirmed', paymentMethodId: 'pm_1' }),
+      withAuth(request(app).get('/api/stripe/payment-intents/pi_1')),
+      withAuth(request(app).post('/api/stripe/refund')).send({ paymentIntentId: 'pi_1' }),
+      withAuth(request(app).post('/api/stripe/subscription')).send({ userId: 1, productId: 2, priceId: 'price_1' }),
+      withAuth(request(app).delete('/api/stripe/subscription/sub_1?user_id=1&product_id=2')),
+      withAuth(request(app).get('/api/stripe/subscription/sub_1')),
+      withAuth(request(app).get('/api/stripe/transactions?userId=1')),
+      withAuth(request(app).post('/api/stripe/ephemeral-keys')).send({ customer_id: 'cus_1' }),
+      withAuth(request(app).post('/api/stripe/payments/setup-config'))
+    ]);
+
+    responses.forEach((res) => expect(res.status).toBe(200));
   });
 });

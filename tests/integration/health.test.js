@@ -12,6 +12,7 @@ jest.unstable_mockModule('../../config/database.js', () => ({
 const { default: app } = await import('../../app.js');
 
 describe('Integración - Health endpoint (/api/health)', () => {
+  // Cubre la lógica de chequeo de salud de DB (ping exitoso y error de conexión).
   beforeEach(() => {
     jest.clearAllMocks();
   });

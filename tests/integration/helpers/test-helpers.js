@@ -1,20 +1,26 @@
 import { jest } from '@jest/globals';
 
-export const createDbModule = (getConnection) => ({
+export const createMockConnection = () => ({
+  release: jest.fn(),
+  beginTransaction: jest.fn().mockResolvedValue(undefined),
+  commit: jest.fn().mockResolvedValue(undefined),
+  rollback: jest.fn().mockResolvedValue(undefined),
+  ping: jest.fn().mockResolvedValue(undefined),
+  query: jest.fn(),
+  execute: jest.fn()
+});
+
+export const createDbModule = (mockGetConnection) => ({
   default: {
-    getConnection,
+    getConnection: mockGetConnection,
     query: jest.fn(),
     execute: jest.fn()
   }
 });
 
-export const setupDbConnectionMock = (mockGetConnection) => {
-  mockGetConnection.mockResolvedValue({
-    release: jest.fn(),
-    query: jest.fn(),
-    execute: jest.fn(),
-    ping: jest.fn()
-  });
+export const setupDbConnectionMock = (mockGetConnection, connection = createMockConnection()) => {
+  mockGetConnection.mockResolvedValue(connection);
+  return connection;
 };
 
 export const createVerifyTokenModule = (payload = { id: 1, role: 'user', email: 'qa@human.app' }) => ({
@@ -37,7 +43,10 @@ export const createUploadProfilePicModule = () => ({
   default: { single: () => (req, _res, next) => next() },
   UPLOAD_PATH: '/tmp/profile_pic',
   compressImageIfNeeded: (_req, _res, next) => next(),
-  handleProfilePicUpload: (_req, _res, next) => next()
+  handleProfilePicUpload: (req, _res, next) => {
+    req.file = req.file || null;
+    next();
+  }
 });
 
 export const createUploadDocumentModule = () => ({
@@ -50,3 +59,11 @@ export const createLoggerModule = () => ({
 });
 
 export const withAuth = (reqBuilder) => reqBuilder.set('Authorization', 'Bearer ok');
+
+export const resetMockObject = (mockObj) => {
+  Object.values(mockObj).forEach((value) => {
+    if (typeof value === 'function' && 'mockReset' in value) {
+      value.mockReset();
+    }
+  });
+};
