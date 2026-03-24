@@ -4,6 +4,7 @@ import {describe, expect, it} from "@jest/globals";
 const { default: app } = await import('../../app.js');
 
 describe('Integración - Core API routes', () => {
+  // Cubre comportamiento base del app (ping, documentos inexistentes y fallback 404 de rutas).
   it('GET /api/ping -> responde 200 con mensaje esperado', async () => {
     const response = await request(app).get('/api/ping');
 
