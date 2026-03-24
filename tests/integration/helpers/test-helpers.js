@@ -35,6 +35,7 @@ export const createVerifyTokenModule = (payload = { id: 1, role: 'user', email: 
 export const createUploadProfilePicModule = () => ({
   __esModule: true,
   default: { single: () => (req, _res, next) => next() },
+  UPLOAD_PATH: '/tmp/profile_pic',
   compressImageIfNeeded: (_req, _res, next) => next(),
   handleProfilePicUpload: (_req, _res, next) => next()
 });

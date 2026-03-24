@@ -101,7 +101,8 @@ describe('Integración - User API completa', () => {
     ['get', '/api/mobile/user/saved-payment-method', () => userService.checkSavedPaymentMethodService.mockResolvedValue({ hasSavedMethod: true })],
     ['get', '/api/mobile/user/subscriptions', () => userService.getUserSubscriptionsService.mockResolvedValue([{ id: 1 }])],
     ['get', '/api/mobile/user/subscriptions/history', () => userService.getSubscriptionsHistoryService.mockResolvedValue([{ id: 1 }])]
-  ])('%s %s -> éxito', async (method, path, setupMock, body, expectedStatus = 200) => {
+  ])('%s %s -> éxito', async (...args) => {
+    const [method, path, setupMock, body, expectedStatus = 200] = args;
     setupMock();
     const req = withAuth(request(app)[method](path));
     const res = body ? await req.send(body) : await req;

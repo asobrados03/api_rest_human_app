@@ -101,7 +101,8 @@ describe('Integración - Stripe API completa', () => {
     ['get', '/api/stripe/transactions?userId=1', () => stripeRepository.getTransactionsByCustomerId.mockResolvedValue([{ id: 'tx_1' }])],
     ['post', '/api/stripe/ephemeral-keys', () => stripeService.createEphemeralKey.mockResolvedValue({ secret: 'ek' }), { customer_id: 'cus_1' }],
     ['post', '/api/stripe/payments/setup-config', () => stripeService.createSetupConfig.mockResolvedValue({ setupIntentId: 'seti_1' })]
-  ])('%s %s -> éxito', async (method, path, setupMock, body) => {
+  ])('%s %s -> éxito', async (...args) => {
+    const [method, path, setupMock, body] = args;
     setupMock();
     const req = withAuth(request(app)[method](path));
     const res = body ? await req.send(body) : await req;
