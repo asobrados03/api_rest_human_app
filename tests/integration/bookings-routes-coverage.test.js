@@ -83,7 +83,8 @@ describe('Integración - Product Booking API completa', () => {
     ['get', '/api/mobile/timeslot-id?hour=09:00&service_id=3&day_of_week=1'],
     ['get', '/api/mobile/product/8/service-info'],
     ['get', '/api/mobile/holidays']
-  ])('%s %s -> 200 con token', async (method, path, body) => {
+  ])('%s %s -> 200 con token', async (...args) => {
+    const [method, path, body] = args;
     bookingService.updateBookingService.mockResolvedValue(undefined);
     bookingService.getUserBookingsService.mockResolvedValue([{ booking_id: 1 }]);
     bookingService.cancelBookingService.mockResolvedValue({ updated: 1 });

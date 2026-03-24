@@ -63,7 +63,8 @@ describe('Integración - Service Products API completa', () => {
     ['delete', '/api/mobile/users/10/products/8', () => serviceProductsService.unassignProduct.mockResolvedValue({ unassigned: true })],
     ['get', '/api/mobile/active-product-detail?user_id=10&product_id=8', () => serviceProductsService.getActiveProductDetail.mockResolvedValue({ product_id: 8 })],
     ['get', '/api/mobile/products/8', () => serviceProductsService.getProductDetail.mockResolvedValue({ id: 8 })]
-  ])('%s %s -> éxito', async (method, path, setupMock, body) => {
+  ])('%s %s -> éxito', async (...args) => {
+    const [method, path, setupMock, body] = args;
     setupMock();
     const req = withAuth(request(app)[method](path));
     const res = body ? await req.send(body) : await req;
