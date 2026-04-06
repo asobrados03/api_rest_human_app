@@ -64,9 +64,11 @@ export async function registerUserService(dbPool, userData) {
 
         // 3. Hash y Creación
         const hashedPassword = await bcrypt.hash(password, 10);
+        const safe = (v) => v === undefined ? null : v;
+
         const userId = await authRepo.createUser(connection, {
             nombreCompleto: `${nombre.trim()} ${apellidos.trim()}`,
-            cleanEmail,
+            email,
             hashedPassword,
             telefono: telefono.trim(),
             sexo: sexo ? sexo.trim() : null,
@@ -74,8 +76,8 @@ export async function registerUserService(dbPool, userData) {
             codigoPostal: codigoPostal.trim(),
             dni: dni ? dni.trim() : null,
             direccionPostal: direccionPostal ? direccionPostal.trim() : null,
-            profilePicFilename,
-            deviceType
+            profilePicFilename: safe(profilePicFilename),
+            deviceType: safe(deviceType)
         });
 
         await connection.commit();
