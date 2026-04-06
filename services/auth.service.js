@@ -9,10 +9,25 @@ import { sendResetEmail } from './mailer.service.js';
  */
 export async function registerUserService(dbPool, userData) {
     const {
-        nombre, apellidos, rawEmail, telefono, password,
-        fechaNacimientoRaw, codigoPostal, direccionPostal, dni, sexo, deviceType,
+        nombre,
+        apellidos,
+        email,
+        telefono,
+        password,
+        fecha_nacimiento,
+        codigo_postal,
+        direccion_postal,
+        dni,
+        sexo,
+        device_type,
         profilePicFilename
     } = userData;
+
+    const rawEmail = email;
+    const fechaNacimientoRaw = fecha_nacimiento;
+    const codigoPostal = codigo_postal;
+    const direccionPostal = direccion_postal;
+    const deviceType = device_type;
 
     // 1. Validaciones y Parsing
     const required = { nombre, apellidos, rawEmail, telefono, password, fechaNacimientoRaw, codigoPostal };
@@ -26,7 +41,7 @@ export async function registerUserService(dbPool, userData) {
     if (isNaN(dt.getTime())) throw { status: 400, message: 'Formato de fecha inválido. Usa ddMMyyyy' };
 
     const fechaSql = dt.toISOString().split('T')[0];
-    const email = rawEmail.trim().toLowerCase();
+    const cleanEmail = rawEmail.trim().toLowerCase();
 
     // Lógica de edad (opcional guardarla o solo validarla)
     // ... cálculo de edad omitido por brevedad si no se guarda en BD ...
@@ -37,7 +52,7 @@ export async function registerUserService(dbPool, userData) {
         await connection.beginTransaction();
 
         // 2. Comprobar duplicados
-        const existingUser = await authRepo.findUserByEmail(connection, email);
+        const existingUser = await authRepo.findUserByEmail(connection, cleanEmail);
         if (existingUser) throw { status: 409, message: 'El email ya está en uso' };
 
         if (dni) {
@@ -51,7 +66,7 @@ export async function registerUserService(dbPool, userData) {
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = await authRepo.createUser(connection, {
             nombreCompleto: `${nombre.trim()} ${apellidos.trim()}`,
-            email,
+            cleanEmail,
             hashedPassword,
             telefono: telefono.trim(),
             sexo: sexo ? sexo.trim() : null,
@@ -64,7 +79,7 @@ export async function registerUserService(dbPool, userData) {
         });
 
         await connection.commit();
-        return { userId, email };
+        return { userId, cleanEmail };
     } catch (err) {
         if (connection) await connection.rollback();
         throw err;

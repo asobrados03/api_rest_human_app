@@ -2,6 +2,7 @@ import * as authService from "../services/auth.service.js";
 import { logActivity } from "../utils/logger.js";
 
 import logger from '../utils/pino.js';
+
 export async function registerUser(req, res) {
     try {
         const body = req.body || {};
