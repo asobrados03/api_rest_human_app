@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import * as authController from '../controllers/auth.controller.js'
 import { verifyToken } from '../middlewares/verifyToken.js'
-import upload, { compressImageIfNeeded } from '../middlewares/uploadProfile_Pic.js'
+import { compressImageIfNeeded, handleProfilePicUpload } from '../middlewares/uploadProfile_Pic.js'
 
 const router = Router()
 
@@ -12,7 +12,7 @@ router.use((req, res, next) => {
 })
 
 // Rutas de autenticación modeladas como recursos
-router.post('/users', upload.single('profile_pic'), compressImageIfNeeded, authController.registerUser)
+router.post('/users', handleProfilePicUpload, compressImageIfNeeded, authController.registerUser)
 router.post('/sessions', authController.loginUser)
 router.delete('/sessions/current', verifyToken, authController.logoutCurrentSession)
 router.post('/tokens/refresh', authController.refreshTokenController)
