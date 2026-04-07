@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import sharp from 'sharp';
 
 import logger from '../utils/pino.js';
@@ -10,13 +11,23 @@ export const UPLOAD_PATH = process.env.NODE_ENV === 'production'
 
 logger.info({ uploadPath: UPLOAD_PATH }, '📁 UPLOAD_PATH configurado');
 
+if (!fsSync.existsSync(UPLOAD_PATH)) {
+    fsSync.mkdirSync(UPLOAD_PATH, { recursive: true });
+}
+
 // Configuración del almacenamiento SIN renombrar el archivo
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, UPLOAD_PATH);
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname); // se mantiene el nombre original
+        const safeExt = path.extname(file.originalname).toLowerCase();
+        const baseName = path.basename(file.originalname, safeExt)
+            .replace(/[^a-zA-Z0-9_-]/g, '_')
+            .slice(0, 60);
+
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+        cb(null, `${baseName || 'profile'}-${uniqueSuffix}${safeExt}`);
     }
 });
 
@@ -46,8 +57,8 @@ export const compressImageIfNeeded = async (req, res, next) => {
         return next();
     }
 
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const filePath = path.resolve(UPLOAD_PATH, req.file.filename);
+    const ext = path.extname(req.file.filename).toLowerCase();
+    const filePath = req.file.path || path.resolve(UPLOAD_PATH, req.file.filename);
 
     try {
         const originalStats = await fs.stat(filePath);
