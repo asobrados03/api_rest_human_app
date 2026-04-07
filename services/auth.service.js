@@ -12,36 +12,41 @@ export async function registerUserService(dbPool, userData) {
         nombre,
         apellidos,
         email,
+        rawEmail,
         telefono,
         password,
         fecha_nacimiento,
+        fechaNacimientoRaw,
         codigo_postal,
+        codigoPostal,
         direccion_postal,
+        direccionPostal,
         dni,
         sexo,
         device_type,
+        deviceType,
         profilePicFilename
     } = userData;
 
-    const rawEmail = email;
-    const fechaNacimientoRaw = fecha_nacimiento;
-    const codigoPostal = codigo_postal;
-    const direccionPostal = direccion_postal;
-    const deviceType = device_type;
+    const inputRawEmail = rawEmail ?? email;
+    const inputFechaNacimientoRaw = fechaNacimientoRaw ?? fecha_nacimiento;
+    const inputCodigoPostal = codigoPostal ?? codigo_postal;
+    const inputDireccionPostal = direccionPostal ?? direccion_postal;
+    const inputDeviceType = deviceType ?? device_type;
 
     // 1. Validaciones y Parsing
-    const required = { nombre, apellidos, rawEmail, telefono, password, fechaNacimientoRaw, codigoPostal };
+    const required = { nombre, apellidos, rawEmail: inputRawEmail, telefono, password, fechaNacimientoRaw: inputFechaNacimientoRaw, codigoPostal: inputCodigoPostal };
     const missing = Object.entries(required).filter(([_, v]) => !v).map(([k]) => k);
     if (missing.length) throw { status: 400, message: `Faltan campos: ${missing.join(', ')}` };
 
-    const d = fechaNacimientoRaw.slice(0, 2);
-    const m = fechaNacimientoRaw.slice(2, 4);
-    const y = fechaNacimientoRaw.slice(4, 8);
+    const d = inputFechaNacimientoRaw.slice(0, 2);
+    const m = inputFechaNacimientoRaw.slice(2, 4);
+    const y = inputFechaNacimientoRaw.slice(4, 8);
     const dt = new Date(`${y}-${m}-${d}`);
     if (isNaN(dt.getTime())) throw { status: 400, message: 'Formato de fecha inválido. Usa ddMMyyyy' };
 
     const fechaSql = dt.toISOString().split('T')[0];
-    const cleanEmail = rawEmail.trim().toLowerCase();
+    const cleanEmail = inputRawEmail.trim().toLowerCase();
 
     // Lógica de edad (opcional guardarla o solo validarla)
     // ... cálculo de edad omitido por brevedad si no se guarda en BD ...
@@ -68,20 +73,20 @@ export async function registerUserService(dbPool, userData) {
 
         const userId = await authRepo.createUser(connection, {
             nombreCompleto: `${nombre.trim()} ${apellidos.trim()}`,
-            email,
+            email: cleanEmail,
             hashedPassword,
             telefono: telefono.trim(),
             sexo: sexo ? sexo.trim() : null,
             fechaSql,
-            codigoPostal: codigoPostal.trim(),
+            codigoPostal: inputCodigoPostal.trim(),
             dni: dni ? dni.trim() : null,
-            direccionPostal: direccionPostal ? direccionPostal.trim() : null,
+            direccionPostal: inputDireccionPostal ? inputDireccionPostal.trim() : null,
             profilePicFilename: safe(profilePicFilename),
-            deviceType: safe(deviceType)
+            deviceType: safe(inputDeviceType)
         });
 
         await connection.commit();
-        return { userId, cleanEmail };
+        return { userId, email: cleanEmail };
     } catch (err) {
         if (connection) await connection.rollback();
         throw err;
