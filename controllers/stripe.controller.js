@@ -399,6 +399,15 @@ export async function createRefund(req, res) {
             userId: req.user_payload?.id || req.body.userId || null
         }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createRefund):'));
     } catch (error) {
+        if (error?.code === 'charge_already_refunded' && error?.confirmedAlreadyRefunded) {
+            logger.warn({ error, paymentIntentId: req.body?.paymentIntentId }, 'Reembolso ignorado: el cargo ya estaba reembolsado');
+            return res.status(409).json({
+                success: false,
+                message: 'El pago ya fue reembolsado previamente',
+                code: 'charge_already_refunded'
+            });
+        }
+
         logger.error({ error }, 'Error en createRefund:');
         res.status(500).json({
             success: false,
