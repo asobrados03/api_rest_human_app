@@ -77,7 +77,10 @@ describe('Integración - Stripe API completa', () => {
     stripeSdk.paymentMethods.list.mockResolvedValue({ data: [{ id: 'pm_1' }] });
     stripeSdk.paymentIntents.create.mockResolvedValue({ id: 'pi_1' });
     stripeSdk.paymentIntents.confirm.mockResolvedValue({ id: 'pi_1', status: 'succeeded' });
-    stripeSdk.paymentIntents.retrieve.mockResolvedValue({ id: 'pi_1' });
+    stripeSdk.paymentIntents.retrieve.mockResolvedValue({
+      id: 'pi_1',
+      latest_charge: { id: 'ch_1', refunded: false, amount_refunded: 0 }
+    });
     stripeSdk.paymentIntents.cancel.mockResolvedValue({ id: 'pi_1', status: 'canceled' });
     stripeSdk.refunds.create.mockResolvedValue({ id: 're_1' });
     stripeSdk.subscriptions.create.mockResolvedValue({
@@ -147,6 +150,42 @@ describe('Integración - Stripe API completa', () => {
   it('POST /api/stripe/payment-intents -> 400 validación', async () => {
     const res = await withAuth(request(app).post('/api/stripe/payment-intents')).send({ currency: 'eur' });
     expect(res.status).toBe(400);
+  });
+
+  it('POST /api/stripe/refund -> 409 cuando el pago ya está reembolsado', async () => {
+    const stripeError = new Error('Charge already refunded');
+    stripeError.code = 'charge_already_refunded';
+    stripeSdk.refunds.create.mockRejectedValueOnce(stripeError);
+    stripeSdk.paymentIntents.retrieve.mockResolvedValueOnce({
+      id: 'pi_1',
+      latest_charge: { id: 'ch_1', refunded: true, amount_refunded: 1000 }
+    });
+
+    const res = await withAuth(request(app).post('/api/stripe/refund')).send({ paymentIntentId: 'pi_1' });
+
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual(expect.objectContaining({
+      success: false,
+      code: 'charge_already_refunded'
+    }));
+  });
+
+  it('POST /api/stripe/refund -> 500 si Stripe dice already_refunded pero no se confirma en el payment intent', async () => {
+    const stripeError = new Error('Charge already refunded');
+    stripeError.code = 'charge_already_refunded';
+    stripeSdk.refunds.create.mockRejectedValueOnce(stripeError);
+    stripeSdk.paymentIntents.retrieve.mockResolvedValueOnce({
+      id: 'pi_1',
+      latest_charge: { id: 'ch_1', refunded: false, amount_refunded: 0 }
+    });
+
+    const res = await withAuth(request(app).post('/api/stripe/refund')).send({ paymentIntentId: 'pi_1' });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual(expect.objectContaining({
+      success: false,
+      message: 'Error al crear reembolso'
+    }));
   });
 
   it('Endpoints Stripe principales -> 200 con servicio real', async () => {

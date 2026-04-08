@@ -203,6 +203,42 @@ export async function createRefund(paymentIntentId, amount = null) {
 
         return await stripe.refunds.create(refundData);
     } catch (error) {
+        if (error?.code === 'charge_already_refunded') {
+            let isConfirmedAlreadyRefunded = false;
+
+            try {
+                const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+                    expand: ['latest_charge']
+                });
+                const latestCharge = paymentIntent?.latest_charge;
+
+                // Stripe puede devolver latest_charge como string u objeto expandido
+                if (latestCharge && typeof latestCharge === 'object') {
+                    isConfirmedAlreadyRefunded = Boolean(
+                        latestCharge.refunded ||
+                        (Number(latestCharge.amount_refunded) > 0)
+                    );
+                }
+            } catch (verificationError) {
+                logger.warn({
+                    paymentIntentId,
+                    verificationError
+                }, 'No se pudo verificar el estado real del reembolso tras charge_already_refunded');
+            }
+
+            if (isConfirmedAlreadyRefunded) {
+                error.confirmedAlreadyRefunded = true;
+                logger.warn({ paymentIntentId, error }, 'Stripe indica que el cargo ya fue reembolsado (verificado)');
+                throw error;
+            }
+
+            logger.error({
+                paymentIntentId,
+                error
+            }, 'Stripe devolvió charge_already_refunded, pero no se pudo confirmar el reembolso en el PaymentIntent');
+            throw error;
+        }
+
         logger.error({ error }, 'Error en createRefund:');
         throw error;
     }
