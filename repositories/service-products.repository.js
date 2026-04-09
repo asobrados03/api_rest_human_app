@@ -29,16 +29,20 @@ export const getActiveProductsByUserId = async (connection, userId) => {
             ap.payment_method, ap.payment_status, ap.active_product_status,
             -- Traemos los ID de Stripe
             s.subscription_id AS stripe_subscription_id,
-            st.stripe_charge_id AS stripe_payment_intent_id
+            (
+                SELECT st.stripe_charge_id
+                FROM stripe_transactions st
+                WHERE st.product_id = ap.product_id
+                  AND st.customer_id = ap.customer_id
+                ORDER BY st.created_at DESC
+                LIMIT 1
+            ) AS stripe_payment_intent_id
         FROM active_products ap
                  JOIN products p ON ap.product_id = p.product_id
                  LEFT JOIN product_services ps ON p.product_id = ps.product_id
                  LEFT JOIN subscriptions s ON ap.product_id = JSON_UNQUOTE(JSON_EXTRACT(s.metadata, '$.product_id'))
             AND ap.customer_id = s.user_id
             AND s.status = 'active'
-             -- Join con transacciones de pago único
-            LEFT JOIN stripe_transactions st ON ap.product_id = st.product_id
-            AND ap.customer_id = st.customer_id
         WHERE ap.customer_id = ?
           AND ap.deleted_at IS NULL AND p.deleted_at IS NULL
           AND (ap.expiry_date IS NULL OR ap.expiry_date >= CURDATE())

@@ -152,7 +152,7 @@ describe('Integración - Stripe API completa', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST /api/stripe/refund -> 409 cuando el pago ya está reembolsado', async () => {
+  it('POST /api/stripe/refund -> 200 idempotente cuando el pago ya está reembolsado', async () => {
     const stripeError = new Error('Charge already refunded');
     stripeError.code = 'charge_already_refunded';
     stripeSdk.refunds.create.mockRejectedValueOnce(stripeError);
@@ -163,10 +163,11 @@ describe('Integración - Stripe API completa', () => {
 
     const res = await withAuth(request(app).post('/api/stripe/refund')).send({ paymentIntentId: 'pi_1' });
 
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(200);
     expect(res.body).toEqual(expect.objectContaining({
-      success: false,
-      code: 'charge_already_refunded'
+      success: true,
+      code: 'charge_already_refunded',
+      data: expect.objectContaining({ alreadyRefunded: true, paymentIntentId: 'pi_1' })
     }));
   });
 
