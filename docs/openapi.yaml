@@ -1,0 +1,1027 @@
+openapi: 3.0.3
+info:
+  title: Human App REST API
+  version: 1.0.0
+  description: |
+    Documentación OpenAPI/Swagger para la API REST de Human App.
+    Esta especificación refleja las rutas definidas actualmente en `app.js` y los archivos de `routes/`.
+servers:
+  - url: http://127.0.0.1:8085
+    description: Desarrollo local
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: User
+  - name: ServiceProducts
+  - name: Bookings
+  - name: Stripe
+  - name: Files
+
+paths:
+  /api/ping:
+    get:
+      tags: [Health]
+      summary: Ping de la API
+      responses:
+        '200':
+          description: API operativa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: ¡ping, funcionó!
+
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Healthcheck de API + DB
+      responses:
+        '200':
+          description: Servicio y DB operativos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOk'
+        '500':
+          description: DB no responde
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthError'
+
+  /api/document/{filename}:
+    get:
+      tags: [Files]
+      summary: Descargar documento público por nombre
+      parameters:
+        - $ref: '#/components/parameters/FilenamePath'
+      responses:
+        '200':
+          description: Descarga del archivo
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Documento no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
+  /api/mobile/:
+    get:
+      tags: [ServiceProducts]
+      summary: Endpoint de prueba mobile (service-products)
+      responses:
+        '200':
+          description: OK
+    
+  /api/mobile/daily:
+    get:
+      tags: [Bookings]
+      summary: Disponibilidad diaria
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          required: false
+      responses:
+        '200':
+          description: Disponibilidad obtenida
+        '401':
+          description: No autorizado
+
+  /api/mobile/bookings:
+    post:
+      tags: [Bookings]
+      summary: Reservar sesión
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '201':
+          description: Reserva creada
+        '400':
+          description: Error de validación
+        '401':
+          description: No autorizado
+
+  /api/mobile/bookings/{bookingId}:
+    delete:
+      tags: [Bookings]
+      summary: Cancelar reserva
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reserva cancelada
+        '401':
+          description: No autorizado
+        '404':
+          description: Reserva no encontrada
+
+  /api/mobile/bookings/{id}:
+    patch:
+      tags: [Bookings]
+      summary: Actualizar reserva
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Reserva actualizada
+        '401':
+          description: No autorizado
+
+  /api/mobile/timeslot-id:
+    get:
+      tags: [Bookings]
+      summary: Obtener ID de timeslot
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: hour
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ID obtenido
+
+  /api/mobile/product/{productId}/service-info:
+    get:
+      tags: [Bookings]
+      summary: Obtener serviceId para un producto
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Información de servicio
+
+  /api/mobile/user-bookings:
+    get:
+      tags: [Bookings]
+      summary: Listar reservas del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reservas listadas
+
+  /api/mobile/holidays:
+    get:
+      tags: [Bookings]
+      summary: Obtener festivos configurados
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Festivos listados
+
+  /api/mobile/services:
+    get:
+      tags: [ServiceProducts]
+      summary: Listar servicios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Servicios listados
+
+  /api/mobile/service-products:
+    get:
+      tags: [ServiceProducts]
+      summary: Listar productos de servicio
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Productos listados
+
+  /api/mobile/users/{userId}/products:
+    get:
+      tags: [ServiceProducts]
+      summary: Listar productos asignados a un usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Productos del usuario
+    post:
+      tags: [ServiceProducts]
+      summary: Asignar producto a un usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '201':
+          description: Producto asignado
+
+  /api/mobile/users/{userId}/products/{productId}:
+    delete:
+      tags: [ServiceProducts]
+      summary: Desasignar producto a un usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Producto desasignado
+
+  /api/mobile/active-product-detail:
+    get:
+      tags: [ServiceProducts]
+      summary: Obtener detalle del producto activo del usuario
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Detalle de producto activo
+
+  /api/mobile/products/{id}:
+    get:
+      tags: [ServiceProducts]
+      summary: Obtener detalle de producto para contratación
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle de producto
+
+  /api/mobile/users:
+    post:
+      tags: [Auth]
+      summary: Registro de usuario
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: Usuario registrado
+        '400':
+          description: Error de validación
+
+  /api/mobile/sessions:
+    post:
+      tags: [Auth]
+      summary: Login de usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login correcto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Credenciales inválidas
+
+  /api/mobile/sessions/current:
+    delete:
+      tags: [Auth]
+      summary: Logout de sesión actual
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout correcto
+
+  /api/mobile/tokens/refresh:
+    post:
+      tags: [Auth]
+      summary: Refrescar token de acceso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Nuevo access token
+
+  /api/mobile/change-password:
+    put:
+      tags: [Auth]
+      summary: Cambiar contraseña (usuario autenticado)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Contraseña actualizada
+
+  /api/mobile/reset-password:
+    put:
+      tags: [Auth]
+      summary: Resetear contraseña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Contraseña reseteada
+
+  /api/mobile/user:
+    get:
+      tags: [User]
+      summary: Obtener perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil de usuario
+    put:
+      tags: [User]
+      summary: Actualizar perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Perfil actualizado
+    delete:
+      tags: [User]
+      summary: Eliminar cuenta del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cuenta eliminada
+
+  /api/mobile/user/photo:
+    delete:
+      tags: [User]
+      summary: Eliminar foto de perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Foto eliminada
+
+  /api/mobile/users/{userId}/stats:
+    get:
+      tags: [User]
+      summary: Obtener estadísticas de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Estadísticas del usuario
+
+  /api/mobile/coaches:
+    get:
+      tags: [User]
+      summary: Listar coaches
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Coaches listados
+
+  /api/mobile/user/preferred-coach:
+    post:
+      tags: [User]
+      summary: Asignar coach preferido
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Coach asignado
+    get:
+      tags: [User]
+      summary: Obtener coach preferido
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Coach preferido
+
+  /api/mobile/user/preferred-coach-with-service:
+    get:
+      tags: [User]
+      summary: Obtener coach preferido con servicio asociado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Coach preferido con servicio
+
+  /api/mobile/users/{userId}/coupons:
+    post:
+      tags: [User]
+      summary: Añadir cupón al usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '201':
+          description: Cupón añadido
+    get:
+      tags: [User]
+      summary: Obtener cupones de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Cupones del usuario
+
+  /api/mobile/users/{userId}/coupons/{couponCode}:
+    delete:
+      tags: [User]
+      summary: Eliminar cupón de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - name: couponCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cupón eliminado
+
+  /api/mobile/users/{userId}/documents:
+    post:
+      tags: [User]
+      summary: Subir documento de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Documento subido
+    get:
+      tags: [User]
+      summary: Listar documentos de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Documentos listados
+
+  /api/mobile/users/{userId}/documents/{filename}:
+    get:
+      tags: [User]
+      summary: Descargar documento de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/FilenamePath'
+      responses:
+        '200':
+          description: Archivo descargado
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Documento no encontrado
+    delete:
+      tags: [User]
+      summary: Eliminar documento de usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/FilenamePath'
+      responses:
+        '200':
+          description: Documento eliminado
+
+  /api/mobile/user/e-wallet-balance:
+    get:
+      tags: [User]
+      summary: Obtener saldo e-wallet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Saldo obtenido
+
+  /api/mobile/user/transactions:
+    get:
+      tags: [User]
+      summary: Obtener transacciones e-wallet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transacciones obtenidas
+
+  /api/mobile/user/saved-payment-method:
+    get:
+      tags: [User]
+      summary: Verificar método de pago guardado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estado del método de pago
+
+  /api/mobile/user/subscriptions:
+    get:
+      tags: [User]
+      summary: Obtener suscripciones activas del usuario
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Suscripciones obtenidas
+
+  /api/mobile/user/subscriptions/history:
+    get:
+      tags: [User]
+      summary: Obtener histórico de suscripciones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Histórico de suscripciones
+
+  /api/stripe/webhook:
+    post:
+      tags: [Stripe]
+      summary: Webhook de Stripe
+      description: Endpoint público que utiliza `application/json` en crudo para validar firma.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Evento procesado
+
+  /api/stripe/customer:
+    post:
+      tags: [Stripe]
+      summary: Crear u obtener cliente de Stripe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Cliente creado u obtenido
+
+  /api/stripe/customer/{customerId}:
+    get:
+      tags: [Stripe]
+      summary: Obtener cliente Stripe por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cliente obtenido
+
+  /api/stripe/payment-methods/{customerId}:
+    get:
+      tags: [Stripe]
+      summary: Listar métodos de pago de un cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Métodos de pago listados
+
+  /api/stripe/payment-method/{paymentMethodId}:
+    delete:
+      tags: [Stripe]
+      summary: Eliminar método de pago
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentMethodId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Método eliminado
+
+  /api/stripe/payment-method/default:
+    put:
+      tags: [Stripe]
+      summary: Establecer método de pago por defecto
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Método establecido
+
+  /api/stripe/payment-intents:
+    post:
+      tags: [Stripe]
+      summary: Crear PaymentIntent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: PaymentIntent creado
+
+  /api/stripe/payment-intents/{paymentIntentId}:
+    get:
+      tags: [Stripe]
+      summary: Obtener PaymentIntent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentIntentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PaymentIntent obtenido
+    patch:
+      tags: [Stripe]
+      summary: Actualizar estado de PaymentIntent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentIntentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: PaymentIntent actualizado
+
+  /api/stripe/payment-intents/{paymentIntentId}/state:
+    patch:
+      tags: [Stripe]
+      summary: Transición de estado de PaymentIntent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentIntentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Estado transicionado
+
+  /api/stripe/refund:
+    post:
+      tags: [Stripe]
+      summary: Crear reembolso
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Reembolso creado
+
+  /api/stripe/subscription:
+    post:
+      tags: [Stripe]
+      summary: Crear suscripción
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Suscripción creada
+
+  /api/stripe/subscription/{subscriptionId}:
+    get:
+      tags: [Stripe]
+      summary: Obtener suscripción
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suscripción obtenida
+    delete:
+      tags: [Stripe]
+      summary: Cancelar suscripción
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suscripción cancelada
+
+  /api/stripe/transactions:
+    get:
+      tags: [Stripe]
+      summary: Historial de transacciones de usuario
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transacciones obtenidas
+
+  /api/stripe/publishable-key:
+    get:
+      tags: [Stripe]
+      summary: Obtener clave pública de Stripe
+      responses:
+        '200':
+          description: Clave publicada
+
+  /api/stripe/ephemeral-keys:
+    post:
+      tags: [Stripe]
+      summary: Crear Ephemeral Key
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Clave efímera creada
+
+  /api/stripe/payments/setup-config:
+    post:
+      tags: [Stripe]
+      summary: Crear configuración de guardado de pago
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Configuración creada
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+    FilenamePath:
+      name: filename
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    HealthOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+    HealthError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: DB not responding
+    ErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RegisterUserRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+        profile_pic:
+          type: string
+          format: binary
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string

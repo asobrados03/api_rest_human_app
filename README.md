@@ -3,3 +3,5 @@
 ## Documentación
 
 - Guía de URIs REST y plan de deprecación: `docs/api-uri-guidelines.md`.
+
+- Especificación OpenAPI/Swagger: `docs/openapi.yaml` (importable en Swagger UI y Postman).
