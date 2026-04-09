@@ -400,11 +400,15 @@ export async function createRefund(req, res) {
         }).catch((logErr) => logger.error({ logErr }, '⚠️ Logging error (createRefund):'));
     } catch (error) {
         if (error?.code === 'charge_already_refunded' && error?.confirmedAlreadyRefunded) {
-            logger.warn({ error, paymentIntentId: req.body?.paymentIntentId }, 'Reembolso ignorado: el cargo ya estaba reembolsado');
-            return res.status(409).json({
-                success: false,
-                message: 'El pago ya fue reembolsado previamente',
-                code: 'charge_already_refunded'
+            logger.warn({ error, paymentIntentId: req.body?.paymentIntentId }, 'Reembolso idempotente: el cargo ya estaba reembolsado');
+            return res.status(200).json({
+                success: true,
+                message: 'El pago ya estaba reembolsado previamente',
+                code: 'charge_already_refunded',
+                data: {
+                    paymentIntentId: req.body?.paymentIntentId,
+                    alreadyRefunded: true
+                }
             });
         }
 
