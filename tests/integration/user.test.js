@@ -1,5 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import fs from 'fs';
+import path from 'path';
 import {
   createDbModule,
   createLoggerModule,
@@ -82,6 +84,7 @@ describe('Integración - User API completa', () => {
     ['post', '/api/mobile/users/1/documents'],
     ['get', '/api/mobile/users/1/documents'],
     ['delete', '/api/mobile/users/1/documents/id.pdf'],
+    ['get', '/api/mobile/users/1/documents/id.pdf'],
     ['get', '/api/mobile/user/e-wallet-balance'],
     ['get', '/api/mobile/user/transactions'],
     ['get', '/api/mobile/user/saved-payment-method'],
@@ -244,7 +247,31 @@ describe('Integración - User API completa', () => {
     expect(res.status).toBe(404);
   });
 
-  it('GET endpoints de e-wallet/suscripciones -> 200', async () => {
+  it('GET /api/mobile/users/:id/documents/:filename -> 404 cuando el archivo no existe en disco', async () => {
+    const res = await withAuth(request(app).get('/api/mobile/users/1/documents/no-existe.pdf'));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Documento no encontrado' });
+  });
+
+  it('GET /api/mobile/users/:id/documents/:filename -> 200 y descarga archivo existente', async () => {
+    const docsDir = path.join(process.cwd(), 'uploads', 'users', 'documents', '1');
+    const filePath = path.join(docsDir, 'qa-doc.txt');
+
+    await fs.promises.mkdir(docsDir, { recursive: true });
+    await fs.promises.writeFile(filePath, 'contenido QA');
+
+    try {
+      const res = await withAuth(request(app).get('/api/mobile/users/1/documents/qa-doc.txt'));
+
+      expect(res.status).toBe(200);
+      expect(res.header['content-disposition']).toContain('attachment; filename="qa-doc.txt"');
+      expect(res.text).toBe('contenido QA');
+    } finally {
+      await fs.promises.rm(path.join(process.cwd(), 'uploads'), { recursive: true, force: true });
+    }
+  });
+
+  it('GET endpoints de e-wallet/suscripciones -> 200 con contrato mínimo de respuesta', async () => {
     userRepository.findEwalletBalance.mockResolvedValue({ balance: 100 });
     userRepository.findEwalletTransactions.mockResolvedValue([{ amount: 10, balance: 100, product_name: 'Pack', type: 'purchase', created_at: '2026-01-01' }]);
     userRepository.findSavedPaymentMethod.mockResolvedValue({ id: 1 });
@@ -260,9 +287,42 @@ describe('Integración - User API completa', () => {
     ]);
 
     expect(balance.status).toBe(200);
+    expect(balance.body).toEqual({ balance: 100 });
     expect(tx.status).toBe(200);
+    expect(tx.body).toEqual({
+      transactions: [
+        expect.objectContaining({
+          amount: 10,
+          balance: 100,
+          description: 'Pack',
+          type: 'purchase',
+          date: '2026-01-01'
+        })
+      ]
+    });
     expect(saved.status).toBe(200);
+    expect(saved.body).toEqual({ hasSavedMethod: true });
     expect(subs.status).toBe(200);
+    expect(subs.body).toEqual({
+      subscriptions: [
+        expect.objectContaining({
+          id: 1,
+          paymentmethod: 'ewallet',
+          order_prefix: 'ORD-1',
+          last_result: expect.any(String)
+        })
+      ]
+    });
     expect(history.status).toBe(200);
+    expect(history.body).toEqual({
+      history: [
+        expect.objectContaining({
+          id: 1,
+          method: 'ewallet',
+          message: 'Pago realizado con e-wallet',
+          pasref: 'N/A'
+        })
+      ]
+    });
   });
 });

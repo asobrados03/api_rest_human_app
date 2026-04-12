@@ -165,7 +165,7 @@ describe('Integración - Service Products API completa', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(expect.objectContaining({ action: 'created', assigned_id: 123 }));
+    expect(res.body).toEqual({ success: true, action: 'created', assigned_id: 123 });
     expect(serviceProductsRepository.createActiveProduct).toHaveBeenCalledWith(
       connection,
       expect.objectContaining({ totalAmount: 80, discount: 20, couponId: 5 })
@@ -203,5 +203,17 @@ describe('Integración - Service Products API completa', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: 8, name: 'Pack' });
+  });
+
+  it('GET /api/mobile/products/:id -> 500 cuando falla la conexión DB', async () => {
+    mockGetConnection.mockRejectedValueOnce(new Error('connection timeout'));
+
+    const res = await withAuth(request(app).get('/api/mobile/products/8'));
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      success: false,
+      message: 'connection timeout'
+    });
   });
 });

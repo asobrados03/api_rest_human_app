@@ -40,6 +40,26 @@ describe('Unit - date handler utils', () => {
       expect(parseDayAliases('').size).toBe(0);
       expect(parseDayAliases('   ').size).toBe(0);
     });
+
+    it('normaliza acentos, mayúsculas y separadores mixtos', () => {
+      const result = parseDayAliases('LÚNES | miércoles / VIErnes');
+      expect(result).toEqual(new Set(['mon', 'wed', 'fri']));
+    });
+
+    it('interpreta alias numéricos con y sin cero a la izquierda', () => {
+      const result = parseDayAliases('00,01,02,03,04,05,06,07');
+      expect(result).toEqual(new Set(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']));
+    });
+
+    it('si aparece wildcard devuelve set vacío (sin restricción)', () => {
+      expect(parseDayAliases('lunes, all, miércoles').size).toBe(0);
+      expect(parseDayAliases('any').size).toBe(0);
+    });
+
+    it('acepta abreviaturas internacionales y descarta tokens ambiguos/ruido', () => {
+      const result = parseDayAliases('Mon, tue, Xday, sáb');
+      expect(result).toEqual(new Set(['mon', 'tue', 'sat']));
+    });
   });
 
   describe('matchesDayAlias', () => {
@@ -64,6 +84,11 @@ describe('Unit - date handler utils', () => {
 
     it('usa fallback mon para fecha inválida', () => {
       expect(getDayAliasForDate('invalid-date')).toBe('mon');
+    });
+
+    it('calcula el alias en UTC (independiente del timezone de entrada)', () => {
+      // 2026-03-30T02:30:00.000Z => lunes en UTC aunque el input venga con offset -05:00
+      expect(getDayAliasForDate('2026-03-29T21:30:00-05:00')).toBe('mon');
     });
   });
 });

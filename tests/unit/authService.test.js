@@ -161,6 +161,34 @@ describe('Unit - auth service', () => {
       expect(connection.rollback).toHaveBeenCalledTimes(1);
       expect(connection.release).toHaveBeenCalledTimes(1);
     });
+
+    it('hace rollback si falla el commit al registrar', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn().mockRejectedValue(new Error('commit error')),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+
+      mockFindUserByEmail.mockResolvedValue(null);
+      mockFindUserByDni.mockResolvedValue(null);
+      mockBcryptHash.mockResolvedValue('hashed-password');
+      mockCreateUser.mockResolvedValue(99);
+
+      await expect(registerUserService(dbPool, {
+        nombre: 'Ana',
+        apellidos: 'Pérez',
+        rawEmail: 'ana@example.com',
+        telefono: '600123123',
+        password: 'secret',
+        fechaNacimientoRaw: '01011990',
+        codigoPostal: '28001'
+      })).rejects.toThrow('commit error');
+
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('loginUserService', () => {
@@ -303,6 +331,30 @@ describe('Unit - auth service', () => {
       expect(mockUpdateUserPassword).toHaveBeenCalledWith(connection, 7, 'new-hash');
       expect(connection.commit).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ userId: 7 });
+    });
+
+    it('hace rollback si falla updateUserPassword', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+      mockFindUserById.mockResolvedValue({ user_id: 7, password: 'old-hash' });
+      mockBcryptCompare.mockResolvedValue(true);
+      mockBcryptHash.mockResolvedValue('new-hash');
+      mockUpdateUserPassword.mockRejectedValue(new Error('write failed'));
+
+      await expect(changePasswordService(dbPool, {
+        currentPassword: 'old',
+        newPassword: 'new',
+        userId: 7,
+        userIdToken: 7
+      })).rejects.toThrow('write failed');
+
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -189,7 +189,7 @@ describe('Integración - Stripe API completa', () => {
     }));
   });
 
-  it('Endpoints Stripe principales -> 200 con servicio real', async () => {
+  it('Endpoints Stripe principales -> 200 y contratos mínimos', async () => {
     const responses = await Promise.all([
       withAuth(request(app).post('/api/stripe/customer')).send({ userId: 1 }),
       withAuth(request(app).get('/api/stripe/customer/cus_1')),
@@ -210,5 +210,32 @@ describe('Integración - Stripe API completa', () => {
     ]);
 
     responses.forEach((res) => expect(res.status).toBe(200));
+    expect(responses[0].body).toEqual(expect.objectContaining({
+      success: true,
+      data: expect.objectContaining({
+        customerId: expect.any(String),
+        isNew: expect.any(Boolean)
+      })
+    }));
+    expect(responses[2].body).toEqual(expect.objectContaining({
+      success: true,
+      data: expect.objectContaining({
+        methods: expect.any(Array),
+        defaultPaymentMethodId: expect.any(String)
+      })
+    }));
+    expect(responses[5].body).toEqual(expect.objectContaining({
+      success: true,
+      data: expect.objectContaining({ id: expect.any(String) })
+    }));
+    expect(responses[9].body).toEqual(expect.objectContaining({
+      success: true,
+      data: expect.objectContaining({ id: expect.any(String) })
+    }));
+    expect(responses[10].body).toEqual(expect.objectContaining({
+      subscription_id: expect.any(String),
+      client_secret: expect.any(String),
+      customer_id: expect.any(String)
+    }));
   });
 });
