@@ -173,14 +173,17 @@ export async function getProductDetail(dbPool, productId) {
     throw error;
   }
   const connection = await dbPool.getConnection();
+  try {
+    const product = await productRepo.getProductDetailById(connection, productId);
 
-  const product = await productRepo.getProductDetailById(connection, productId);
+    if (!product) {
+      const error = new Error('Product not found');
+      error.status = 404;
+      throw error;
+    }
 
-  if (!product) {
-    const error = new Error('Product not found');
-    error.status = 404;
-    throw error;
+    return product;
+  } finally {
+    connection.release();
   }
-
-  return product;
 }

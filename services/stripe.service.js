@@ -54,6 +54,8 @@ export async function createOrGetCustomer(dbPool, userId) {
     } catch (error) {
         logger.error({ error }, 'Error en createOrGetCustomer:');
         throw error;
+    } finally {
+        connection.release();
     }
 }
 

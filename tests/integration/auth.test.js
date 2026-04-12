@@ -111,8 +111,13 @@ describe('Integración - Auth API completa', () => {
 
     const res = await request(app).post('/api/mobile/sessions').send({ email: 'qa@human.app', password: 'Secret123' });
     expect(res.status).toBe(200);
-    expect(res.body.accessToken).toBeTruthy();
-    expect(res.body.refreshToken).toBeTruthy();
+    expect(res.body).toEqual(expect.objectContaining({
+      id: 1,
+      fullName: 'QA User',
+      email: 'qa@human.app',
+      accessToken: expect.any(String),
+      refreshToken: expect.any(String)
+    }));
   });
 
   it('POST /api/mobile/tokens/refresh -> 401 sin Bearer', async () => {
@@ -132,8 +137,24 @@ describe('Integración - Auth API completa', () => {
       .set('Authorization', `Bearer ${refreshToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.accessToken).toBeTruthy();
-    expect(res.body.refreshToken).toBeTruthy();
+    expect(res.body).toEqual({
+      accessToken: expect.any(String),
+      refreshToken: expect.any(String)
+    });
+  });
+
+  it('POST /api/mobile/sessions -> 500 cuando hay fallo de infraestructura en DB', async () => {
+    mockGetConnection.mockRejectedValueOnce(new Error('db down'));
+
+    const res = await request(app).post('/api/mobile/sessions').send({
+      email: 'qa@human.app',
+      password: 'Secret123'
+    });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual(expect.objectContaining({
+      error: expect.any(String)
+    }));
   });
 
   it('DELETE /api/mobile/sessions/current -> 204 con token', async () => {

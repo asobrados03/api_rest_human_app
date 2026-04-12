@@ -11,7 +11,12 @@ const mockRepo = {
   fetchBookings: jest.fn(),
   fetchAvailability: jest.fn(),
   cancelBookingRow: jest.fn(),
-  findTimeslotByHour: jest.fn()
+  findTimeslotByHour: jest.fn(),
+  findExistingBooking: jest.fn(),
+  findActiveProduct: jest.fn(),
+  countWeeklyBookings: jest.fn(),
+  countTotalBookings: jest.fn(),
+  insertBooking: jest.fn()
 };
 
 const mockDateUtils = {
@@ -27,7 +32,8 @@ jest.unstable_mockModule('../../utils/pino.js', () => ({ default: { debug: jest.
 const {
   getDailyAvailabilityService,
   cancelBookingService,
-  getTimeslotIdService
+  getTimeslotIdService,
+  reserveSessionService
 } = await import('../../services/product-booking.service.js');
 
 describe('Unit - product-booking service', () => {
@@ -138,6 +144,44 @@ describe('Unit - product-booking service', () => {
 
       await expect(getTimeslotIdService({ hour: '09:30:00', serviceId: 7, dayOfWeek: 'mon', db }))
         .rejects.toMatchObject({ status: 404, message: 'Hora no encontrada' });
+    });
+  });
+
+  describe('reserveSessionService', () => {
+    it('hace rollback y libera conexión si falla el insert de la reserva', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const db = { getConnection: jest.fn().mockResolvedValue(connection) };
+      mockRepo.findExistingBooking.mockResolvedValue([]);
+      mockRepo.findActiveProduct.mockResolvedValue({
+        active_product_id: 10,
+        payment_method: 'card',
+        payment_status: 'paid',
+        type_of_product: 'single',
+        total_session: 5,
+        service_session_override: 0
+      });
+      mockRepo.countTotalBookings.mockResolvedValue(0);
+      mockRepo.insertBooking.mockRejectedValue(new Error('insert failed'));
+
+      await expect(reserveSessionService({
+        customer_id: 1,
+        coach_id: 2,
+        session_timeslot_id: 3,
+        service_id: 4,
+        product_id: 5,
+        start_date: '2026-04-10',
+        status: 'active',
+        db
+      })).rejects.toThrow('insert failed');
+
+      expect(connection.beginTransaction).toHaveBeenCalledTimes(1);
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
   });
 });

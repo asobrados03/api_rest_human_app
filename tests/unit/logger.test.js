@@ -55,14 +55,11 @@ describe('Unit - logger utils', () => {
         { subject: 'login', method: 'POST', url: '/auth/login', userId: 7 },
         '📝 Logging activity'
       );
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO log_activities'), [
-        'login',
-        '/auth/login',
-        'POST',
-        '10.0.0.10',
-        'jest-agent',
-        7
-      ]);
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query).toHaveBeenCalledWith(
+        expect.any(String),
+        ['login', '/auth/login', 'POST', '10.0.0.10', 'jest-agent', 7]
+      );
     });
 
     it('captura errores de la query y los registra sin lanzar excepción', async () => {

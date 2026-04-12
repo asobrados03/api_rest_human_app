@@ -160,7 +160,10 @@ describe('Integración - Product Booking API completa', () => {
     const res = await withAuth(request(app).post('/api/mobile/bookings')).send(payload);
 
     expect(res.status).toBe(201);
-    expect(res.body.booking_id).toBe(77);
+    expect(res.body).toEqual({
+      message: 'Reserva creada con éxito',
+      booking_id: 77
+    });
   });
 
   it('PATCH /api/mobile/bookings/:id -> 404 cuando booking no existe', async () => {
@@ -218,5 +221,16 @@ describe('Integración - Product Booking API completa', () => {
     const res = await withAuth(request(app).get('/api/mobile/holidays'));
 
     expect(res.status).toBe(404);
+  });
+
+  it('GET /api/mobile/holidays -> 500 cuando la conexión DB falla', async () => {
+    mockGetConnection.mockRejectedValueOnce(new Error('pool unavailable'));
+
+    const res = await withAuth(request(app).get('/api/mobile/holidays'));
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual(expect.objectContaining({
+      error: 'Error al consultar los días festivos'
+    }));
   });
 });

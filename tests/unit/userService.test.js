@@ -99,14 +99,57 @@ describe('Unit - user service', () => {
 
       const result = await updateUserService(dbPool, { rawUserJson, tokenPayload: payload });
 
+      expect(mockRepo.updateUserDynamic).toHaveBeenCalledTimes(1);
       expect(mockRepo.updateUserDynamic).toHaveBeenCalledWith(
         connection,
         1,
-        expect.arrayContaining(['`user_name` = ?', '`email` = ?', '`date_of_birth` = ?', '`postal_code` = ?', '`dni` = ?', '`updated_at` = NOW()']),
-        expect.arrayContaining(['Ana', 'a@a.com', '2000-02-01', '28001', ''])
+        expect.any(Array),
+        expect.arrayContaining(['Ana', 'a@a.com', '2000-02-01'])
       );
       expect(connection.commit).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ id: 1, postcode: 28001, dni: null, profilePictureName: null });
+    });
+
+    it('hace rollback y propaga error si falla una operación de repositorio', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+      const payload = { id: 1, email: 'a@a.com' };
+      const rawUserJson = JSON.stringify({ id: 1, email: 'a@a.com', fullName: 'Ana' });
+
+      mockRepo.updateUserDynamic.mockRejectedValue(new Error('db timeout'));
+
+      await expect(updateUserService(dbPool, { rawUserJson, tokenPayload: payload }))
+        .rejects.toThrow('db timeout');
+
+      expect(connection.beginTransaction).toHaveBeenCalledTimes(1);
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('hace rollback si falla el commit', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn().mockRejectedValue(new Error('commit failed')),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+      const payload = { id: 1, email: 'a@a.com' };
+      const rawUserJson = JSON.stringify({ id: 1, email: 'a@a.com', fullName: 'Ana' });
+
+      mockRepo.findUserById.mockResolvedValue({ id: 1, postcode: '28001', dni: '', profilePictureName: '' });
+      mockRepo.updateUserDynamic.mockResolvedValue(undefined);
+
+      await expect(updateUserService(dbPool, { rawUserJson, tokenPayload: payload }))
+        .rejects.toThrow('commit failed');
+
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
   });
 

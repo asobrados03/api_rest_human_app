@@ -61,15 +61,16 @@ describe('Unit - stripe service', () => {
 
   describe('createOrGetCustomer', () => {
     it('lanza error cuando el usuario no existe', async () => {
-      const connection = {};
+      const connection = { release: jest.fn() };
       const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
       mockStripeRepo.getUserById.mockResolvedValue(null);
 
       await expect(createOrGetCustomer(dbPool, 1)).rejects.toThrow('Usuario no encontrado');
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
 
     it('retorna customer existente sin llamar a Stripe create', async () => {
-      const connection = {};
+      const connection = { release: jest.fn() };
       const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
       mockStripeRepo.getUserById.mockResolvedValue({ stripe_customer_id: 'cus_existing' });
 
@@ -77,10 +78,11 @@ describe('Unit - stripe service', () => {
 
       expect(result).toEqual({ customerId: 'cus_existing', isNew: false });
       expect(mockStripe.customers.create).not.toHaveBeenCalled();
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
 
     it('crea customer en Stripe y persiste stripe_customer_id en DB', async () => {
-      const connection = {};
+      const connection = { release: jest.fn() };
       const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
       mockStripeRepo.getUserById.mockResolvedValue({ user_id: 7, email: 'a@a.com', user_name: 'Ana', phone: '123', stripe_customer_id: null });
       mockStripe.customers.create.mockResolvedValue({ id: 'cus_new' });
@@ -93,6 +95,18 @@ describe('Unit - stripe service', () => {
       }));
       expect(mockStripeRepo.updateUserStripeCustomerId).toHaveBeenCalledWith(connection, 7, 'cus_new');
       expect(result).toEqual({ customerId: 'cus_new', isNew: true });
+      expect(connection.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('propaga error si falla persistencia local del customer y libera conexión', async () => {
+      const connection = { release: jest.fn() };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+      mockStripeRepo.getUserById.mockResolvedValue({ user_id: 7, email: 'a@a.com', user_name: 'Ana', phone: '123', stripe_customer_id: null });
+      mockStripe.customers.create.mockResolvedValue({ id: 'cus_new' });
+      mockStripeRepo.updateUserStripeCustomerId.mockRejectedValue(new Error('db write failed'));
+
+      await expect(createOrGetCustomer(dbPool, 7)).rejects.toThrow('db write failed');
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
   });
 

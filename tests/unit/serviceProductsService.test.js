@@ -130,19 +130,32 @@ describe('Unit - service-products service', () => {
     });
 
     it('lanza 404 si no existe producto', async () => {
-      const dbPool = { getConnection: jest.fn().mockResolvedValue({}) };
+      const connection = { release: jest.fn() };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
       mockRepo.getProductDetailById.mockResolvedValue(null);
 
       await expect(getProductDetail(dbPool, 7)).rejects.toMatchObject({ status: 404 });
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
 
     it('retorna producto cuando existe', async () => {
-      const dbPool = { getConnection: jest.fn().mockResolvedValue({}) };
+      const connection = { release: jest.fn() };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
       mockRepo.getProductDetailById.mockResolvedValue({ id: 7, name: 'Pack' });
 
       const result = await getProductDetail(dbPool, 7);
 
       expect(result).toEqual({ id: 7, name: 'Pack' });
+      expect(connection.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('libera conexión incluso si el repositorio falla', async () => {
+      const connection = { release: jest.fn() };
+      const dbPool = { getConnection: jest.fn().mockResolvedValue(connection) };
+      mockRepo.getProductDetailById.mockRejectedValue(new Error('db read failed'));
+
+      await expect(getProductDetail(dbPool, 7)).rejects.toThrow('db read failed');
+      expect(connection.release).toHaveBeenCalledTimes(1);
     });
   });
 });
