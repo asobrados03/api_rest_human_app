@@ -253,6 +253,19 @@ describe('Integración - User API completa', () => {
     expect(res.body).toEqual({ error: 'Documento no encontrado' });
   });
 
+
+  it('GET /api/mobile/users/:id/documents/:filename -> 500 cuando falla infraestructura de filesystem', async () => {
+    const accessSpy = jest.spyOn(fs.promises, 'access').mockRejectedValueOnce(Object.assign(new Error('permission denied'), { code: 'EACCES' }));
+
+    try {
+      const res = await withAuth(request(app).get('/api/mobile/users/1/documents/bloqueado.pdf'));
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Error de infraestructura al acceder al documento' });
+    } finally {
+      accessSpy.mockRestore();
+    }
+  });
+
   it('GET /api/mobile/users/:id/documents/:filename -> 200 y descarga archivo existente', async () => {
     const docsDir = path.join(process.cwd(), 'uploads', 'users', 'documents', '1');
     const filePath = path.join(docsDir, 'qa-doc.txt');

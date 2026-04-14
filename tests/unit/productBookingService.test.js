@@ -183,5 +183,41 @@ describe('Unit - product-booking service', () => {
       expect(connection.rollback).toHaveBeenCalledTimes(1);
       expect(connection.release).toHaveBeenCalledTimes(1);
     });
+
+
+    it('hace rollback si falla el commit de la transacción', async () => {
+      const connection = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn().mockRejectedValue(new Error('commit failed')),
+        rollback: jest.fn(),
+        release: jest.fn()
+      };
+      const db = { getConnection: jest.fn().mockResolvedValue(connection) };
+      mockRepo.findExistingBooking.mockResolvedValue([]);
+      mockRepo.findActiveProduct.mockResolvedValue({
+        active_product_id: 10,
+        payment_method: 'card',
+        payment_status: 'paid',
+        type_of_product: 'single',
+        total_session: 5,
+        service_session_override: 0
+      });
+      mockRepo.countTotalBookings.mockResolvedValue(0);
+      mockRepo.insertBooking.mockResolvedValue(123);
+
+      await expect(reserveSessionService({
+        customer_id: 1,
+        coach_id: 2,
+        session_timeslot_id: 3,
+        service_id: 4,
+        product_id: 5,
+        start_date: '2026-04-10',
+        status: 'active',
+        db
+      })).rejects.toThrow('commit failed');
+
+      expect(connection.rollback).toHaveBeenCalledTimes(1);
+      expect(connection.release).toHaveBeenCalledTimes(1);
+    });
   });
 });

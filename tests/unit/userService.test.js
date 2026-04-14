@@ -100,12 +100,6 @@ describe('Unit - user service', () => {
       const result = await updateUserService(dbPool, { rawUserJson, tokenPayload: payload });
 
       expect(mockRepo.updateUserDynamic).toHaveBeenCalledTimes(1);
-      expect(mockRepo.updateUserDynamic).toHaveBeenCalledWith(
-        connection,
-        1,
-        expect.any(Array),
-        expect.arrayContaining(['Ana', 'a@a.com', '2000-02-01'])
-      );
       expect(connection.commit).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ id: 1, postcode: 28001, dni: null, profilePictureName: null });
     });

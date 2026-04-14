@@ -9,7 +9,10 @@ const DAY_TOKEN_TO_ALIAS = {
     sat: 'sat', saturday: 'sat', sab: 'sat', sabado: 'sat', sábado: 'sat', '6': 'sat', '06': 'sat',
 };
 
-export const stripDiacritics = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+export const stripDiacritics = (value = '') => {
+    if (value === null || value === undefined) return '';
+    return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
 
 export const parseDayAliases = (value) => {
     const raw = stripDiacritics(String(value ?? '')).trim();
