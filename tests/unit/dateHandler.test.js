@@ -18,7 +18,7 @@ describe('Unit - date handler utils', () => {
 
     it('convierte null/undefined a string sin romper', () => {
       expect(stripDiacritics(undefined)).toBe('');
-      expect(stripDiacritics(null)).toBe('null');
+      expect(stripDiacritics(null)).toBe('');
     });
   });
 
@@ -60,6 +60,11 @@ describe('Unit - date handler utils', () => {
       const result = parseDayAliases('Mon, tue, Xday, sáb');
       expect(result).toEqual(new Set(['mon', 'tue', 'sat']));
     });
+
+    it('tolera nombres internacionales y abreviaturas en distintos formatos', () => {
+      const result = parseDayAliases('LUNES, Wednesday, sáb, THU');
+      expect(result).toEqual(new Set(['mon', 'wed', 'sat', 'thu']));
+    });
   });
 
   describe('matchesDayAlias', () => {
@@ -89,6 +94,16 @@ describe('Unit - date handler utils', () => {
     it('calcula el alias en UTC (independiente del timezone de entrada)', () => {
       // 2026-03-30T02:30:00.000Z => lunes en UTC aunque el input venga con offset -05:00
       expect(getDayAliasForDate('2026-03-29T21:30:00-05:00')).toBe('mon');
+    });
+
+    it('resuelve fin de mes correctamente en UTC', () => {
+      expect(getDayAliasForDate('2026-03-31T23:59:59.999Z')).toBe('tue');
+      expect(getDayAliasForDate('2026-04-01T00:00:00.000Z')).toBe('wed');
+    });
+
+    it('mantiene resultado estable en cambio horario (DST) con offsets distintos', () => {
+      expect(getDayAliasForDate('2026-03-08T01:30:00-05:00')).toBe('sun');
+      expect(getDayAliasForDate('2026-11-01T01:30:00-04:00')).toBe('sun');
     });
   });
 });

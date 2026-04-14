@@ -44,12 +44,18 @@ router.get('/users/:userId/documents/:filename', verifyToken, async (req, res) =
         return res.download(filePath, (err) => {
             if (err) {
                 logger.error({ err }, 'Error al descargar archivo:')
-                return res.status(404).json({ error: 'Error al descargar el documento' })
+                if (err.code === 'ENOENT') {
+                    return res.status(404).json({ error: 'Documento no encontrado' })
+                }
+                return res.status(500).json({ error: 'Error al descargar el documento' })
             }
         })
     } catch (err) {
         logger.error({ err }, 'Error al acceder al documento:')
-        return res.status(404).json({ error: 'Documento no encontrado' })
+        if (err.code === 'ENOENT') {
+            return res.status(404).json({ error: 'Documento no encontrado' })
+        }
+        return res.status(500).json({ error: 'Error de infraestructura al acceder al documento' })
     }
 })
 

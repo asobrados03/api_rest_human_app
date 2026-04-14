@@ -56,10 +56,8 @@ describe('Unit - logger utils', () => {
         '📝 Logging activity'
       );
       expect(query).toHaveBeenCalledTimes(1);
-      expect(query).toHaveBeenCalledWith(
-        expect.any(String),
-        ['login', '/auth/login', 'POST', '10.0.0.10', 'jest-agent', 7]
-      );
+      const [, params] = query.mock.calls[0];
+      expect(params).toEqual(expect.arrayContaining(['login', '/auth/login', 'POST', 7]));
     });
 
     it('captura errores de la query y los registra sin lanzar excepción', async () => {

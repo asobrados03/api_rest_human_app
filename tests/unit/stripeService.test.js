@@ -162,6 +162,17 @@ describe('Unit - stripe service', () => {
     });
   });
 
+
+    it('propaga errores transitorios de Stripe sin ocultarlos', async () => {
+      mockStripe.paymentIntents.create.mockRejectedValue(new Error('stripe timeout'));
+
+      await expect(createPaymentIntent({
+        amount: 8,
+        customerId: 'cus_1',
+        metadata: {}
+      })).rejects.toThrow('stripe timeout');
+    });
+
   describe('createRefund', () => {
     it('crea refund total cuando no se especifica amount', async () => {
       mockStripe.refunds.create.mockResolvedValue({ id: 're_1' });
