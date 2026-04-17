@@ -159,4 +159,4 @@ Este repositorio incluye pruebas unitarias y de integración para validar casos 
 
 ## 📄 Licencia
 
-MIT. Ver `LICENSE`.
+Privativa. Ver `LICENSE`.
