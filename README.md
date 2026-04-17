@@ -1,7 +1,7 @@
 # API REST · Human Perform
 
 > Backend productivo para una app móvil de gestión deportiva (usuarios, reservas, productos y pagos).
-> Diseñado como proyecto parte de mi Trabajo de Final de Grado en un entorno realista simulado.
+> Diseñado como proyecto que forma parte de mi Trabajo de Final de Grado en un entorno realista simulado.
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
